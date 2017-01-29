@@ -1,12 +1,33 @@
 Fri 27 Jan 2017 09:26:55 AM EST
 
-* How many detached EBs are in the Kirk+ EB catalog (e.g., re-generate that
+==============================
+QUESTIONS
+1. How many detached EBs are in the Kirk+ EB catalog (e.g., re-generate that
 distribution from the Martin Fabrycky Mazeh paper)?
-
-* With what period distribution?
-
-* With what observing baseline?
-
+2. With what period distribution?
+3. With what observing baseline?
+4. With what transit depths? (i.e., what precision is necessary to make the
+detection?)
 --------------------
-
 Repeat above questions for what's looking like the HATN EB catalog.
+
+==============================
+ANSWERS:
+
+1. 1571 (4 yr each)
+2. See plots, e.g. kepler_eb_period_histogram_bigbins.pdf
+3. Each was observed for ~4 years ~continuously at ~30 minute cadence.
+
+Kepler dataset: 1461 days of continuous observation, for 1571 detached EBs.
+
+So this is 2.3 x 10^6 detached EB days of data
+
+==============================
+SAME QUESTIONS, BUT NOW FOR HAT DETACHED EB DATASET
+
+1. 1700 in the so-far set. (~30d each)
+2. See plots
+3. ~31d average baseline (assuming 4 minute cadence each).
+
+==============================
+
