@@ -1,0 +1,260 @@
+* Kepler binary system identification thru BEER. Find off-inclination systems. 
+Has anyone done this? The idea is obv not new. But _literature search_.
+Follow links thru Doyle paper. Possible authors: Mazeh, Armstrong, Triaud,
+Fabrycky.
+Mazeh like did on all the KOIs... but what about all 200k Kepler stars?
+
+==========================================
+
+http://adsabs.harvard.edu/abs/2014A%26A...570A..91M
+
+Martin, Triaud 10/2014:
+Planets transiting non-eclipsing binaries
+
+The majority of binary stars do not eclipse. Current searches for transiting
+circumbinary planets concentrate on eclipsing binaries, and are therefore
+restricted to a small fraction of potential hosts. We investigate the concept
+of finding planets transiting non-eclipsing binaries, whose geometry would
+require mutually inclined planes. Using an N-body code we explore how the
+number and sequence of transits vary as functions of observing time and orbital
+parameters. The concept is then generalised thanks to a suite of simulated
+circumbinary systems. Binaries are constructed from radial-velocity surveys of
+the solar neighbourhood. They are then populated with orbiting gas giants,
+drawn from a range of distributions. The binary population is shown to be
+compatible with the Kepler eclipsing binary catalogue, indicating that the
+properties of binaries may be as universal as the initial mass function. These
+synthetic systems produce transiting circumbinary planets occurring on both
+eclipsing and non-eclipsing binaries. Simulated planets transiting eclipsing
+binaries are compared with published Kepler detections. We find 1) that planets
+transiting non-eclipsing binaries are probably present in the Kepler data; 2)
+that observational biases alone cannot account for the observed over-density of
+circumbinary planets near the stability limit, which implies a physical
+pile-up; and 3) that the distributions of gas giants orbiting single and binary
+stars are likely different. Estimating the frequency of circumbinary planets is
+degenerate with the spread in mutual inclination. Only a minimum occurrence
+rate can be produced, which we find to be compatible with 9%. Searching for
+inclined circumbinary planets may significantly increase the population of
+known objects and will test our conclusions. Their presence, or absence, will
+reveal the true occurrence rate and help develop circumbinary planet formation
+theories.
+
+NOTES ON HOW TO FIND NON-ECLIPSING BINARIES / CBPs (from Martin & Triaud 2014):
+
+Assume we want to identify the non-eclipsing EB first:
+
+1) Reconnaissance spectra of the Kepler field should already have found many
+double line binaries. (And likely threw them out for planet searches)
+
+2) Ellipsoidal, reflection, & beaming effects are viable for P<~20d Kepler LCs.
+
+Ignore the thought of trying to identify non-eclipsing EBs. 
+
+3) Just search the Kepler data without a-priori binary knowledge. Focus on
+algorithms for single transit/conjunction identification. [Via modifying DFM
+long period search routine]. Perhaps insist on >=2 events to lower FP rate.
+Insist on transits which give densities compatible w/ the stellar components.
+
+4) Use Gaia data to find the non-eclipsing EBs. 
+
+BEWARE:
+* Applying a quasi-periodic transit signal criterion to find & confirm planets
+"severely restricts the number of objects that can be find, and biases them
+towards coplanarity"
+
+
+#####################
+
+Any search for non-eclipsing binaries w/ BEER-like capability would _certainly_
+cite this paper. It has ~19 citations right now. Read thru them:
+
+http://adsabs.harvard.edu/cgi-bin/nph-ref_query?bibcode=2014A%26A...570A..91M&amp;refs=CITATIONS&amp;db_key=AST
+
+Yeah NONE Of them are systematically identifying these non-eclipsing binaries.
+
+#####################
+
+https://arxiv.org/pdf/1610.08471v2.pdf
+
+Klagyivik, Deeg, Cabrera, Csizmadia, Alemnara, 11/2016
+Limits to the presence of transiting circumbinary planets in CoRoT data
+
+2007-12. 2k EBs. At a given magnitude, ~4x worse photometric noise.
+Observations between 30 and 180 days.
+
+Seems like COMBINING the COROT & HAT datasets is an idea worth considering.
+This paper has 3 strong events at specific times.
+* Definitely worth looking at them (!)
+
+#####################
+
+June 2013.
+BEER paper 1: Discovery of Kepler 76b, HJ w/ evidence of superrotation.
+Faigler, Tal-Or, Mazeh, Latham, Buchhave.
+
+Faigler+ (2012) RV confirmations of 7 non-eclipsing short-period binary systems
+in the Kepler field.
+
+* Cleaning and detrending is an essential first step.
+
+* Applied BEER algorithm to ~42k stars, with K<13.7, and R_star_KIC < 4Rsun.
+
+* Trick: divide up power spectrum into subranges to identify interesting
+peaks (avoids obnoxious long period terms)
+
+* This work: focused on sub stellar mass companion search. So temporarily set
+aside the larger stellar mass companions
+
+* Kepler 76 is an EB system. The BEER analysis did not mask out the transits or
+occultations, instead identifying the outliers on the _unmasked_ data using "a
+robust-fit function" (Holland & Welsch 1977).
+
+* You can't see the modulation in the LC by eye. But phase-folded over 800 days
+(n.b. dataset now 2x longer), you can get some interesting stuff.
+
+* Spectroscopic follow-up was necessary for purpose of confirming that it 
+wasn't a signal from stellar variability.
+
+#####################
+
+Faigler et al. (2012), ApJ
+SEVEN NEW BINARIES DISCOVERED IN THE KEPLER LIGHT CURVES THROUGH THE BEER
+METHOD CONFIRMED BY RADIAL-VELOCITY OBSERVATIONS
+
+* Ran the BEER algorithm to 14,685 stars brighter than 13th mag,
+w/ KIC Rstar<3Rsun.
+
+* Calculating the BEER periodogram (Faigler & Mazeh 2011) with period range of 
+0.5–20 days for each star.
+ 
+* Identified the periodograms whose highest peak was at least three times 
+higher than the next highest one. For these stars used the peak period 
+to estimate the system secondary mass and radius, assuming the periodicity is 
+induced by a secondary star. 
+
+* Then selected 25 candidates with secondary mass smaller than 0.5 Msun and 
+implied albedo smaller than 0.4, suggesting a significant probability for a 
+low-mass companion.
+
+* Followed up candidates w/ RV observations
+
+* "In a forthcoming paper, we will report on the false alarm cases and 
+analyze the false alarm frequency of our candidates."
+
+* "Stellar modulations that now contribute to the FAP are not expected to be so
+stable on timescales of years, whereas the three BEER effects are strictly
+periodic and stable"
+
+--> IDEA being to e.g., run BEER on different splits of the Kepler LCs. E.g.,
+run it on first half, middle-half (1/4 to 3/4), last half. Derived periods
+should not drastically differ.
+
+#####################
+
+Faigler et al. (2015), ApJ
+BEER ANALYSIS OF KEPLER AND COROT LIGHT CURVES. IV. DISCOVERY OF FOUR NEW
+LOW-MASS WHITE DWARF COMPANIONS IN THE KEPLER DATA.
+
+* Adapted BEER search algorithm to identify compact object companions. Ran it
+on ~40k stars with K<13.5mag.
+
+This adaptation: assigns to each LC a likelihood that the star hosts a compact
+companioon, and idetnfies the inferior conjunction from the amplitudes and
+phases of the BEER modulation.
+
+* To _MINIMIZE_ data preparation stages, reanalyzed the Kepler LCs post-BEER
+run via:
+1) remove data segments w/ instrumental artifacts (Faigler+ 2013)
+2) subtract a third light constant from each quarter's data using its LC
+crowding ratio (Jenkins+ 2010)
+3) remove long-term trends by a _SINGLE_ simultaneous robust linear fit to the
+data after masking out eclipses.
+Simultaneous fit has 4 sets of functions:
+  i) long-term cosine detrend fucntions of periods down to 2x P_orb
+  ii) BEER cosine and sine functions ofthe first four orbital period harmonics
+  iii) jump functions at predefined Kepler times (Faigler+ 2013)
+  iv) high-frequency stellar activity sine and cosine funcitons.
+
+
+#####################
+
+Butters et al. (2010)
+
+Uhm... super-WASP data from 2004 to 2008 is PUBLIC. This might ~double the
+number of detectable EBs w/ HAT LCs. (A related thing to search: are there
+catalogs of EBs known from WASP?)
+
+http://exoplanetarchive.ipac.caltech.edu/docs/SuperWASPUsage.html
+http://exoplanetarchive.ipac.caltech.edu/docs/API_superwasptimeseries_columns.html
+
+#####################
+
+Placek, Knuth, Angerhausen (SUNY), (2014)
+EXONEST: BAYESIAN MODEL SELECTION APPLIED TO THE DETECTION AND CHARACTERIZATION
+OF EXOPLANETS VIA PHOTOMETRIC VARIATIONS
+
+* Doing BEERS, but claims to sometimes be able to distinguish btwn reflection
+and thermal emission.
+
+* Synthetic data mostly, but also an application on KOI-13b
+
+* Good analytic description of the method & assumptions (likely far more
+explicit than Faigler&Mazeh 2011)
+
+* Uses MultiNest // some form of "nested sampling" rather than a direct MCMC
+approach to sample across parameters that affect the likelihood
+
+* Claims algorithm/implementation to be released publicly
+
+#####################
+
+BEER PAPER 3: SPECTROSCOPIC CONFIRMATION OF SEVENTY NEW BEAMING BINARIES
+DISCOVERED IN COROT LIGHT CURVES
+
+* Zucker+ 2007: prediction that hundreds of non-eclipsing EBs will be
+detectable thru beaming
+
+** good method description (worth basing say, a Kepler analysis on)**
+
+* This paper: RV confirmation of 70 beaming binaries found via BEER 
+
+* 481 candidates for RV followup flagged from BEER search (visually).
+
+* Periods ranging from 0.1-17 days. 0.5-87mmag in photometric amplitudes.
+
+* Observed 281 of the 481 candidates w/ a multifiber spectrograph (AAOmega)
+N.b. using a multifiber is a really good idea for quick observations (these
+were all done over ~7 nights)
+
+* For spectroscopic confirmation, did frequentist model comparison (computing
+two Χ^2 statistics: constant RV star vs orbital solution)
+
+* False Alarm Rates + Sensitivity (in COROT data):
+a) Below 0.25Msun secondary Msini, pretty bad
+b) FAP not a strong function of period, but OFC sensitivity is, especially w/
+COROT LCs.
+
+Conclude by noting:
+*"Mering well-corrected large samples of COROT and Kepler beaming binaries with
+equivalent EB samples, e.g., KEBC, might create large and well-defined samples
+of short-P binaries, which might shed light on binary formation & evolution."
+
+#####################
+
+SHPORER: KEPLER HEARTBEAT STAR RV FOLLOWUP (2016) ApJ
+
+Discovers that heartbeat stars TRACE the eccentricity-period envelope.
+
+The idea then being that if you can measure the eccentricity & period of a
+large sample of these as a function of _age_ (e.g., by searching thru open
+clusters), you can learn something about tidal circularization timescales.
+
+
+#####################
+
+Martin: Placing limits on the TTVs of circumbinary exoplanets (MNRAS 2013)
+
+Derives equations that can be used to set the parameters Δ_min and Δ_max in the
+QATS search algorithm (Cartin&Agol, 2013).
+
+Applicable in regime of no mutual inclination btwn planet and binary orbits.
+
