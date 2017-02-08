@@ -258,3 +258,58 @@ QATS search algorithm (Cartin&Agol, 2013).
 
 Applicable in regime of no mutual inclination btwn planet and binary orbits.
 
+
+##########################################
+##########################################
+
+Okay. All of the above was more or less directed by the question of whether
+BEER analysis on the whole Kepler dataset, and a subsequent search for CBPs
+orbiting non-eclipsing binaries, would be worthwhile.
+
+Looks like quite likely, yes. (No one has done it, and such CBPs are almost
+certain to exist in the data given the rate about eclipsing binaries).
+
+Consider, at the behest of GB, another three questions:
+
+1) what papers are making the claim that the lack of CBPs about P<5d
+binaries is significant?
+
+Theory:
+Formation mechanism of short-period binaries + CBP stability
+* Martin, Mazeh, Fabrycky (2015) MNRAS
+* Munoz & Lai (2015) PNAS
+* Hamers et al. (2016) MNRAS.
+(all three of above say: the KL cycles + TF forming the close binary make it
+difficult for the CBP to be there.)
+
+Transit probability:
+* Li, Holman, Tao (2016). 
+  Find that the transit probability of misaligned short-period EB systems is 
+  similar to that of aligned long-period EB systems, if the planet is located 
+  near the stability limit.
+  If the planet survives during the short-period EB formation process, theory
+  says it likely winds up on a mutually inclined orbit (which greatly diminishes
+  probability of transit).
+
+Actual experimental measurement of CBP occurrence rate:
+* Armstrong, D.J. (2014) MNRAS "on the abundance of circumbinary planets"
+
+On tertiary companions of close binaries:
+(Timing:)
+* Gies, D.R. et al. (2015) AJ: "Kepler Eclipsing Binaries with Stellar Companions"
+* Borkovits et al. (2016) MNRAS "Comprehensive study of Kepler triples via
+  eclipse timing"
+(Spectroscopy:)
+* Tokovinin et al. (2007): "Tertiary companions to close spectroscopic
+  binaries".
+  Fig 14. is a _killer_. P~2d, 95% chance there's a tertiary companion. P~4d,
+  it's a 70% chance. """...essentially all very close SBs are members of
+  higher-order systems. The KCTF is most likely responsible for shortening SB
+  periods during their life on the Main Sequence."""
+
+
+
+
+2) **how detailed was the associated data analysis?**
+3) would it be worth the ~few months to catch up and say "yeah, it's legit"?
+

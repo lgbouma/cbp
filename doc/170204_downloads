@@ -1,0 +1,63 @@
+Sat 04 Feb 2017 02:12:00 PM EST
+
+Kepler EB catalog is v3 as published on the villanova site.
+
+K2 variable catalog is from https://archive.stsci.edu/prepds/k2varcat/.
+Specifically, the catalog IDs are from
+https://archive.stsci.edu/missions/hlsp/k2varcat/hlsp_k2varcat_k2_lightcurve_c00-c04_kepler_v2_catalog.csv
+
+The columns in the latter catalog are: 
+* EPIC ID
+* Campaign Number
+* Most Likely Class (class with highest probability)
+* Prob. of Delta Scuti Class
+* Prob. of Detached Eclipsing Binary (EA) Class
+* Prob. of Semi-Detached/Contact Eclipsing Binary (EB) Class
+* Prob. of Gamma Dor Class
+* Prob. of Non-Variable (NOISE) Class
+* Prob. of Other Periodic/Quasi-Periodic (OTHPER) Class
+* Prob. of RR Lyrae ab Class
+* Anomaly Score (higher score = not well-described by training set, i.e., likely
+  outlier)
+
+Following the Armstrong et al. (2016) abstract:
+"""
+We apply this method to data from the K2 mission fields 0-4, finding 154
+ab-type RR Lyraes (10 newly discovered), 377 δ Scuti pulsators, 133 γ Doradus
+pulsators, 183 detached eclipsing binaries, 290 semidetached or contact
+eclipsing binaries and 9399 other periodic (mostly spot-modulated) sources,
+once class significance cuts are taken into account.
+"""
+
+The semidetached or contact EBs.
+
+----------
+
+Ok, cute wranling and barcharts are in /notebooks/k2varcat_wrangle.ipynb.
+
+However https://archive.stsci.edu/k2/hlsp/k2varcat/search.php lets us do the
+same things, and directly gives us wget scripts to download the lightcurves
+(it's not clear whether there are other direct ways?).
+
+
+==========
+What about for the KEBC data?
+
+Looks like they don't put out nice wget scripts.
+
+The relevant search query is:
+
+http://keplerebs.villanova.edu/results/?q=%7B%22sort%22:%22p%22,%22kics%22:[],%22campaign%22:[%22-2%22],%22etvlong%22:true,%22morph%22:%7B%22min%22:0.6%7D,%22cols%22:[%22glon%22,%22scdata%22,%22mast%22,%22bjd0%22,%22morph%22,%22glat%22,%22kic%22,%22lcdata%22,%22keff%22,%22p%22,%22figs%22,%22bjd0err%22,%22perr%22,%22kmag%22],%22etvshort%22:true,%22incat1%22:true,%22kois%22:[]%7D&format=html&perpage=all
+
+which produces 1027 results.
+
+All the links to download the appropriate LCs are on this page.
+
+The best plan I think is to use something like requests.get(this_url) (see hat
+src scripts) on the urls from this page.
+
+This may simply use a list of KIC IDs, e.g., from the jupyter notebook that
+i've written
+
+Sat 04 Feb 2017 04:07:09 PM EST out for now (b/c I should be doing other
+things)
