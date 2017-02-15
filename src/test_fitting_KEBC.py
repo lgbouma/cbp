@@ -16,7 +16,8 @@ the magnitude time series.
 the magnitude time series.
 3) astrobase.varbase.lcfit's savgol_fit_magseries: apply a Savitzky-Golay
 filter to the magnitude time series.
-4) High order Legendre polynomial.
+4) astrobase.varbase.lcfit.legendre_fit_magseries: fit a high order Legendre
+polynomial.
 
 Any of 1-4, iteratively.
 
@@ -59,7 +60,7 @@ def get_kepler_ebs_info():
 
 
 def _fits(times, mags, errs, ix, period, fourierpath, splinepath, sgpath,
-        diagnosticplots=True):
+        legpath, diagnosticplots=True):
     '''
     Run the fitting subroutines.
 
@@ -71,7 +72,7 @@ def _fits(times, mags, errs, ix, period, fourierpath, splinepath, sgpath,
     '''
 
     if not diagnosticplots:
-        fourierpath, splinepath, sgpath = False, False, False
+        fourierpath, splinepath, sgpath, legpath = False, False, False, False
 
     #fit a fourier series to the magnitude time series (default 8th order)
     if not os.path.exists(fourierpath) or not diagnosticplots:
@@ -132,17 +133,27 @@ def _fits(times, mags, errs, ix, period, fourierpath, splinepath, sgpath,
             except:
                 print('error in {:d} (savgol). Continue.'.format(ix))
 
-    return [fdict, spdict, sgdicts[0], sgdicts[1], sgdicts[2]]
+    #fit a high order legendre series to the magnitude time series
+    if not os.path.exists(legpath) or not diagnosticplots:
+        try:
+            legdict = lcf.legendre_fit_magseries(
+                times,mags,errs,
+                period,
+                legendredeg=80,
+                sigclip=6.0,
+                plotfit=legpath,
+                isnormalizedflux=True)
+            print('{:d}'.format(ix))
+
+        except:
+            print('error in {:d} (legendre). Continue.'.format(ix))
+
+
+    return [fdict, spdict, sgdicts[0], sgdicts[1], sgdicts[2], legdict]
 
 
 def _residual_plots(dicts, titleinfo):
 
-    #TODO: could add a "fitdiagnostics" dictionary inside each dictionary in
-    #dicts. This would keep track of fourierorder/nknots/windowlength/polydeg
-    #etc as appropriate, so that when iteratively fitting + reducing, we'd
-    #be able to keep track of what operations we're doing.
-
-    #fdict, sdict, sgdict = dicts[0], dicts[1], dicts[2]
     dtitles= [
         'fourier series. order: {:d}\n$\chi^2$: {:.3g}, red$\chi^2$: {:.3g}'.format(
         int(dicts[0]['fitinfo']['fourierorder']), dicts[0]['fitchisq'], dicts[0]['fitredchisq']),
@@ -153,7 +164,9 @@ def _residual_plots(dicts, titleinfo):
         'savitzky-golay. windowlen: {:d}\npolydeg: {:d}, $\chi^2$: {:.3g}, red$\chi^2$: {:.3g}'.format(
         dicts[3]['fitinfo']['windowlength'], dicts[3]['fitinfo']['polydeg'],dicts[3]['fitchisq'],dicts[3]['fitredchisq']),
         'savitzky-golay. windowlen: {:d}\npolydeg: {:d}, $\chi^2$: {:.3g}, red$\chi^2$: {:.3g}'.format(
-        dicts[4]['fitinfo']['windowlength'], dicts[4]['fitinfo']['polydeg'],dicts[4]['fitchisq'],dicts[4]['fitredchisq'])
+        dicts[4]['fitinfo']['windowlength'], dicts[4]['fitinfo']['polydeg'],dicts[4]['fitchisq'],dicts[4]['fitredchisq']),
+        'legendre series. order: {:d}\n$\chi^2$: {:.3g}, red$\chi^2$: {:.3g}'.format(
+        dicts[5]['fitinfo']['legendredeg'], dicts[5]['fitchisq'], dicts[5]['fitredchisq'])
         ]
 
     plt.close('all')
@@ -463,7 +476,7 @@ def _visualize_worst_fits(dicts, titleinfo, N=10):
     print('Done plotting fit_residual_visualization.')
 
 
-def fit_test():
+def fit_test(assess_residuals):
 
     kebc = get_kepler_ebs_info()
 
@@ -485,9 +498,11 @@ def fit_test():
         splinepath = splinedir + 'test_'+str(ebid)+'.png'
         sgdir = '../results/savgol_subtraction_diagnostics/'
         sgpath = sgdir + 'test_'+str(ebid)+'.png'
+        legdir = '../results/legendre_subtraction_diagnostics/'
+        legpath = legdir + 'test_'+str(ebid)+'.png'
 
         if os.path.exists(fourierpath) and os.path.exists(splinepath) \
-        and os.path.exists(sgpath):
+        and os.path.exists(sgpath) and os.path.exists(legpath):
             print('Found stuff in {:d}. Continue.'.format(ix))
             continue
 
@@ -518,11 +533,14 @@ def fit_test():
 
             # fourier series, univariate spline, savitzky-golay
             dicts = _fits(times, mags, errs, ix, period, fourierpath,
-                splinepath, sgpath, diagnosticplots=False)
+                splinepath, sgpath, legpath, diagnosticplots=False)
 
             # generate residual_diagnostics, and also update dicts to have
             # residuals as a key.
             dicts = _residual_plots(dicts, titleinfo)
+
+            if not assess_residuals:
+                continue
 
             # given the residual as a function of phase, get it as a residual as a
             # function of time. (N.b. this returns dicts in place).
@@ -540,8 +558,12 @@ def fit_test():
 
     print('\nDone testing fits.')
 
-    return dicts
+    try:
+        return dicts
+    except:
+        print('`dicts` never created. Check using appropriate test case.')
 
 
 if __name__ == '__main__':
-    dicts = fit_test()
+    assess_residuals = False
+    dicts = fit_test(assess_residuals)
