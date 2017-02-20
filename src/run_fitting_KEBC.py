@@ -543,7 +543,10 @@ def residual_fit(rd, fittype, period):
             print('error in legendre fit.')
 
 
-    return rdict
+    try:
+        return rdict
+    except:
+        return 0
 
 
 
@@ -557,7 +560,10 @@ def _iter_fit_residuals(dicts, period):
     newdicts = []
     for rd in dicts:
         nd = residual_fit(rd, rd['fittype'], period)
-        newdicts.append(nd)
+        if nd == 0:
+            return 0
+        else:
+            newdicts.append(nd)
 
     return newdicts
 
@@ -674,6 +680,12 @@ def fit_test(assess_residuals, iterative_fitting):
         sgpath = sgdir + 'test_'+str(ebid)+'.png'
         legdir = '../results/legendre_subtraction_diagnostics/'
         legpath = legdir + 'test_'+str(ebid)+'.png'
+        iterdir = '../results/iterresidual_diagnostics/'
+        iterpath = iterdir+str(ebid)+'.png'
+
+        if iterative_fitting and os.path.exists(iterpath):
+            print('ebid {:s}. Found iterresidual, continue.'.format(str(ebid)))
+            continue
 
         if os.path.exists(fourierpath) and os.path.exists(splinepath) \
         and os.path.exists(sgpath) and os.path.exists(legpath):
@@ -715,7 +727,14 @@ def fit_test(assess_residuals, iterative_fitting):
 
             if iterative_fitting:
                 newdicts = _iter_fit_residuals(dicts, period)
-                _iter_residual_plots(dicts, newdicts, titleinfo)
+                if newdicts == 0:
+                    f = open('../results/iterresidual_diagnostics/'+
+                             str(ebid)+'.png', 'w')
+                    f.close()
+                    print('Error in _iter_fit_residuals. Touch + continue.')
+                    continue
+                else:
+                    _iter_residual_plots(dicts, newdicts, titleinfo)
 
             if not assess_residuals:
                 continue
