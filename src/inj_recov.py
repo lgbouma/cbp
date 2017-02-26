@@ -10,7 +10,7 @@ from astrobase import astrokep, periodbase
 import numpy as np, matplotlib.pyplot as plt
 from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
-    sum as npsum
+    sum as npsum, array as nparr
 from numpy.polynomial.legendre import Legendre, legval
 
 from astropy.io import ascii
@@ -647,6 +647,56 @@ def run_periodogram(dat, qnum, pertype='pdm'):
     return dat
 
 
+def _select_eb_period(lcd, rtol=1e-1):
+    '''
+    Select the "correct" EB period for each quarter given the periodogram
+    information and the KEBC information.
+    Logic:
+    For a given quarter:
+        If within 10% of KEBC period, take the periodogram period.
+        Else, look for periods in the best 5 from the periodogram that are
+        within 10% of the KEBC period. If there is only one, take that one
+        period.
+        Otherwise, use the KEBC period.
+
+    Args:
+        rtol: relative tolerance for accepting close periods from periodogram
+
+    Returns:
+        lcd[qnum]['per'] with 'selperiod' and 'selforcedkebc' keys. These give
+        the selected period (float) and a string that takes values of either
+        ('forcedkebc','switch','correct') for cases when we were forced to take
+        the period from the KEBC, where given the KEBC value we switched to a
+        different peak in the periodogram, or when the periodogram got it right
+        on the first try.
+    '''
+
+    kebc_period = nparr(float(lcd[1]['kebwg_info']['period']))
+
+    for k in lcd.keys():
+
+        my_period = nparr(lcd[k]['per']['bestperiod'])
+        my_periods = nparr(lcd[k]['per']['nbestperiods'])
+
+        rightperiod = npabs(my_period - kebc_period)/npabs(kebc_period) <= rtol
+
+        if rightperiod:
+            lcd[k]['per']['selperiod'] = my_period
+            lcd[k]['per']['selforcedkebc'] = 'correct'
+
+        else:
+            sel = npabs(my_periods - kebc_period)/npabs(kebc_period) <= rtol
+
+            if not np.any(sel) or len(sel[sel==True]) > 1:
+                lcd[k]['per']['selperiod'] = kebc_period
+                lcd[k]['per']['selforcedkebc'] = 'forcedkebc'
+
+            else:
+                lcd[k]['per']['selperiod'] = float(my_period[sel])
+                lcd[k]['per']['selforcedkebc'] = 'switch'
+
+    return lcd
+
 
 
 def whiten_allquarters(lcd):
@@ -664,7 +714,22 @@ def whiten_allquarters(lcd):
 
 
 def whiten_lightcurve(lcd):
-    pass
+
+    #fit a high order legendre series to the magnitude time series
+    if not os.path.exists(legpath) or not diagnosticplots:
+        try:
+            legdict = lcf.legendre_fit_magseries(
+                times,mags,errs,
+                period,
+                legendredeg=80,
+                sigclip=6.0,
+                plotfit=legpath,
+                isnormalizedflux=True)
+            print('{:d}'.format(ix))
+
+        except:
+            print('error in {:d} (legendre). Continue.'.format(ix))
+
 
 def save_lightcurve_data(lcd):
     pass

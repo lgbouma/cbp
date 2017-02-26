@@ -16,6 +16,7 @@ def three_lc_check():
         ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
 
         lcd = ir.run_periodograms_allquarters(lcd)
+        lcd = ir._select_eb_period(lcd)
         #TODO
         lcd = ir.whiten_allquarters(lcd)
 
@@ -34,8 +35,10 @@ if __name__ == '__main__':
     #ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
 
     lcd = ir.run_periodograms_allquarters(lcd)
-    #lcd = ir.whiten_allquarters(lcd)
+    lcd = ir._select_eb_period(lcd)
+    lcd = ir.whiten_allquarters(lcd)
 
+    ir.save_lightcurve_data(lcd)
 
 
 
