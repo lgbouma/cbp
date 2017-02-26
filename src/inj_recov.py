@@ -6,7 +6,7 @@ Short period search:
 
 import os
 import pdb
-from astrobase import astrokep
+from astrobase import astrokep, periodbase
 import numpy as np, matplotlib.pyplot as plt
 from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
@@ -186,7 +186,7 @@ def orosz_style_flux_vs_time(lcdat, flux_to_use='sap'):
     f.tight_layout()
 
     savedir = '../results/colored_flux_vs_time/'
-    plotname = str(keplerid)+'_'+flux_to_use+'.png'
+    plotname = str(keplerid)+'_'+flux_to_use+'_os.png'
     f.savefig(savedir+plotname, dpi=300)
 
 
@@ -243,9 +243,31 @@ def get_all_quarters_lc_data(kicid):
         quarter_number = np.unique(lcd['quarter'])
         assert len(quarter_number)==1, 'Expect each fits file to correspond '+\
             ' to a given quarter'
+        lcd['kebwg_info'] = get_kebwg_info(lcd['objectinfo']['keplerid'])
         rd[int(quarter_number)] = lcd
 
     return rd
+
+
+def get_kebwg_info(kicid):
+    '''
+    Given a KIC ID, get the EB period reported by the Kepler Eclipsing Binary
+    Working Group in v3 of their catalog.
+    '''
+    keb_path = '../data/kepler_eb_catalog_v3.csv'
+    #fast read
+    f = open('../data/kepler_eb_catalog_v3.csv', 'r')
+    ls = f.readlines()
+    thisentry = [l for l in ls if l.startswith(str(kicid))]
+    assert len(thisentry) == 1
+
+    cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
+    cols = cols.split(',')
+    thesevals = thisentry.pop().split(',')[:-1]
+
+    kebwg_info = dict(zip(cols, thesevals))
+
+    return kebwg_info
 
 
 def _legendre_dtr(times, fluxs, errs, legendredeg=10):
@@ -502,3 +524,147 @@ def normalize_allquarters(lcd):
     return rd
 
 
+
+def run_periodograms_allquarters(lcd):
+    '''
+    Wrapper to run_periodogram, to run for all quarters.
+    Saves periodogram results to keys `lcd[qnum]['per']['sap']['*']`.
+    '''
+
+    rd = {}
+    for k in lcd.keys():
+        rd[k] = run_periodogram(lcd[k], k, 'pdm')
+
+    return rd
+
+
+
+def run_periodogram(dat, qnum, pertype='pdm'):
+    '''
+    Given normalized, detrended fluxes, this function computes periodograms of
+    choice. Most importantly in the context of being able to subsequently
+    whiten, it also finds the maximum of the periodogram, and calls that the
+    "period", presumably of the EB (which has already been identified by the
+    KEBWG).
+
+    This primarily wraps around astrobase.periodbase's routines.
+
+    Args:
+        dat (dict): the dictionary returned by astrokep.read_kepler_fitslc (as
+        described above), post-normalization & detrending.
+        pertype (str): periodogram type. 'pdm', 'bls', and 'lsp' are accepted
+        for Stellingwerf phase dispersion minimization, box least squares, and
+        a generalized Lomb-Scargle periodogram respectively. (See astrobase
+        for details).
+
+    Returns:
+        dat (dict): dat, with the periodogram information in a sub-dictionary,
+        accessible as dat['per'], which gives the
+        dictionary:
+
+            per =
+                {'nbestlspvals':,
+                 'lspvals':,
+                 'method':,
+                 'nbestpeaks':,
+                 'nbestperiods':,
+                 'bestperiod':,
+                 'periods':,
+                 'bestlspval':}
+
+        which is all the important things computed in the periodogram.
+    '''
+
+    assert pertype=='pdm' or pertype=='bls' or pertype=='lsp'
+
+    for ap in ['sap','pdc']:
+
+        times = dat['dtr'][ap]['times']
+        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+        errs = dat['dtr'][ap]['errs_dtr_norm']
+
+        # Range of interesting periods (morph>0.7): 0.05days (1.2hr)-20days.
+        # BLS can only search for periods < half the light curve observing 
+        # baseline. (Nb longer signals are almost always stellar rotation)
+
+        if len(times) < 50 or len(fluxs) < 50:
+            LOGERROR('Got quarter with too few points. Continuing.')
+            continue
+
+        smallest_p = 0.05
+        biggest_p = min((times[-1] - times[0])/2.01, 20.)
+
+        if pertype == 'pdm':
+            pgd = periodbase.stellingwerf_pdm(times,fluxs,errs,
+                autofreq=True,
+                startp=smallest_p,
+                endp=biggest_p,
+                normalize=False,
+                stepsize=5.0e-5,
+                phasebinsize=0.05,
+                mindetperbin=9,
+                nbestpeaks=5,
+                periodepsilon=0.05, # 0.05 days
+                sigclip=None, # no sigma clipping
+                nworkers=None)
+
+        elif pertype == 'bls':
+            pgd = periodbase.bls_parallel_pfind(times,fluxs,errs,
+                startp=smallest_p,
+                endp=biggest_p, # don't search full timebase
+                stepsize=5.0e-5,
+                mintransitduration=0.01, # minimum transit length in phase
+                maxtransitduration=0.2,  # maximum transit length in phase
+                nphasebins=100,
+                autofreq=False, # figure out f0, nf, and df automatically
+                nbestpeaks=5,
+                periodepsilon=0.1, # 0.1 days
+                nworkers=None,
+                sigclip=None)
+
+        elif pertype == 'lsp':
+            pgd = periodbase.pgen_lsp(times,fluxs,errs,
+                startp=smallest_p,
+                endp=biggest_p,
+                autofreq=True,
+                nbestpeaks=5,
+                periodepsilon=0.1,
+                stepsize=1.0e-4,
+                nworkers=None,
+                sigclip=None)
+
+
+        if isinstance(pgd, dict):
+            LOGINFO('KIC ID %s, computed periodogram (%s) quarter %s. (%s)'
+                % (str(dat['objectinfo']['keplerid']), pertype, str(qnum), ap))
+        else:
+            LOGERROR('Error in KICID %s, periodogram %s, quarter %s (%s)'
+                % (str(dat['objectinfo']['keplerid']), pertype, str(qnum), ap))
+
+        dat['per'] = pgd
+
+
+    return dat
+
+
+
+
+def whiten_allquarters(lcd):
+    '''
+    Wrapper to whiten_lightcurve, to run for all quarters.
+    Saves whitened results to keys `lcd[qnum]['dtr']['sap']['w_*']`, for * in
+    (fluxs,errs,times,phases)
+    '''
+
+    rd = {}
+    for k in lcd.keys():
+        rd[k] = whiten_lightcurve(lcd[k], k)
+
+    return rd
+
+
+def whiten_lightcurve(lcd):
+    pass
+
+def save_lightcurve_data(lcd):
+    pass

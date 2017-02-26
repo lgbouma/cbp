@@ -4,60 +4,81 @@ import inj_recov as ir
 def main():
     pass
 
+def three_lc_check():
+    for s in [1111, 1234, 23948]:
+        np.random.seed(s)
+
+        lcd = ir.test_retrieve_lcs()
+        lcd = ir.detrend_allquarters(lcd)
+        lcd = ir.normalize_allquarters(lcd)
+
+        ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
+        ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
+
+        lcd = ir.run_periodograms_allquarters(lcd)
+        #TODO
+        lcd = ir.whiten_allquarters(lcd)
+
+        ir.save_lightcurve_data(lcd)
+
+
 if __name__ == '__main__':
-    #23948
-    #1111
-    #1234
+    #three_lc_check()
+
     np.random.seed(1234)
     lcd = ir.test_retrieve_lcs()
     lcd = ir.detrend_allquarters(lcd)
     lcd = ir.normalize_allquarters(lcd)
 
-    ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
-    ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
+    #ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
+    #ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
+
+    lcd = ir.run_periodograms_allquarters(lcd)
+    #lcd = ir.whiten_allquarters(lcd)
 
 
-    #TODO: implement sigclipping in reduction
+
 
 
 ######
-#NOTES#
+#TODO#
+######
 '''
-TODO: notice/implement
+*Detrend+normalize:
+    Match the KEBC detrending. As-is, I think I'm leaving in trends that are
+    too big.
+    Sigclip, somewhere
 
- astrokep.filter_kepler_lcdict: basically should do what's been implemented in
+*Run period finder:
+    SPDM phase-fold on the max period it finds
+
+*Subtract out normalized_dtr_flux(phase)
+
+*Plot whitened flux vs time
+
+*Matched-filter search for boxes on prewhitened flux.
+
+*Save the lightcurve data to not have to rerun slow periodograms
+
+
+astrokep.filter_kepler_lcdict: basically should do what's been implemented in
  `detrend_lightcurve`, and `normalize_lightcurve`.
 
- astrokep.find_lightcurve_gaps
+astrokep.find_lightcurve_gaps
 
  ALSO:
- lcmath.find_lc_timegroups -- basically an implementation of astrokep's
+lcmath.find_lc_timegroups -- basically an implementation of astrokep's
  find_lightcurve_gaps, already done.
 
 
 
- astrokep.stitch_lightcurve_gaps
+astrokep.stitch_lightcurve_gaps
 
- astrokep.keplerflux_to_keplermag
+astrokep.keplerflux_to_keplermag
 
-
- lcmath.sigclip_magseries -- can be rewritten with the appropriate
+lcmath.sigclip_magseries -- can be rewritten with the appropriate
  asymmetric sigma clipping.
 
- In varbase:
-- fourier_fit_magseries: fit an arbitrary order Fourier series to a
-                         magnitude/flux time series.
-- spline_fit_magseries: fit a univariate cubic spline to a magnitude/flux time
-                        series with a specified spline knot fraction.
-- savgol_fit_magseries: apply a Savitzky-Golay smoothing filter to a
-                        magnitude/flux time series, returning the resulting
-                        smoothed function as a "fit".
-- legendre_fit_magseries: fit a Legendre function of the specified order to the
-                          magnitude/flux time series.
-
- ALSO:
+ALSO:
  PyKE is also worth assessing.
-
- ALSO:
- What did the KEBC team do to detrend?
 '''
