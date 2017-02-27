@@ -3,58 +3,41 @@ import inj_recov as ir
 
 
 def N_lc_check(N, ors=True, whitened=True):
+    np.random.seed(42)
     seeds = np.random.randint(0, 99999999, size=N)
     for s in seeds:
         np.random.seed(s)
 
         lcd = ir.retrieve_random_lc()
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
-        dones = os.listdir('../results/whitened_diagnostic/')
-        matches = [f for f in dones if f.startswith(kicid)]
-        if len(matches)>0:
-            continue
 
-        lcd = ir.detrend_allquarters(lcd)
-        lcd = ir.normalize_allquarters(lcd)
-        lcd = ir.run_periodograms_allquarters(lcd)
-        lcd = ir.select_eb_period(lcd)
-        lcd = ir.whiten_allquarters(lcd)
-        kicid = ir.save_lightcurve_data(lcd, stage='pw')
+        pwdumpmatch = [f for f in os.listdir('../data/injrecov_pkl/') if
+                f.endswith('.p') and f.startswith(kicid)]
 
-        lcd = ir.load_lightcurve_data(kicid, stage='pw')
+        if len(pwdumpmatch) < 1:
 
-        if ors:
-            ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
-            ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
+            lcd = ir.detrend_allquarters(lcd, σ_clip=5.)
+            lcd = ir.normalize_allquarters(lcd)
+            lcd = ir.run_periodograms_allquarters(lcd)
+            lcd = ir.select_eb_period(lcd)
+            lcd = ir.whiten_allquarters(lcd, σ_clip=5.)
+            kicid = ir.save_lightcurve_data(lcd, stage='pw')
 
-        if whitened:
-            ir.whitenedplot(lcd, ap='sap')
-            ir.whitenedplot(lcd, ap='pdc')
+        else:
+            lcd = ir.load_lightcurve_data(kicid, stage='pw')
 
+            dones = os.listdir('../results/whitened_diagnostic/')
+            matches = [f for f in dones if f.startswith(kicid)]
+            if len(matches)>0:
+                continue
 
-def three_lc_check():
-    for s in [1111, 1234, 23948]:
-        np.random.seed(s)
+            if ors:
+                ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
+                ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
 
-        lcd = ir.retrieve_random_lc()
-        lcd = ir.detrend_allquarters(lcd)
-        lcd = ir.normalize_allquarters(lcd)
-        lcd = ir.run_periodograms_allquarters(lcd)
-        lcd = ir.select_eb_period(lcd)
-        lcd = ir.whiten_allquarters(lcd)
-        ir.save_lightcurve_data(lcd, stage='pw')
-
-
-def one_lc_check():
-    np.random.seed(1234)
-
-    lcd = ir.retrieve_random_lc()
-    lcd = ir.detrend_allquarters(lcd)
-    lcd = ir.normalize_allquarters(lcd)
-    lcd = ir.run_periodograms_allquarters(lcd)
-    lcd = ir.select_eb_period(lcd)
-    lcd = ir.whiten_allquarters(lcd)
-    ir.save_lightcurve_data(lcd, stage='pw')
+            if whitened:
+                ir.whitenedplot(lcd, ap='sap')
+                ir.whitenedplot(lcd, ap='pdc')
 
 
 def plots(os=False, whitened=True):
@@ -91,6 +74,8 @@ Immediate (Monday):
 * Add sigclip;
 * add "gapfind" to astrokep (e.g., from lcmath) (& drop points near gaps);
 * broader "whitening" (subtract more/all freqs);
+* better frequency resolution (longer on periodograms) might improve period
+resolution + the rate at which phase-folding breaks things?
 * harder whitened flux ylims
 * Debug random quarter number selection to be robust w/ N_lc_check
 

@@ -6,7 +6,7 @@ Short period search:
 
 import os
 import pdb
-from astrobase import astrokep, periodbase
+from astrobase import astrokep, periodbase, lcmath
 from astrobase.varbase import lcfit as lcf
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
@@ -119,6 +119,7 @@ def orosz_style_flux_vs_time(lcdat, flux_to_use='sap'):
     keplerid = lcdat[list(lcdat.keys())[0]]['objectinfo']['keplerid']
 
     colors = ['r', 'g', 'b', 'k']
+    plt.close('all')
     f, axs = plt.subplots(nrows=2, ncols=1, figsize=(20,10), sharex=True)
 
     for ix, quarter_number in enumerate(lcdat.keys()):
@@ -292,13 +293,14 @@ def whitenedplot(lcd, ap='sap'):
     # label axes, set xlimits for entire time series.
     timelen = max_time - min_time
 
+    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     ax_raw.get_xaxis().set_ticks([])
     ax_dtr.get_xaxis().set_ticks([])
     xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
     ax_raw.set(xlabel='', ylabel=ap+' flux\n[counts/s]',
-            xlim=[xmin,xmax],
-            title='KICID %s, %s, quality_flag>0, fit: n=10 legendre series.'
-            % (str(keplerid), ap))
+        xlim=[xmin,xmax],
+        title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.5f} day.'.format(
+        str(keplerid), ap, kebc_period) + ' (n=10 legendre series fit)')
     fitphasedeg = lcd[list(lcd.keys())[0]]['white']['sap']['fitinfo']['legendredeg']
     dtr_txt='Fit: n=%d legendre series to phase-folded by quarter.' \
         % (fitphasedeg)
@@ -317,12 +319,18 @@ def whitenedplot(lcd, ap='sap'):
             set(np.unique(np.sort(np.random.randint(1,len(lcd),size=ncols))))&\
             set(list(lcd.keys()))
             ))
-    while len(qnums) != 5:
-        newq = np.random.randint(1, len(lcd))
-        qnums = nparr(list(
-                set(np.unique(np.sort(np.insert(qnums, 0, newq))))&\
-                set(list(lcd.keys()))
-                ))
+    if len(lcd) < 5:
+        qnums = nparr(list(lcd.keys()))
+    else:
+        while len(qnums) != 5:
+            newq = np.random.randint(1, len(lcd))
+            qnums = nparr(list(
+                    set(np.unique(np.sort(np.insert(qnums, 0, newq))))&\
+                    set(list(lcd.keys()))
+                    ))
+    if len(lcd) < 5:
+        axs_pg = axs_pg[:len(lcd)]
+        axs_pf = axs_pf[:len(lcd)]
 
     for ix, ax in enumerate(axs_pg):
         qnum = qnums[ix]
@@ -372,7 +380,7 @@ def whitenedplot(lcd, ap='sap'):
                 transform=ax.transAxes)
 
         ax.get_xaxis().set_ticks([])
-        pf_txt = 'P: %.4f day, 0->1' % (selperiod)
+        pf_txt = 'P: %.6f day, 0->1' % (selperiod)
         ax.text(0.02, 0.02, pf_txt, horizontalalignment='left',
                 verticalalignment='bottom', transform=ax.transAxes)
         if ix == 0:
@@ -525,7 +533,7 @@ def _polynomial_dtr(times, fluxs, errs, polydeg=2):
 
 
 
-def detrend_allquarters(lcd):
+def detrend_allquarters(lcd, σ_clip=None):
     '''
     Wrapper for detrend_lightcurve that detrends all the quarters of Kepler
     data passed in `lcd`, a dictionary of dictionaries, keyed by quarter
@@ -534,7 +542,7 @@ def detrend_allquarters(lcd):
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = detrend_lightcurve(lcd[k])
+        rd[k] = detrend_lightcurve(lcd[k], σ_clip=σ_clip)
         LOGINFO('KIC ID %s, detrended quarter %s.'
             % (str(lcd[k]['objectinfo']['keplerid']), str(k)))
 
@@ -542,7 +550,8 @@ def detrend_allquarters(lcd):
 
 
 
-def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2):
+def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
+        σ_clip=None):
     '''
     You are given a dictionary, for a *single quarter* of kepler data, returned
     by `astrokep.read_kepler_fitslc`. It has keys like
@@ -562,6 +571,7 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2):
         described above).
         detrend (str): method by which to detrend the LC. 'legendre' and
         'polynomial' are accepted.
+        σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc
 
     Returns:
         lcd (dict): lcd, with the detrended times, magnitudes, and fluxes in a
@@ -600,26 +610,35 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2):
     saperrs = lcd['sap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(sapfluxs) & npisfinite(saperrs)
     fsaptimes, fsapfluxs, fsaperrs = times[find], sapfluxs[find], saperrs[find]
+    ssaptimes, ssapfluxs, ssaperrs = lcmath.sigmaclip_lc(
+            fsaptimes, fsapfluxs, fsaperrs,
+            isflux=True, sigclip=σ_clip)
 
-    nafter = fsaptimes.size
-    LOGINFO('for quality flag filter (SAP), ndet before = %s, ndet after = %s'
+    nafter = ssaptimes.size
+    LOGINFO('for quality flag filter & sigclip (SAP), '+\
+            'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
     pdcfluxs = lcd['pdcsap_flux'][lcd['sap_quality'] == 0]
     pdcerrs = lcd['pdcsap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(pdcfluxs) & npisfinite(pdcerrs)
     fpdctimes, fpdcfluxs, fpdcerrs = times[find], pdcfluxs[find], pdcerrs[find]
+    spdctimes, spdcfluxs, spdcerrs = lcmath.sigmaclip_lc(
+            fpdctimes, fpdcfluxs, fpdcerrs,
+            isflux=True, sigclip=σ_clip)
+
 
     nafter = fpdctimes.size
-    LOGINFO('for quality flag filter (PDC), ndet before = %s, ndet after = %s'
+    LOGINFO('for quality flag filter & sigclip (PDC), '+\
+            'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
 
     #DETREND: fit a legendre series or polynomial, save it to the output
     #dictionary.
 
-    tfe = {'sap':(fsaptimes, fsapfluxs, fsaperrs),
-           'pdc':(fpdctimes, fpdcfluxs, fpdcerrs)}
+    tfe = {'sap':(ssaptimes, ssapfluxs, ssaperrs),
+           'pdc':(spdctimes, spdcfluxs, spdcerrs)}
     dtr = {}
 
     for k in tfe.keys():
@@ -643,9 +662,6 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2):
     lcd['dtr'] = dtr
 
     return lcd
-
-
-
 
 
     '''
@@ -903,7 +919,7 @@ def select_eb_period(lcd, rtol=1e-1):
 
 
 
-def whiten_allquarters(lcd):
+def whiten_allquarters(lcd, σ_clip=None):
     '''
     Wrapper to whiten_lightcurve, to run for all quarters.
     Saves whitened results to keys `lcd[qnum]['dtr']['sap']['w_*']`, for * in
@@ -912,13 +928,13 @@ def whiten_allquarters(lcd):
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = whiten_lightcurve(lcd[k], k)
+        rd[k] = whiten_lightcurve(lcd[k], k, σ_clip=σ_clip)
 
     return rd
 
 
 def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
-        rescaletomedian=True):
+        rescaletomedian=True, σ_clip=None):
     '''
     Given the normalized, detrended fluxes, and the known period computed from
     the periodogram routines, fit for the eclipsing binary signal in phase and
@@ -937,6 +953,8 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         rescaletomedian (bool): rescales the whitened fluxes to their median
         value.
 
+        σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc.
+
     Returns:
         dat (dict): dat, with the phased times, fluxes and errors in a
         sub-dictionary, accessible as dat['white'], which gives the
@@ -948,8 +966,8 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
             ['fitplotfile', 'fitchisq', 'fitredchisq', 'magseries',
             'fitinfo', 'fittype', 'whiteseries']
 
-        ldict['whiteseries'].keys() # time-sorted
-            ['mags', 'errs', 'times', 'phase']
+        ldict['whiteseries'].keys() # time-sorted, and sigma clipped.
+            ['mags', 'errs', 'times']
 
         legdict['magseries'].keys() # phase-sorted
             ['mags', 'errs', 'times', 'phase']
@@ -971,7 +989,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
             legdict = lcf.legendre_fit_magseries(
                 times,fluxs,errs,period,
                 legendredeg=legendredeg,
-                sigclip=None,
+                sigclip=σ_clip,#doesn't support asymmetric but ok for now
                 plotfit=False,
                 isnormalizedflux=True)
             LOGINFO('Whitened KICID %s, quarter %s, (%s) (Legendre).'
@@ -1000,10 +1018,10 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
         if rescaletomedian:
             median_mag = np.median(wfluxes)
-            rmags = wfluxes + median_mag
+            wfluxes = wfluxes + median_mag
 
         whitedict = {'times':wtimes,
-                'phase':wphase,
+                'phase': wphase,
                 'fluxes':wfluxes,
                 'errs':werrs}
 
