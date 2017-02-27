@@ -1,0 +1,23 @@
+Quoting Armstrong et al. (2014):
+```We elected to detrend the light curves from instrumental and sys-
+tematic effects using covariance basis vectors. These were used over
+the Presearch Data Conditioning (PDC) detrended data available as
+the PDC data is not robust against long-duration events, as warned
+in Fanelli et al. (2011), and the transits of CB planets may in theory
+last for half the orbital period of the binary. While it would be ideal
+to individually tune the detrending of all light curves, the sample
+size made this impractical. Detrending was enacted using the PYKE
+code (Still & Barclay 2012). At this stage, data with a non-zero
+SAP_QUALITY flag was cut (see Fraquelli & Thompson 2012 for
+full list of exclusions). Once detrended, quarter data were stitched
+together through dividing by the median flux value of each quarter,
+forming single light curves for each binary.```
+
+Q1-Q12, took SAP from MAST. `orosz2012_kep47_dtr.png` is the thing to
+emulate. Doing detrending separately by quarter, tune the "aggressiveness" for the
+task. To model eclipses & transits, remove both instrumental trends and spot
+modulations -- to do this, mask out eclipses & transits, a fit a high order
+cubic spline to short segments whose end points are defined by gaps in the
+data collection (due to monthly data downlink, rolls btwn Quarters, or spacecrft
+safe modes). Normalize the segments to the spline fits, and reassemble the
+segments.
