@@ -299,7 +299,7 @@ def whitenedplot(lcd, ap='sap'):
     xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
     ax_raw.set(xlabel='', ylabel=ap+' flux\n[counts/s]',
         xlim=[xmin,xmax],
-        title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.5f} day.'.format(
+        title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.7f} day.'.format(
         str(keplerid), ap, kebc_period) + ' (n=10 legendre series fit)')
     fitphasedeg = lcd[list(lcd.keys())[0]]['white']['sap']['fitinfo']['legendredeg']
     dtr_txt='Fit: n=%d legendre series to phase-folded by quarter.' \
@@ -340,7 +340,7 @@ def whitenedplot(lcd, ap='sap'):
                 'k-')
 
         pwr_ylim = ax.get_ylim()
-        selperiod = lcd[qnum]['per'][ap]['selperiod']
+        selperiod = lcd[qnum]['fineper'][ap]['selperiod']
         ax.vlines(selperiod, 0, 1.2, colors='r', linestyles=':', alpha=0.8, zorder=20)
 
         selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
@@ -372,7 +372,8 @@ def whitenedplot(lcd, ap='sap'):
         ax.plot(phase, pfitflux, c='k', linestyle='-',
                 lw=0.5, zorder=2)
 
-        selperiod = lcd[qnum]['per'][ap]['selperiod']
+        initperiod = lcd[qnum]['per'][ap]['selperiod']
+        selperiod = lcd[qnum]['fineper'][ap]['selperiod']
 
         txt = 'q: %d' % (int(qnum))
         ax.text(0.98, 0.98, txt, horizontalalignment='right',
@@ -380,7 +381,7 @@ def whitenedplot(lcd, ap='sap'):
                 transform=ax.transAxes)
 
         ax.get_xaxis().set_ticks([])
-        pf_txt = 'P: %.6f day, 0->1' % (selperiod)
+        pf_txt = 'P_init: %.7f day\nP_sel: %.7f day' % (initperiod, selperiod)
         ax.text(0.02, 0.02, pf_txt, horizontalalignment='left',
                 verticalalignment='bottom', transform=ax.transAxes)
         if ix == 0:
@@ -743,6 +744,22 @@ def normalize_allquarters(lcd):
 
 
 
+
+
+def run_fineperiodogram_allquarters(lcd):
+    '''
+    Wrapper to run_periodogram, to run for all quarters after selected best
+    period has been identified.
+    Saves periodogram results to keys `lcd[qnum]['fineper']['sap']['*']`.
+    '''
+
+    rd = {}
+    for k in lcd.keys():
+        rd[k] = run_fineperiodogram(lcd[k], k, 'pdm')
+
+    return rd
+
+
 def run_periodograms_allquarters(lcd):
     '''
     Wrapper to run_periodogram, to run for all quarters.
@@ -754,6 +771,63 @@ def run_periodograms_allquarters(lcd):
         rd[k] = run_periodogram(lcd[k], k, 'pdm')
 
     return rd
+
+
+def run_fineperiodogram(dat, qnum, pertype='pdm'):
+    '''
+    See run_periodogram docstring. It's that, but for narrowing down the period
+    of an EB once select_eb_period has been run.
+    '''
+    assert pertype=='pdm'
+
+    dat['fineper'] = {}
+    for ap in ['sap','pdc']:
+
+        times = dat['dtr'][ap]['times']
+        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+        errs = dat['dtr'][ap]['errs_dtr_norm']
+
+        if len(times) < 50 or len(fluxs) < 50:
+            LOGERROR('Got quarter with too few points. Continuing.')
+            continue
+
+        # Range of interesting periods (morph>0.7), now that the selected
+        # period has been chosen: +/- 1% above/below it. If difference between
+        # KEBC period and selperiod is greater than 1%, use whatever the
+        # relative difference is as the bound.
+        kebc_period = float(dat['kebwg_info']['period'])
+        selperiod = dat['per'][ap]['selperiod']
+
+        rdiff = max(0.01, abs(kebc_period - selperiod)/abs(kebc_period))
+
+        smallest_p = selperiod - rdiff*selperiod
+        biggest_p = selperiod + rdiff*selperiod
+
+        if pertype == 'pdm':
+            # periodepsilon: required distance [days] to ID different peaks
+            pgd = periodbase.stellingwerf_pdm(times,fluxs,errs,
+                autofreq=False,
+                startp=smallest_p,
+                endp=biggest_p,
+                normalize=False,
+                stepsize=5.0e-6,
+                phasebinsize=0.05,
+                mindetperbin=9,
+                nbestpeaks=5,
+                periodepsilon=rdiff*selperiod*0.1,
+                sigclip=None, # no sigma clipping
+                nworkers=None)
+
+        if isinstance(pgd, dict):
+            LOGINFO('KIC ID %s computed fine periodogram (%s) quarter %s. (%s)'
+                % (str(dat['objectinfo']['keplerid']), pertype, str(qnum), ap))
+        else:
+            LOGERROR('Error in KICID %s fine periodogram %s, quarter %s (%s)'
+                % (str(dat['objectinfo']['keplerid']), pertype, str(qnum), ap))
+
+        dat['fineper'][ap] = pgd
+
+    return dat
 
 
 
@@ -866,7 +940,7 @@ def run_periodogram(dat, qnum, pertype='pdm'):
     return dat
 
 
-def select_eb_period(lcd, rtol=1e-1):
+def select_eb_period(lcd, rtol=1e-1, fine=False):
     '''
     Select the "correct" EB period for each quarter given the periodogram
     information and the KEBC information.
@@ -879,15 +953,20 @@ def select_eb_period(lcd, rtol=1e-1):
         Otherwise, use the KEBC period.
 
     Args:
-        rtol: relative tolerance for accepting close periods from periodogram
+        rtol (float): relative tolerance for accepting close periods from
+        periodogram
+
+        fine (bool): False if you have not run a "fine search" for the best
+        period. True if the fine periodogram search has been run, and thus the
+        results of that should be used in selecting the EB period.
 
     Returns:
-        lcd[qnum]['per'] with 'selperiod' and 'selforcedkebc' keys. These give
-        the selected period (float) and a string that takes values of either
-        ('forcedkebc','switch','correct') for cases when we were forced to take
-        the period from the KEBC, where given the KEBC value we switched to a
-        different peak in the periodogram, or when the periodogram got it right
-        on the first try.
+        lcd[qnum]['per'] (or lcd[qnum]['fineper']) with 'selperiod' and
+        'selforcedkebc' keys. These give the selected period (float) and a
+        string that takes values of either ('forcedkebc','switch','correct')
+        for cases when we were forced to take the period from the KEBC, where
+        given the KEBC value we switched to a different peak in the
+        periodogram, or when the periodogram got it right on the first try.
     '''
 
     kebc_period = nparr(float(lcd[list(lcd.keys())[0]]['kebwg_info']['period']))
@@ -900,20 +979,28 @@ def select_eb_period(lcd, rtol=1e-1):
 
             rightperiod = npabs(my_period - kebc_period)/npabs(kebc_period) <= rtol
 
-            if rightperiod:
-                lcd[k]['per'][ap]['selperiod'] = my_period
-                lcd[k]['per'][ap]['selforcedkebc'] = 'correct'
+            if fine:
+                my_period = nparr(lcd[k]['fineper'][ap]['bestperiod'])
+                my_periods = nparr(lcd[k]['fineper'][ap]['nbestperiods'])
 
-            else:
-                sel = npabs(my_periods - kebc_period)/npabs(kebc_period) <= rtol
+                lcd[k]['fineper'][ap]['selperiod'] = my_period
+                lcd[k]['fineper'][ap]['selforcedkebc'] = 'finebest'
 
-                if not np.any(sel) or len(sel[sel==True]) > 1:
-                    lcd[k]['per'][ap]['selperiod'] = kebc_period
-                    lcd[k]['per'][ap]['selforcedkebc'] = 'forcedkebc'
+            elif not fine:
+                if rightperiod:
+                    lcd[k]['per'][ap]['selperiod'] = my_period
+                    lcd[k]['per'][ap]['selforcedkebc'] = 'correct'
 
                 else:
-                    lcd[k]['per'][ap]['selperiod'] = float(my_periods[sel])
-                    lcd[k]['per'][ap]['selforcedkebc'] = 'switch'
+                    sel = npabs(my_periods - kebc_period)/npabs(kebc_period) <= rtol
+
+                    if not np.any(sel) or len(sel[sel==True]) > 1:
+                        lcd[k]['per'][ap]['selperiod'] = kebc_period
+                        lcd[k]['per'][ap]['selforcedkebc'] = 'forcedkebc'
+
+                    else:
+                        lcd[k]['per'][ap]['selperiod'] = float(my_periods[sel])
+                        lcd[k]['per'][ap]['selforcedkebc'] = 'switch'
 
     return lcd
 
@@ -980,7 +1067,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
     for ap in ['sap', 'pdc']:
 
-        period = dat['per'][ap]['selperiod']
+        period = dat['fineper'][ap]['selperiod']
         times = dat['dtr'][ap]['times']
         fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
         errs = dat['dtr'][ap]['errs_dtr_norm']

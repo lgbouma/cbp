@@ -3,6 +3,9 @@ import inj_recov as ir
 
 
 def N_lc_check(N, ors=True, whitened=True):
+    '''
+    Run LC processing on N KEBC objects.
+    '''
     np.random.seed(42)
     seeds = np.random.randint(0, 99999999, size=N)
     for s in seeds:
@@ -19,26 +22,26 @@ def N_lc_check(N, ors=True, whitened=True):
             lcd = ir.detrend_allquarters(lcd, σ_clip=5.)
             lcd = ir.normalize_allquarters(lcd)
             lcd = ir.run_periodograms_allquarters(lcd)
-            lcd = ir.select_eb_period(lcd)
+            lcd = ir.select_eb_period(lcd, fine=False)
+            lcd = ir.run_fineperiodogram_allquarters(lcd)
+            lcd = ir.select_eb_period(lcd, fine=True)
             lcd = ir.whiten_allquarters(lcd, σ_clip=5.)
             kicid = ir.save_lightcurve_data(lcd, stage='pw')
 
-        else:
-            lcd = ir.load_lightcurve_data(kicid, stage='pw')
+        lcd = ir.load_lightcurve_data(kicid, stage='pw')
 
-            dones = os.listdir('../results/whitened_diagnostic/')
-            matches = [f for f in dones if f.startswith(kicid)]
-            if len(matches)>0:
-                continue
+        dones = os.listdir('../results/whitened_diagnostic/')
+        matches = [f for f in dones if f.startswith(kicid)]
+        if len(matches)>0:
+            continue
 
-            if ors:
-                ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
-                ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
+        if ors:
+            ir.orosz_style_flux_vs_time(lcd, flux_to_use='sap')
+            ir.orosz_style_flux_vs_time(lcd, flux_to_use='pdc')
 
-            if whitened:
-                ir.whitenedplot(lcd, ap='sap')
-                ir.whitenedplot(lcd, ap='pdc')
-
+        if whitened:
+            ir.whitenedplot(lcd, ap='sap')
+            ir.whitenedplot(lcd, ap='pdc')
 
 def plots(os=False, whitened=True):
 
@@ -57,11 +60,7 @@ def plots(os=False, whitened=True):
 
 if __name__ == '__main__':
 
-    #three_lc_check()
-    #one_lc_check()
-    #plots()
-
-    N_lc_check(10)
+    N_lc_check(20)
 
 
 
@@ -71,13 +70,16 @@ if __name__ == '__main__':
 ######
 '''
 Immediate (Monday):
-* Add sigclip;
-* add "gapfind" to astrokep (e.g., from lcmath) (& drop points near gaps);
-* broader "whitening" (subtract more/all freqs);
+* sigma clip the WHITENED flux too!
+
+
 * better frequency resolution (longer on periodograms) might improve period
-resolution + the rate at which phase-folding breaks things?
+resolution + reduce the rate at which phase-folding breaks things?
+* add "gapfind" to astrokep (e.g., from lcmath) & then drop points near gaps
+* broader "whitening" (subtract more/all freqs);
 * harder whitened flux ylims
-* Debug random quarter number selection to be robust w/ N_lc_check
+* might want to apply a low-pass (frequency) filter to filter out
+high-freuqency stellar variability?
 
 
 
