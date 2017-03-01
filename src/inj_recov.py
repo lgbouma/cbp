@@ -6,6 +6,7 @@ Short period search:
 
 import pickle, os, logging, pdb
 from astropy.io import ascii
+import astropy.units as u, astropy.constants as c
 from datetime import datetime
 from astrobase import astrokep, periodbase, lcmath
 from astrobase.varbase import lcfit as lcf
@@ -15,6 +16,7 @@ from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
     sum as npsum, array as nparr
 from numpy.polynomial.legendre import Legendre, legval
+import batman
 
 #############
 ## LOGGING ##
@@ -64,6 +66,122 @@ def LOGEXCEPTION(message):
 ##############
 # UNIT TESTS #
 ##############
+
+#############
+# INJECTION #
+#############
+
+def inject_transits(lcd):
+    '''
+    Inject a 1% transit into both the SAP and PDC fluxes of the passed light
+    curve dictionary.
+
+    Args:
+        lcd (dict): the dictionary with everything, before any processing has
+        been done. (Keys are quarter numbers).
+
+    Returns:
+        lcd (dict): lcd, with injected fluxes keyed as 'sap_inj_flux' and
+        'pdcsap_inj_flux' in each quarter. Separately, return (over the
+        baseline of the entire set of observations) 'perfect_inj_fluxes' and
+        'perfect_times'. These are in a separate dictionary.
+    '''
+
+    # Find max & min times (& grid appropriately). If there are many nans at 
+    # the beginning/end of the data, this underestimates the total timespan.
+    # This should be negligible.
+    qnums = np.sort(list(lcd.keys()))
+    maxtime = np.nanmax(lcd[max(qnums)]['time'])
+    mintime = np.nanmin(lcd[min(qnums)]['time'])
+
+    for ix, qnum in enumerate(qnums):
+        if ix == 0:
+            times = lcd[qnum]['time']
+        else:
+            times = np.append(times, lcd[qnum]['time'])
+
+    # Inject at P_CBP uniformly between 20-25x P_EB.
+    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+    pref = 20 + 5*np.random.rand()
+    period_eb = kebc_period
+    period_cbp = pref*kebc_period
+
+    # Injected model: select a random phase, so that the time of inferior
+    # conjunction is not initially right over the main EB transit. Set the
+    # planet radius to be a 1% dip (in stellar radii units).
+    # Calculate the models for 10 samples over each full ~29.4 minute exposure
+    # time, and then average to get the data point over the full exposure time.
+    params = batman.TransitParams()
+    injphase = np.random.rand()
+    params.t0 = mintime + injphase*period_cbp
+    params.per = period_cbp
+    params.rp = 0.01**(1/2.)
+    a_in_AU = (period_cbp*u.day/u.yr)**(2/3.)
+    Rstar_in_AU = (u.Rsun/u.au)
+    params.a = a_in_AU.cgs.value / Rstar_in_AU.cgs.scale
+    params.inc = 89.
+    params.ecc = 0.
+    params.w = 90.
+    params.u = [0.1, 0.3]
+    params.limb_dark = "quadratic"
+
+    exp_time_minutes = 29.423259
+    exp_time_days = exp_time_minutes / (24.*60)
+
+    ss_factor = 10
+    # Initialize model
+    m_toinj = batman.TransitModel(params,
+                            times,
+                            supersample_factor = ss_factor,
+                            exp_time = exp_time_days)
+
+    # We also want a "perfect times" model, to assess whether the reasonable 
+    # fraction of the above have non-zero quality flags, nans, etc. are
+    # important. The independent time grid starts and ends at the same times 
+    # (& with 30minute cadence). Nb. that batman deals with nans in times by 
+    # returning zeros (which, in injection below, have no effect -- as you'd 
+    # hope!)
+    perftimes = np.arange(mintime, maxtime, exp_time_days)
+    m_perftimes = batman.TransitModel(params,
+                            perftimes,
+                            supersample_factor = ss_factor,
+                            exp_time = exp_time_days)
+
+    # Calculate light curve
+    fluxtoinj = m_toinj.light_curve(params)
+    perfflux = m_perftimes.light_curve(params)
+
+    # Append perfect times and injected fluxes.
+    allq = {}
+    allq['perfect_times'] = perftimes
+    allq['perfect_inj_fluxes'] = perfflux
+    allq['inj_model'] = {'params':params} # has things like the period.
+
+    # Inject, by quarter
+    kbegin, kend = 0, 0
+    for ix, qnum in enumerate(qnums):
+
+        qsapflux = lcd[qnum]['sap_flux']
+        qpdcflux = lcd[qnum]['pdcsap_flux']
+        times = lcd[qnum]['time']
+
+        kend += len(times)
+
+        qfluxtoinj = fluxtoinj[kbegin:kend]
+
+        qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+        qinjpdcflux = qpdcflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+
+        lcd[qnum]['sap_inj_flux'] = qinjsapflux
+        lcd[qnum]['pdcsap_inj_flux'] = qinjpdcflux
+
+        kbegin += len(times)
+
+    kicid = str(lcd[qnum]['objectinfo']['keplerid'])
+    LOGINFO('KICID {:s}: injected transit to both SAP and PDC fluxes.'.\
+            format(kicid))
+
+    return lcd, allq
 
 
 ####################################
@@ -164,7 +282,6 @@ def get_kebwg_info(kicid):
     return kebwg_info
 
 
-
 #####################
 # UTILITY FUNCTIONS #
 #####################
@@ -221,8 +338,7 @@ def _polynomial_dtr(times, fluxs, errs, polydeg=2):
     return fitfluxs, fitchisq, fitredchisq
 
 
-
-def detrend_allquarters(lcd, σ_clip=None, legendredeg=10):
+def detrend_allquarters(lcd, σ_clip=None, legendredeg=10, inj=False):
     '''
     Wrapper for detrend_lightcurve that detrends all the quarters of Kepler
     data passed in `lcd`, a dictionary of dictionaries, keyed by quarter
@@ -232,16 +348,15 @@ def detrend_allquarters(lcd, σ_clip=None, legendredeg=10):
     rd = {}
     for k in lcd.keys():
         rd[k] = detrend_lightcurve(lcd[k], σ_clip=σ_clip,
-                legendredeg=legendredeg)
+                legendredeg=legendredeg, inj=inj)
         LOGINFO('KIC ID %s, detrended quarter %s.'
             % (str(lcd[k]['objectinfo']['keplerid']), str(k)))
 
     return rd
 
 
-
 def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
-        σ_clip=None):
+        σ_clip=None, inj=False):
     '''
     You are given a dictionary, for a *single quarter* of kepler data, returned
     by `astrokep.read_kepler_fitslc`. It has keys like
@@ -259,9 +374,14 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
     Args:
         lcd (dict): the dictionary returned by astrokep.read_kepler_fitslc (as
         described above).
+
         detrend (str): method by which to detrend the LC. 'legendre' and
         'polynomial' are accepted.
+
         σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc
+
+        inj (bool): whether or not the passed LC has injected transits. This
+        changes which fluxes are detrended.
 
     Returns:
         lcd (dict): lcd, with the detrended times, magnitudes, and fluxes in a
@@ -296,7 +416,14 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
     nbefore = lcd['time'].size
     times = lcd['time'][lcd['sap_quality'] == 0]
 
-    sapfluxs = lcd['sap_flux'][lcd['sap_quality'] == 0]
+    if inj:
+        sfstr = 'sap_inj_flux'
+        pdcstr = 'pdcsap_inj_flux'
+    else:
+        sfstr = 'sap_flux'
+        pdcstr = 'pdcsap_flux'
+
+    sapfluxs = lcd[sfstr][lcd['sap_quality'] == 0]
     saperrs = lcd['sap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(sapfluxs) & npisfinite(saperrs)
     fsaptimes, fsapfluxs, fsaperrs = times[find], sapfluxs[find], saperrs[find]
@@ -309,7 +436,7 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
             'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
-    pdcfluxs = lcd['pdcsap_flux'][lcd['sap_quality'] == 0]
+    pdcfluxs = lcd[pdcstr][lcd['sap_quality'] == 0]
     pdcerrs = lcd['pdcsap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(pdcfluxs) & npisfinite(pdcerrs)
     fpdctimes, fpdcfluxs, fpdcerrs = times[find], pdcfluxs[find], pdcerrs[find]
@@ -375,7 +502,9 @@ def redetrend_lightcurve(lcd,
         detrend='legendre', legendredeg=10, σ_clip=None):
 
     '''
-    Once you have whitened fluxes, re-detrend (and re sigma-clip).
+    Once you have whitened fluxes, re-detrend (and re sigma-clip). (Note that
+    this deals implicitly with injected magnitudes if they're what you started
+    with).
 
     Args:
         lcd (dict): the dictionary with everything, after whitening out the
@@ -888,7 +1017,8 @@ def save_lightcurve_data(dat, stage=False):
 
         stage (str): a short string that will be appended to the pickle file
         name to simplify subsequent reading. E.g., "pw" for "post-whitening",
-        or anything along these terms.
+        or "redtr_inj" if it's post-redetrending, and you've injected fake
+        transits.
     '''
 
     kicid = str(dat[list(dat.keys())[0]]['objectinfo']['keplerid'])
@@ -907,7 +1037,7 @@ def save_lightcurve_data(dat, stage=False):
     return kicid
 
 
-def load_lightcurve_data(kicid, stage='pw'):
+def load_lightcurve_data(kicid, stage=None):
 
     pklname = str(kicid)+'_'+stage+'.p'
     lpath = '../data/injrecov_pkl/'+pklname

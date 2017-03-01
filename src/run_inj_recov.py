@@ -6,7 +6,9 @@ import inj_recov_plots as irp
 #TODO#
 ######
 '''
-immediate:
+* implement injection
+* implement boxfilter search
+
 * find all "time chunks". fit out the "smooth-in"
 
 * implement trim_near_gaps. (nb. requires "stitching" to get full LC)
@@ -45,12 +47,99 @@ ALSO:
  PyKE is also worth assessing.
 '''
 
-def N_lc_check(N, ors=False, whitened=True, stage='redtr'):
+def N_lc_injrecov(N, ors=False, whitened=True, stage='redtr', inj=None):
     '''
-    Run LC processing on N KEBC objects.
+    Run injection-recovery on N KEBC objects. This currently means:
+        inject a 1% transit at 10x the binary period->
+        detrend (n=20 legendre)->
+        normalize (median by quarter)->
+        run periodograms (stellingwerf_pdm)->
+        get nominal EB period->
+        run finer periodogram (stellingwerf_pdm narrow window)->
+        select a real EB period->
+        "whiten" (phase-fold to "real" EB period, fit, subtract out fit)->
+        redetrend (n=20 legendre)->
+        normalize (median by quarter)->
 
-    stage:
-        'pw' if post-whitening. 'redtr' if post-redetrending.
+    stages (in order that they could be saved in):
+
+        'pw' if post-whitening.
+        'redtr' if post-redetrending.
+
+    inj (bool): True if you're injecting (fixes names of things).
+    '''
+    np.random.seed(N)
+    seeds = np.random.randint(0, 99999999, size=N)
+
+    if inj:
+        stage += '_inj'
+
+    for s in seeds:
+        np.random.seed(s)
+
+        lcd = ir.retrieve_random_lc()
+        kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+
+        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/') if
+                f.endswith('.p') and f.startswith(kicid) and stage in f]
+
+        if len(pklmatch) < 1:
+
+            #`lcd` organizes everything by quarter. `allq` stitches.
+            lcd, allq = ir.inject_transits(lcd)
+            lcd = ir.detrend_allquarters(lcd,
+                    σ_clip=8., legendredeg=20, inj=True)
+            lcd = ir.normalize_allquarters(lcd, dt='dtr')
+            lcd = ir.run_periodograms_allquarters(lcd)
+            lcd = ir.select_eb_period(lcd, fine=False)
+            lcd = ir.run_fineperiodogram_allquarters(lcd)
+            lcd = ir.select_eb_period(lcd, fine=True)
+            lcd = ir.whiten_allquarters(lcd, σ_clip=6.)
+            #kicid = ir.save_lightcurve_data(lcd, stage='pw')
+            lcd = ir.redetrend_allquarters(lcd, σ_clip=6., legendredeg=20)
+            lcd = ir.normalize_allquarters(lcd, dt='redtr')
+            kicid = ir.save_lightcurve_data(lcd, stage=stage)
+
+        lcd = ir.load_lightcurve_data(kicid, stage=stage)
+
+        dones = os.listdir('../results/whitened_diagnostic/')
+        plotmatches = [f for f in dones if f.startswith(kicid) and
+                stage in f]
+        if len(plotmatches)>0:
+            print('Found whitened_diagnostic, continuing.')
+            continue
+
+        if ors:
+            irp.orosz_style_flux_vs_time(lcd, flux_to_use='sap', stage=stage)
+            irp.orosz_style_flux_vs_time(lcd, flux_to_use='pdc', stage=stage)
+
+        if whitened:
+            if 'pw' in stage:
+                irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
+                irp.whitenedplot_5row(lcd, ap='pdc', stage=stage)
+            elif 'redtr' in stage:
+                irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=True)
+                irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=True)
+
+
+def N_lc_process(N, ors=False, whitened=True, stage='redtr'):
+    '''
+    Run LC processing on N KEBC objects. This currently means:
+        detrend (n=20 legendre)->
+        normalize (median by quarter)->
+        run periodograms (stellingwerf_pdm)->
+        get nominal EB period->
+        run finer periodogram (stellingwerf_pdm narrow window)->
+        select a real EB period->
+        "whiten" (phase-fold to "real" EB period, fit, subtract out fit)->
+        redetrend (n=20 legendre)->
+        normalize (median by quarter)->
+
+    stages (in order that they could be saved in):
+
+
+        'pw' if post-whitening.
+        'redtr' if post-redetrending.
     '''
     #np.random.seed(42)
     np.random.seed(N)
@@ -101,7 +190,10 @@ def N_lc_check(N, ors=False, whitened=True, stage='redtr'):
 
 
 def get_lcd(stage='redtr'):
-    np.random.seed(42)
+    N = 100
+    np.random.seed(N)
+    seeds = np.random.randint(0, 99999999, size=N)
+    np.random.seed(seeds[0])
 
     lcd = ir.retrieve_random_lc()
     kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
@@ -113,5 +205,10 @@ def get_lcd(stage='redtr'):
 
 if __name__ == '__main__':
 
-    N_lc_check(100, stage='redtr')
+    #N_lc_check(100, stage='redtr')
 
+    # If you just need a quick `lcd` to play with:
+    #lcd = get_lcd()
+
+    # Testing out injection:
+    N_lc_injrecov(100, stage='redtr', inj=True)

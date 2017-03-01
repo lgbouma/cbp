@@ -1,0 +1,3 @@
+> /home/luke/Dropbox/proj/cbp/src/inj_recov.py(182)inject_transits()
+-> kicid = str(lcd[qnum]['objectinfo']['keplerid'])
+(Pdb) 

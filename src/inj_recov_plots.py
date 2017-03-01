@@ -360,7 +360,7 @@ def whitenedplot_5row(lcd, ap='sap'):
     f.savefig(savedir+plotname, dpi=300)
 
 
-def whitenedplot_6row(lcd, ap='sap'):
+def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     '''
     Make a plot in the style of Fig S4 of Orosz et al. (2012) showing Kepler
     data, colored by quarter, but extended to include periodograms,
@@ -373,6 +373,9 @@ def whitenedplot_6row(lcd, ap='sap'):
     ap (str): 'sap' or 'pdc' for whether to start the plot using
         simple aperture photometry from Kepler, or the presearch data
         conditioned photometry. By default, SAP.
+
+    stage (str): stage of processing at which this was made. E.g., "redtr_inj"
+        if after redtrending and injecting transits.
 
     Returns: nothing, but saves the plot with a smart name to
         ../results/whitened_diagnostic/
@@ -516,11 +519,14 @@ def whitenedplot_6row(lcd, ap='sap'):
             colors='k',
             linestyles='--',
             zorder=-20)
+    ylim = [-0.01,0.01]
+    if inj:
+        ylim = [-0.015,0.015]
     ax_w.set(ylabel='whitened flux',
-            ylim=[-0.01,0.01])
+            ylim=ylim)
     ax_redtr.set(xlabel='time [day]',
             ylabel='redtr flux',
-            ylim=[-0.01,0.01])
+            ylim=ylim)
 
 
     # PERIODOGRAMS
@@ -603,7 +609,7 @@ def whitenedplot_6row(lcd, ap='sap'):
 
     LOGINFO('Made whitened plot. Now saving...')
     savedir = '../results/whitened_diagnostic/'
-    plotname = str(keplerid)+'_'+ap+'_w.png'
+    plotname = str(keplerid)+'_'+ap+stage+'.png'
     f.savefig(savedir+plotname, dpi=300)
 
 
