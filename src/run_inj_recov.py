@@ -11,9 +11,7 @@ TODO
   points)
   -> add "gapfind" to astrokep (e.g., from lcmath) & then drop points near gaps
   -> implement as trim_near_gaps. (nb. requires "stitching" to get full LC)
-* PLOT: P<5 day cut (the actual armstrong et al statistical claim)
-* add appropriate sigclipping calls in astrobase so that redetrending doesn't
-    sigclip out 1% transits <_<
+----------
 
 * implement boxfilter search
   (e.g., Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending)
