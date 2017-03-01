@@ -161,11 +161,11 @@ def inject_transits(lcd):
     kbegin, kend = 0, 0
     for ix, qnum in enumerate(qnums):
 
-        qsapflux = lcd[qnum]['sap_flux']
-        qpdcflux = lcd[qnum]['pdcsap_flux']
-        times = lcd[qnum]['time']
+        qsapflux = lcd[qnum]['sap']['sap_flux']
+        qpdcflux = lcd[qnum]['pdc']['pdcsap_flux']
+        qtimes = lcd[qnum]['time']
 
-        kend += len(times)
+        kend += len(qtimes)
 
         qfluxtoinj = fluxtoinj[kbegin:kend]
 
@@ -175,7 +175,7 @@ def inject_transits(lcd):
         lcd[qnum]['sap_inj_flux'] = qinjsapflux
         lcd[qnum]['pdcsap_inj_flux'] = qinjpdcflux
 
-        kbegin += len(times)
+        kbegin += len(qtimes)
 
     kicid = str(lcd[qnum]['objectinfo']['keplerid'])
     LOGINFO('KICID {:s}: injected transit to both SAP and PDC fluxes.'.\
@@ -378,7 +378,7 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
         detrend (str): method by which to detrend the LC. 'legendre' and
         'polynomial' are accepted.
 
-        σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc
+        σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries
 
         inj (bool): whether or not the passed LC has injected transits. This
         changes which fluxes are detrended.
@@ -417,33 +417,30 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
     times = lcd['time'][lcd['sap_quality'] == 0]
 
     if inj:
-        sfstr = 'sap_inj_flux'
-        pdcstr = 'pdcsap_inj_flux'
+        sapfluxs = lcd['sap_inj_flux'][lcd['sap_quality'] == 0]
+        pdcfluxs = lcd['pdcsap_inj_flux'][lcd['sap_quality'] == 0]
     else:
-        sfstr = 'sap_flux'
-        pdcstr = 'pdcsap_flux'
+        sapfluxs = lcd['sap']['sap_flux'][lcd['sap_quality'] == 0]
+        pdcfluxs = lcd['pdc']['pdcsap_flux'][lcd['sap_quality'] == 0]
 
-    sapfluxs = lcd[sfstr][lcd['sap_quality'] == 0]
-    saperrs = lcd['sap_flux_err'][lcd['sap_quality'] == 0]
+    saperrs = lcd['sap']['sap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(sapfluxs) & npisfinite(saperrs)
     fsaptimes, fsapfluxs, fsaperrs = times[find], sapfluxs[find], saperrs[find]
-    ssaptimes, ssapfluxs, ssaperrs = lcmath.sigmaclip_lc(
+    ssaptimes, ssapfluxs, ssaperrs = lcmath.sigclip_magseries(
             fsaptimes, fsapfluxs, fsaperrs,
-            isflux=True, sigclip=σ_clip)
+            magsarefluxes=True, sigclip=σ_clip)
 
     nafter = ssaptimes.size
     LOGINFO('for quality flag filter & sigclip (SAP), '+\
             'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
-    pdcfluxs = lcd[pdcstr][lcd['sap_quality'] == 0]
-    pdcerrs = lcd['pdcsap_flux_err'][lcd['sap_quality'] == 0]
+    pdcerrs = lcd['pdc']['pdcsap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(pdcfluxs) & npisfinite(pdcerrs)
     fpdctimes, fpdcfluxs, fpdcerrs = times[find], pdcfluxs[find], pdcerrs[find]
-    spdctimes, spdcfluxs, spdcerrs = lcmath.sigmaclip_lc(
+    spdctimes, spdcfluxs, spdcerrs = lcmath.sigclip_magseries(
             fpdctimes, fpdcfluxs, fpdcerrs,
-            isflux=True, sigclip=σ_clip)
-
+            magsarefluxes=True, sigclip=σ_clip)
 
     nafter = fpdctimes.size
     LOGINFO('for quality flag filter & sigclip (PDC), '+\
@@ -511,7 +508,7 @@ def redetrend_lightcurve(lcd,
         main eclipsing binary signal.
         detrend (str): method by which to detrend the LC. 'legendre' is the
         only thing currently implemented.
-        σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc
+        σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries
 
     Returns:
         lcd (dict): lcd, with the redetrended times, magnitudes, and fluxes in a
@@ -546,9 +543,9 @@ def redetrend_lightcurve(lcd,
         fluxes = lcd['white'][ap]['whiteseries']['fluxes']
         errs = lcd['white'][ap]['whiteseries']['errs']
 
-        stimes, sfluxes, serrs = lcmath.sigmaclip_lc(
+        stimes, sfluxes, serrs = lcmath.sigclip_magseries(
                 times, fluxes, errs,
-                isflux=True, sigclip=σ_clip)
+                magsarefluxes=True, sigclip=σ_clip)
 
 
         nafter = stimes.size
@@ -923,7 +920,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         rescaletomedian (bool): rescales the whitened fluxes to their median
         value.
 
-        σ_clip (float or list): to pass to astrobase.lcmath.sigmaclip_lc.
+        σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries.
 
     Returns:
         dat (dict): dat, with the phased times, fluxes and errors in a
@@ -959,9 +956,9 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
             legdict = lcf.legendre_fit_magseries(
                 times,fluxs,errs,period,
                 legendredeg=legendredeg,
-                sigclip=σ_clip,#doesn't support asymmetric but ok for now
+                sigclip=σ_clip,
                 plotfit=False,
-                isnormalizedflux=True)
+                magsarefluxes=True)
             LOGINFO('Whitened KICID %s, quarter %s, (%s) (Legendre).'
                 % (str(dat['objectinfo']['keplerid']), str(qnum), ap))
 

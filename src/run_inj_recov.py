@@ -12,8 +12,6 @@ TODO
   -> add "gapfind" to astrokep (e.g., from lcmath) & then drop points near gaps
   -> implement as trim_near_gaps. (nb. requires "stitching" to get full LC)
 * PLOT: P<5 day cut (the actual armstrong et al statistical claim)
-* reorganize data & results plots to note difference btwn injected and
-    noninjected stages
 * add appropriate sigclipping calls in astrobase so that redetrending doesn't
     sigclip out 1% transits <_<
 
@@ -96,24 +94,24 @@ def N_lc_injrecov(N, ors=False, whitened=True, stage='redtr', inj=None):
             #`lcd` organizes everything by quarter. `allq` stitches.
             lcd, allq = ir.inject_transits(lcd)
             lcd = ir.detrend_allquarters(lcd,
-                    σ_clip=8., legendredeg=20, inj=inj)
+                    σ_clip=10., legendredeg=20, inj=inj)
             lcd = ir.normalize_allquarters(lcd, dt='dtr')
             lcd = ir.run_periodograms_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=False)
             lcd = ir.run_fineperiodogram_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=True)
-            lcd = ir.whiten_allquarters(lcd, σ_clip=6.)
+            lcd = ir.whiten_allquarters(lcd, σ_clip=[10.,5.])
             if 'pw' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
-            lcd = ir.redetrend_allquarters(lcd, σ_clip=6., legendredeg=20)
+            lcd = ir.redetrend_allquarters(lcd, σ_clip=[10.,5.], legendredeg=20)
             lcd = ir.normalize_allquarters(lcd, dt='redtr')
             if 'redtr' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
 
         lcd = ir.load_lightcurve_data(kicid, stage=stage)
 
-        dones = os.listdir('../results/whitened_diagnostic/'+predir)
-        plotmatches = [f for f in dones if f.startswith(kicid) and
+        doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
+        plotmatches = [f for f in doneplots if f.startswith(kicid) and
                 stage in f]
         if len(plotmatches)>0:
             print('Found whitened_diagnostic, continuing.')
@@ -164,15 +162,15 @@ def N_lc_process(N, ors=False, whitened=True, stage='redtr'):
 
         if len(pwdumpmatch) < 1:
 
-            lcd = ir.detrend_allquarters(lcd, σ_clip=8., legendredeg=20)
+            lcd = ir.detrend_allquarters(lcd, σ_clip=10., legendredeg=20)
             lcd = ir.normalize_allquarters(lcd, dt='dtr')
             lcd = ir.run_periodograms_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=False)
             lcd = ir.run_fineperiodogram_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=True)
-            lcd = ir.whiten_allquarters(lcd, σ_clip=6.)
+            lcd = ir.whiten_allquarters(lcd, σ_clip=[10.,3.])
             #kicid = ir.save_lightcurve_data(lcd, stage='pw')
-            lcd = ir.redetrend_allquarters(lcd, σ_clip=6., legendredeg=20)
+            lcd = ir.redetrend_allquarters(lcd, σ_clip=[10.,3.], legendredeg=20)
             lcd = ir.normalize_allquarters(lcd, dt='redtr')
             kicid = ir.save_lightcurve_data(lcd, stage=stage)
 

@@ -3,3 +3,4 @@ notebooks/*csv
 notebooks/plots/*pdf
 notebooks/nb-data*
 results*
+src/LOGS*
