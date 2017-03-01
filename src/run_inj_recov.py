@@ -6,32 +6,29 @@ import inj_recov_plots as irp
 #TODO#
 ######
 '''
-* implement injection
+TODO
+* Cut out data within "0.5d regions" of gaps (defined by >0.5day space btwn
+  points)
+  -> add "gapfind" to astrokep (e.g., from lcmath) & then drop points near gaps
+  -> implement as trim_near_gaps. (nb. requires "stitching" to get full LC)
 * implement boxfilter search
+  (e.g., Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending)
+* PLOT: P<5 day cut (the actual armstrong et al statistical claim)
+Consider:
+* Iteratively whiten out more frequencies. (Say ~few more) (Nb. this depends on
+  whether there are strong periodicities in current redtrended residuals, or
+  whether the spot-movement is "pseudo-periodic")
+* Possible to high/loss pass filter at ~<2x EB period? (Read Feigelson text & see)
+* How to fit out spots: e.g., with `george` (GP regression)?
+* Email Johan for his code -- more general fourier approach (more expensive
+  too).
 
-* find all "time chunks". fit out the "smooth-in"
-
-* implement trim_near_gaps. (nb. requires "stitching" to get full LC)
-
-* add "gapfind" to astrokep (e.g., from lcmath) & then drop points near gaps
-* harder whitened flux ylims
-
-* broader "whitening" (subtract more/all freqs);
-* might want to apply a low-pass (frequency) filter to filter out
-high-freuqency stellar variability?
-
-
+Longer-term ideas:
 *Detrend+normalize:
     Match the KEBC detrending? As-is, I think I'm leaving in trends that are
     too big.
-
 *Period finder:
     Assess for what fraction we need to revert to KEBC period.
-
-*Matched-filter search for boxes on prewhitened flux.
-
-astrokep.filter_kepler_lcdict: basically should do what's been implemented in
- `detrend_lightcurve`, and `normalize_lightcurve`.
 
 astrokep.find_lightcurve_gaps
 
