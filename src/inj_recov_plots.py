@@ -607,9 +607,16 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
 
     f.tight_layout(h_pad=-1)
 
-    LOGINFO('Made whitened plot. Now saving...')
+    # Figure out names and write.
     savedir = '../results/whitened_diagnostic/'
+    if 'inj' in stage:
+        savedir += 'inj/'
+    elif 'inj' not in stage:
+        savedir += 'no_inj/'
     plotname = str(keplerid)+'_'+ap+stage+'.png'
+
     f.savefig(savedir+plotname, dpi=300)
+
+    LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
 

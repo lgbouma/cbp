@@ -1002,13 +1002,6 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
     return dat
 
 
-def trim_near_gaps(lcd):
-    '''
-    '''
-
-    pass
-
-
 
 def save_lightcurve_data(dat, stage=False):
     '''
@@ -1029,10 +1022,15 @@ def save_lightcurve_data(dat, stage=False):
     else:
         pklname = pklname+'.p'
 
-    spath = '../data/injrecov_pkl/'+pklname
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+    spath = '../data/injrecov_pkl/'+predir+pklname
 
     pickle.dump(dat, open(spath, 'wb'))
-    LOGINFO('Saved data to %s' % spath)
+    LOGINFO('Saved (pickled) data to %s' % spath)
 
     return kicid
 
@@ -1040,9 +1038,26 @@ def save_lightcurve_data(dat, stage=False):
 def load_lightcurve_data(kicid, stage=None):
 
     pklname = str(kicid)+'_'+stage+'.p'
-    lpath = '../data/injrecov_pkl/'+pklname
+
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+
+    lpath = '../data/injrecov_pkl/'+predir+pklname
 
     dat = pickle.load(open(lpath, 'rb'))
-    LOGINFO('Loaded data from %s' % lpath)
+    LOGINFO('Loaded pickled data from %s' % lpath)
 
     return dat
+
+
+def trim_near_gaps(lcd):
+    '''
+    '''
+
+    pass
+
+
+
