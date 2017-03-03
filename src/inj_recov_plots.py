@@ -1,6 +1,7 @@
 import pdb
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.axes_grid.inset_locator import inset_axes
 import logging
 from datetime import datetime
 
@@ -8,6 +9,8 @@ from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
     sum as npsum, array as nparr
 from astrobase.varbase import lcfit as lcf
+from astrobase.varbase.lcfit import spline_fit_magseries
+from astrobase import lcmath
 
 #############
 ## LOGGING ##
@@ -622,16 +625,47 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
 
-
-def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
+def add_inset_axes(ax,fig,rect,axisbg='w'):
     '''
-    Looks like:
+    Copied directly from
+    http://stackoverflow.com/questions/17458580/embedding-small-plots-inside-subplots-in-matplotlib
+    '''
+    box = ax.get_position()
+    width = box.width
+    height = box.height
+    inax_position  = ax.transAxes.transform(rect[0:2])
+    transFigure = fig.transFigure.inverted()
+    infig_position = transFigure.transform(inax_position)
+    x = infig_position[0]
+    y = infig_position[1]
+    width *= rect[2]
+    height *= rect[3]
+    subax = fig.add_axes([x,y,width,height],axisbg=axisbg,frameon=False)
+    x_labelsize = subax.get_xticklabels()[0].get_size()
+    y_labelsize = subax.get_yticklabels()[0].get_size()
+    x_labelsize *= rect[2]**0.5
+    y_labelsize *= rect[3]**0.5
+    subax.xaxis.set_tick_params(labelsize=x_labelsize)
+    subax.yaxis.set_tick_params(labelsize=y_labelsize)
+    return subax
+
+
+
+def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
+        phasebin=0.002, inset=True):
+    '''
+    The phased lightcurves in this plot shamelessly rip from those written by
+    Waqas Bhatti in astrobase.checkplot.
+
+    This plot looks like:
     |           flux vs time for all quarters              |
     | phased 1     |    phased 2      |       phased 3     |
     | phased 4     |    phased 5      |       periodogram  |
 
     Args:
-    lcd (dict): dictionary with all the data.
+    lcd (dict): dictionary with all the quarter-keyed data.
+
+    allq (dict): dictionary with all the stitched full-time series data.
 
     ap (str): 'sap' or 'pdc' for whether to start the plot using
         simple aperture photometry from Kepler, or the presearch data
@@ -639,6 +673,9 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
 
     stage (str): stage of processing at which this was made. E.g., "redtr_inj"
         if after redtrending and injecting transits.
+
+    varepoch (str or None): if 'min', tries to actually find a good epoch so
+        that your phase-folded LCs have dips at phase 0.5
 
     Returns: nothing, but saves the plot with a smart name to
         ../results/dipsearchplot/
@@ -669,6 +706,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
     # periodogram
     ax_pg = f.add_subplot(gs[2,2])
 
+    f.tight_layout(h_pad=-0.7)
+
     LOGINFO('Beginning dipsearchplot. KEPID %s (%s)' %
             (str(keplerid), ap))
 
@@ -691,7 +730,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
 
         txt = '%d' % (int(qnum))
         txt_x = npmin(times) + (npmax(times)-npmin(times))/2
-        txt_y = npmin(fluxs) - (npmax(fluxs)-npmin(fluxs))/4
+        txt_y = npmin(fluxs) + (npmax(fluxs)-npmin(fluxs))/6
 
         ax_raw.text(txt_x, txt_y, txt, horizontalalignment='center',
                 verticalalignment='center')
@@ -712,7 +751,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     ax_raw.get_xaxis().set_ticks([])
     xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
-    ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux\n(redtr)',
+    ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux (redtr)',
         xlim=[xmin,xmax],
         ylim = [-0.015,0.015])
     ax_raw.set_title(
@@ -743,13 +782,13 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
             linestyles='-', alpha=0.8, zorder=10)
 
     selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
-    txt = 'P_inj: %.4f d, P_rec: %.4f d' % (injperiod, bestperiod)
+    txt = 'P_inj: %.4f d\nP_rec: %.4f d' % (injperiod, bestperiod)
     ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
             verticalalignment='top',
             transform=ax_pg.transAxes)
 
-    ax_pg.set(xlabel='', xscale='log')
-    ax_pg.get_xaxis().set_ticks([])
+    ax_pg.set(xlabel='period [d]', xscale='log')
+    ax_pg.get_yaxis().set_ticks([])
     ax_pg.set(ylabel='BLS power')
 
     # PHASE-FOLDED LIGHTCURVES
@@ -761,28 +800,89 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
     for ix, ax in enumerate(axs_φ):
 
         foldperiod = nbestperiods[ix]
-        phase, pflux, perrs, ptimes, mintime = (
-                lcf._get_phased_quantities(times, fluxs, errs, foldperiod)
-            )
 
-        thiscolor = colors[int(qnum)%len(colors)]
+        # figure out the epoch, if it's None, use the min of the time
+        if varepoch is None:
+            varepoch = np.min(times)
 
-        ax.plot(phase, pflux, c=thiscolor, linestyle='-',
-                marker='o', markerfacecolor=thiscolor,
-                markeredgecolor=thiscolor, ms=0.1, lw=0.1, zorder=0)
-        #ax.plot(phase, pfitflux, c='k', linestyle='-',
-        #        lw=0.5, zorder=2)
+        # if the varepoch is 'min', then fit a spline to the light curve
+        # phased using the min of the time, find the fit mag minimum and use
+        # the time for that as the varepoch
+        elif isinstance(varepoch,str) and varepoch == 'min':
+            try:
+                spfit = spline_fit_magseries(times,
+                                             fluxs,
+                                             errs,
+                                             foldperiod,
+                                             magsarefluxes=True,
+                                             sigclip=None)
+                varepoch = spfit['fitinfo']['fitepoch']
+                if len(varepoch) != 1:
+                    varepoch = varepoch[0]
+            except Exception as e:
+                LOGEXCEPTION('spline fit failed, using min(times) as epoch')
+                varepoch = np.min(stimes)
 
-        txt = 'P_fold: %.5f d' % (int(foldperiod))
-        ax.text(0.98, 0.98, txt, horizontalalignment='right',
-                verticalalignment='top',
-                transform=ax.transAxes)
+        LOGINFO('KEPID %s (%s) plotting phased LC. period: %.6f, epoch: %.5f' %
+                (str(keplerid), ap, foldperiod, varepoch))
 
-        ax.get_xaxis().set_ticks([])
-        ax.set(ylabel='')
+        # phase the magseries
+        phasedlc = lcmath.phase_magseries(times,
+                                          fluxs,
+                                          foldperiod,
+                                          varepoch,
+                                          wrap=True,
+                                          sort=True)
+        plotphase = phasedlc['phase']
+        plotfluxs = phasedlc['mags']
+
+        # if we're supposed to bin the phases, do so
+        if phasebin:
+            binphasedlc = lcmath.phase_bin_magseries(plotphase,
+                                              plotfluxs,
+                                              binsize=phasebin)
+            binplotphase = binphasedlc['binnedphases']
+            binplotfluxs = binphasedlc['binnedmags']
+
+        else:
+            binplotphase = None
+            binplotfluxs = None
+
+        # finally, make the phased LC plot
+        ax.scatter(plotphase,plotfluxs,marker='o',s=2,color='gray')
+        # overlay the binned phased LC plot if we're making one
+        if phasebin:
+            ax.scatter(binplotphase,binplotfluxs,marker='o',s=10,color='blue')
+
+        if inset:
+            subpos = [0.03,0.79,0.25,0.2]
+            iax = add_inset_axes(ax,f,subpos)
+
+            iax.scatter(plotphase,plotfluxs,marker='o',s=2*0.3,color='gray')
+            if phasebin:
+                iax.scatter(binplotphase,binplotfluxs,marker='o',s=10*0.3,color='blue')
+            iaxylim = iax.get_ylim()
+
+            iax.set(ylabel='', xlim=[-0.7,0.7])
+            iax.get_xaxis().set_visible(False)
+            iax.get_yaxis().set_visible(False)
+
+        txt = 'P_fold: %.5f d' % (foldperiod)
+        ax.text(0.98, 0.02, txt, horizontalalignment='right',
+                verticalalignment='bottom',
+                transform=ax.transAxes, fontsize='small')
+
+        ax.set(ylabel='', xlim=[-0.1,0.1])
+        axylim = ax.get_ylim()
+        ax.vlines([0.], min(axylim), max(axylim), colors='red',
+                linestyles='-', alpha=0.9, zorder=-1)
+        if inset:
+            iax.vlines([-0.5,0.5], min(iaxylim), max(iaxylim), colors='black',
+                    linestyles='-', alpha=0.7, zorder=30)
+            iax.vlines([0.], min(iaxylim), max(iaxylim), colors='red',
+                    linestyles='-', alpha=0.9, zorder=30)
 
 
-    f.tight_layout(h_pad=-1)
 
     # Figure out names and write.
     savedir = '../results/dipsearchplot/'
@@ -792,7 +892,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
         savedir += 'no_inj/'
     plotname = str(keplerid)+'_'+ap+stage+'.png'
 
-    f.savefig(savedir+plotname, dpi=300)
+    f.savefig(savedir+plotname, dpi=300, bbox_inches='tight')
 
     LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
