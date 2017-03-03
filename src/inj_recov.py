@@ -410,8 +410,7 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
     # GET finite, good-quality times, mags, and errs for both SAP and PDC.
     # Take data with non-zero saq_quality flags. Fraquelli & Thompson (2012),
     # or perhaps newer papers, give the list of exclusions (following Armstrong
-    # et al. 2014). Nb. astrokep.filter_kepler_lcdict should do this, but is 
-    # currently trying to do too many other things.
+    # et al. 2014).
 
     nbefore = lcd['time'].size
     times = lcd['time'][lcd['sap_quality'] == 0]
@@ -447,10 +446,8 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
             'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
-
     #DETREND: fit a legendre series or polynomial, save it to the output
     #dictionary.
-
     tfe = {'sap':(ssaptimes, ssapfluxs, ssaperrs),
            'pdc':(spdctimes, spdcfluxs, spdcerrs)}
     dtr = {}
@@ -543,6 +540,11 @@ def redetrend_lightcurve(lcd,
         fluxes = lcd['white'][ap]['whiteseries']['fluxes']
         errs = lcd['white'][ap]['whiteseries']['errs']
 
+        #FIXME: could choose to cut out data within 0.5 days of time gaps here, per
+        #Armstrong+ (2014)'s approach
+        #FIXME: OR you could choose to fit the legendre series/polynomials TO EACH
+        #TIME GROUP. Then(automatically) "fine-tune" the order (degree) of the fit
+        #based on the duration of the  timegroup. 
         stimes, sfluxes, serrs = lcmath.sigclip_magseries(
                 times, fluxes, errs,
                 magsarefluxes=True, sigclip=σ_clip)
@@ -1000,10 +1002,15 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
 
 
-def save_lightcurve_data(dat, stage=False):
+def save_lightcurve_data(lcd, allq=None, stage=False):
     '''
     Args:
-        dat (anytype): the thing you want to write to a pickle file.
+        lcd (anytype): the thing you want to write to a pickle file. Always
+        "lcd" object, keyed by quarters.
+
+    Kwargs:
+        allq (anytype): if you also have "all of the quarters" concatenated
+        data that you'd like to save in a separate pickle.
 
         stage (str): a short string that will be appended to the pickle file
         name to simplify subsequent reading. E.g., "pw" for "post-whitening",
@@ -1011,13 +1018,13 @@ def save_lightcurve_data(dat, stage=False):
         transits.
     '''
 
-    kicid = str(dat[list(dat.keys())[0]]['objectinfo']['keplerid'])
-    pklname = kicid
+    kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 
     if stage:
-        pklname = pklname+'_'+stage+'.p'
+        pklname = kicid+'_'+stage+'.p'
+        pklallqname = kicid+'_allq_'+stage+'.p'
     else:
-        pklname = pklname+'.p'
+        pklname = kicid+'.p'
 
     predir = ''
     if 'inj' in stage:
@@ -1025,9 +1032,14 @@ def save_lightcurve_data(dat, stage=False):
     elif 'inj' not in stage:
         predir += 'no_inj/'
     spath = '../data/injrecov_pkl/'+predir+pklname
+    sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
 
-    pickle.dump(dat, open(spath, 'wb'))
-    LOGINFO('Saved (pickled) data to %s' % spath)
+    pickle.dump(lcd, open(spath, 'wb'))
+    LOGINFO('Saved (pickled) lcd data to %s' % spath)
+    if isinstance(allq, dict):
+        pickle.dump(allq, open(sallqpath, 'wb'))
+        LOGINFO('Saved (pickled) allquarter data to %s' % sallqpath)
+
 
     return kicid
 
@@ -1049,12 +1061,120 @@ def load_lightcurve_data(kicid, stage=None):
 
     return dat
 
+def load_allq_data(kicid, stage=None):
 
-def trim_near_gaps(lcd):
+    pklname = str(kicid)+'_allq_'+stage+'.p'
+
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+
+    lpath = '../data/injrecov_pkl/'+predir+pklname
+
+    allq = pickle.load(open(lpath, 'rb'))
+    LOGINFO('Loaded allquarter pickled data from %s' % lpath)
+
+    return allq
+
+
+def find_dips(lcd, allq, method='bls'):
     '''
+    Find dips (e.g., what planets would do) over the entire magnitude time
+    series.
+
+    Args:
+        method (str): currently only "bls": just do BLS.
+
+    Returns:
+        `allq`, with "dipfind" key that holds the results of the dip
+        search (e.g., periodogram information) for each technique. They are
+        sub-directories:
+
+        ["dipfind"]["tfe"][ap] =
+                  {'times':times,
+                   'fluxs':fluxs,
+                   'errs':errs,
+                   'qnums':quarter}
+        ["dipfind"][method][ap] = periodogram dictionary.
     '''
 
+    #Concatenate all the quarters when running dip-finder.
+    qnums = np.sort(list(lcd.keys()))
+    tfe = {}
+    for ap in ['sap','pdc']:
+        for ix, qnum in enumerate(qnums):
+            lc = lcd[qnum]['redtr'][ap]
+            if ix == 0:
+                times = lc['times']
+                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
+                errs = lc['errs']
+                quarter = np.ones_like(times)*qnum
+            else:
+                times = np.append(times, lc['times'])
+                fluxs = np.append(fluxs, lc['fluxs'] - lc['fitfluxs_legendre'])
+                errs = np.append(errs, lc['errs'])
+                quarter = np.append(quarter, np.ones_like(lc['times'])*qnum)
+        tfe[ap] = {'times':times,
+                   'fluxs':fluxs,
+                   'errs':errs,
+                   'qnums':quarter}
+
+    # Range of interesting periods determined by Holman & Weigert (1999)
+    # stability criterion on the inner edge. On the outer, note BLS can search
+    # for periods < half the observed baseline.
+    keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+
+    DYNAMICALFACTOR = 5.
+    smallest_p = DYNAMICALFACTOR * kebc_period
+    biggest_p = min((times[-1] - times[0])/2.01, 200.)
+
+    minTdur_φ = 0.005 # minimum transit length in phase
+    maxTdur_φ = 0.2 # maximum transit length in phase
+
+    df_dict = {}
+    for ap in ['sap','pdc']:
+
+        times, fluxs, errs = \
+                tfe[ap]['times'], tfe[ap]['fluxs'], tfe[ap]['errs']
+
+        if method == 'bls':
+            pgd = periodbase.bls_parallel_pfind(times,fluxs,errs,
+                startp=smallest_p,
+                endp=biggest_p, # don't search full timebase
+                stepsize=5.0e-5,
+                mintransitduration=minTdur_φ,
+                maxtransitduration=maxTdur_φ,
+                nphasebins=100,
+                autofreq=True, # figure out f0, nf, and df automatically
+                nbestpeaks=5,
+                periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
+                nworkers=None,
+                sigclip=None)
+
+
+        LOGINFO('\n\tKICID: {:s}. Completed dip find ({:s}) ap: {:s}'.format(
+                keplerid, method.upper(), ap.upper()))
+
+        df_dict[ap] = pgd
+
+    allq['dipfind'] = {}
+    allq['dipfind'][method] = df_dict
+    allq['dipfind']['tfe'] = tfe
+
+
+    return allq
+
+
+def drop_gaps_in_lightcurves(times, mags, errs):
+    '''
+    For any gap in the time-series of more than 0.5 days, drop the neighboring
+    0.5 day windows (i.e. 0.5 days before the gap, and 0.5 days after). This is
+    to avoid the systematic noise that tends to be near them.
+    (N.b. this follows exactly Armstrong et al. (2014)'s description)
+
+    Args:
+    '''
     pass
-
-
-

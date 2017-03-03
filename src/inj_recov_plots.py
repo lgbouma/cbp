@@ -1,3 +1,4 @@
+import pdb
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import logging
@@ -6,6 +7,7 @@ from datetime import datetime
 from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
     sum as npsum, array as nparr
+from astrobase.varbase import lcfit as lcf
 
 #############
 ## LOGGING ##
@@ -619,4 +621,178 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
 
     LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
+
+
+def dipsearchplot(lcd, allq, ap=None, stage='', inj=False):
+    '''
+    Looks like:
+    |           flux vs time for all quarters              |
+    | phased 1     |    phased 2      |       phased 3     |
+    | phased 4     |    phased 5      |       periodogram  |
+
+    Args:
+    lcd (dict): dictionary with all the data.
+
+    ap (str): 'sap' or 'pdc' for whether to start the plot using
+        simple aperture photometry from Kepler, or the presearch data
+        conditioned photometry. By default, SAP.
+
+    stage (str): stage of processing at which this was made. E.g., "redtr_inj"
+        if after redtrending and injecting transits.
+
+    Returns: nothing, but saves the plot with a smart name to
+        ../results/dipsearchplot/
+    '''
+
+    assert ap == 'sap' or ap == 'pdc'
+
+    keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+
+    colors = ['r', 'g', 'b', 'gray']
+
+    # Set up matplotlib figure and axes.
+    plt.close('all')
+    nrows, ncols = 3, 3
+    f = plt.figure(figsize=(16, 10))
+    gs = GridSpec(nrows, ncols) # 5 rows, 5 columns
+
+    # row 0: SAP/PDC timeseries
+    ax_raw = f.add_subplot(gs[0,:])
+    # phased at 5 favorite periods
+    axs_φ = []
+    for i in range(1,3):
+        for j in range(0,ncols):
+            if i == 2 and j == 2:
+                continue
+            else:
+                axs_φ.append(f.add_subplot(gs[i,j]))
+    # periodogram
+    ax_pg = f.add_subplot(gs[2,2])
+
+    LOGINFO('Beginning dipsearchplot. KEPID %s (%s)' %
+            (str(keplerid), ap))
+
+    # TIME SERIES
+    qnums = np.unique(allq['dipfind']['tfe'][ap]['qnums'])
+    lc = allq['dipfind']['tfe'][ap]
+    quarters = lc['qnums']
+
+    for ix, qnum in enumerate(qnums):
+
+        times = lc['times'][quarters==qnum]
+        fluxs = lc['fluxs'][quarters==qnum]
+        errs = lc['errs'][quarters==qnum]
+
+        thiscolor = colors[int(qnum)%len(colors)]
+
+        ax_raw.plot(times, fluxs, c=thiscolor, linestyle='-',
+                marker='o', markerfacecolor=thiscolor,
+                markeredgecolor=thiscolor, ms=0.1, lw=0.1)
+
+        txt = '%d' % (int(qnum))
+        txt_x = npmin(times) + (npmax(times)-npmin(times))/2
+        txt_y = npmin(fluxs) - (npmax(fluxs)-npmin(fluxs))/4
+
+        ax_raw.text(txt_x, txt_y, txt, horizontalalignment='center',
+                verticalalignment='center')
+
+        # keep track of min/max times for setting xlims
+        if ix == 0:
+            min_time = npmin(times)
+            max_time = npmax(times)
+        elif ix > 0:
+            if npmin(times) < min_time:
+                min_time = npmin(times)
+            if npmax(times) > max_time:
+                max_time = npmax(times)
+
+    # label axes, set xlimits for entire time series.
+    timelen = max_time - min_time
+
+    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+    ax_raw.get_xaxis().set_ticks([])
+    xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
+    ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux\n(redtr)',
+        xlim=[xmin,xmax],
+        ylim = [-0.015,0.015])
+    ax_raw.set_title(
+        'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f} '.format(
+        str(keplerid), ap.upper(), kebc_period)+\
+        'day, inj, dtr, whitened, redtr (n=20 legendre series fit)',
+        fontsize='small')
+    ax_raw.hlines([0.005,-0.005], xmin, xmax,
+            colors='k',
+            linestyles='--',
+            zorder=-20)
+
+
+    # PERIODOGRAMS
+    pgd = allq['dipfind']['bls'][ap]
+
+    ax_pg.plot(pgd['periods'], pgd['lspvals'], 'k-')
+
+    pwr_ylim = ax_pg.get_ylim()
+    nbestperiods = pgd['nbestperiods']
+    bestperiod = pgd['bestperiod']
+    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
+            linestyles=':', alpha=0.8, zorder=20)
+
+    p = allq['inj_model']
+    injperiod = p['params'].per
+    ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
+            linestyles='-', alpha=0.8, zorder=10)
+
+    selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
+    txt = 'P_inj: %.4f d, P_rec: %.4f d' % (injperiod, bestperiod)
+    ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
+            verticalalignment='top',
+            transform=ax_pg.transAxes)
+
+    ax_pg.set(xlabel='', xscale='log')
+    ax_pg.get_xaxis().set_ticks([])
+    ax_pg.set(ylabel='BLS power')
+
+    # PHASE-FOLDED LIGHTCURVES
+    lc = allq['dipfind']['tfe'][ap]
+    times = lc['times']
+    fluxs = lc['fluxs']
+    errs = lc['errs']
+
+    for ix, ax in enumerate(axs_φ):
+
+        foldperiod = nbestperiods[ix]
+        phase, pflux, perrs, ptimes, mintime = (
+                lcf._get_phased_quantities(times, fluxs, errs, foldperiod)
+            )
+
+        thiscolor = colors[int(qnum)%len(colors)]
+
+        ax.plot(phase, pflux, c=thiscolor, linestyle='-',
+                marker='o', markerfacecolor=thiscolor,
+                markeredgecolor=thiscolor, ms=0.1, lw=0.1, zorder=0)
+        #ax.plot(phase, pfitflux, c='k', linestyle='-',
+        #        lw=0.5, zorder=2)
+
+        txt = 'P_fold: %.5f d' % (int(foldperiod))
+        ax.text(0.98, 0.98, txt, horizontalalignment='right',
+                verticalalignment='top',
+                transform=ax.transAxes)
+
+        ax.get_xaxis().set_ticks([])
+        ax.set(ylabel='')
+
+
+    f.tight_layout(h_pad=-1)
+
+    # Figure out names and write.
+    savedir = '../results/dipsearchplot/'
+    if 'inj' in stage:
+        savedir += 'inj/'
+    elif 'inj' not in stage:
+        savedir += 'no_inj/'
+    plotname = str(keplerid)+'_'+ap+stage+'.png'
+
+    f.savefig(savedir+plotname, dpi=300)
+
+    LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
