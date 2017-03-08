@@ -7,14 +7,13 @@ import injrecovresult_analysis as irra
 #TODO#
 ######
 '''
-* verify that we get _better_ periods by taking fine over coarse.
-    (in the inj/recov result writing...)
-
-* add routine to rule for or against "recovery" by whether the injected (P,t_0)
-agree with recovered (P,t_0) within 0.1 days.
-
 * draw injected signal parameters following Foreman-Mackey et al (2015)'s K2
 procedure
+
+* make completeness maps (vs δ_inj, P_inj, P_EB, rms_biased)
+
+* check normalization is being done thru *DIVISION* by mean (not subtraction),
+b/c division preservers relative fluxes...
 
 
 ##########

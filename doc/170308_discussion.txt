@@ -1,0 +1,63 @@
+On contact EBs:
+
+Other than things already on the TODO:
+
+##########
+inj/recov analysis & summarizing
+##########
+Do it. (Already on immediate TODO)
+
+##########
+Better ways of zeroing out the EB signal (possibly to become more important):
+##########
+* Is Johan willing to share his code?
+-> might just be a much better way of fitting out the full EB signal
+
+* During phase-folded norm, dtr flux part, use something less sharp than n=80
+legendre series depending on the morphology parameter.
+(i.e. make the legendre series order a function of the morphology parameter)
+-> fine-tune appropriate by using the 
+
+* Print the morphology parameter on ur plots in the titles.
+
+##########
+Dipfinding: 
+##########
+* Another possible detection stat: also compute a fourier periodogram (e.g.,
+LSP). The BIG NARROW peaks in the fourier periodogram should be spread out in
+the BLS spectrum (these should be the EB periodicity hrmonics). 
+The spread out peaks in the Fourier periodogram should be the narrow, box-like
+planet peaks in the BLS spectrum
+
+* Email Joshua Carter / is there a QATS implementation anywhere so that I don't
+have to implement it?
+
+* Update BLS dipfind to use vartools. Or something more sophisticated than Geza
+Kovacs' implementation (e.g., vartools has the ability to change the acceptable
+transit durations depending on the period)
+
+* Why does 5615528 *change* (phase-folded) between quarters?
+
+##########
+On possible secular flux vs time changes, e.g., b/c of star spots moving around
+quasiperiodically:
+##########
+* River plot!!!
+* Another option: zoom in on the redtr flux vs time
+
+##########
+Plot improvements:
+##########
+show the phase-folded plots from phase -1 to 1. (the phase-folded norm, dtr
+flux plots)
+
+##########
+Other projects:
+##########
+Kento to take lead on # of the transiting planets projects (or, he's voiced
+that he wants to). He has the 
+
+
+
+Talk w/ Ondrej:
+* Any physical reason for the secular f(φ) change?

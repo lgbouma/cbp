@@ -535,11 +535,12 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
 
 
     # PERIODOGRAMS
-    qnums = np.sort(nparr(list(
-            set(np.unique(np.sort(np.random.randint(1,len(lcd),size=ncols))))&\
-            set(list(lcd.keys()))
-            )))
-    if len(lcd) <= 5:
+    if len(lcd) > 1:
+        qnums = np.sort(nparr(list(
+                set(np.unique(np.sort(np.random.randint(1,len(lcd),size=ncols))))&\
+                set(list(lcd.keys()))
+                )))
+    if len(lcd) <= 5 or len(lcd) == 1:
         qnums = nparr(list(lcd.keys()))
     else:
         while len(qnums) != 5:

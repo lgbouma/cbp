@@ -1103,13 +1103,13 @@ def find_dips(lcd, allq, method='bls'):
         # that we want epochs for, and wrangle the results of that to get 
         # good epochs.
         for nbestperiod in nbestperiods:
-            # do ~3000 frequencies within +/- 0.5% of nbestperiod
+            # do ~10000 frequencies within +/- 0.5% of nbestperiod
             rdiff = 0.005
             startp = nbestperiod - rdiff*nbestperiod
             endp = nbestperiod + rdiff*nbestperiod
             maxfreq = 1/startp
             minfreq = 1/endp
-            nfreqdesired = 3e3
+            nfreqdesired = 1e4
             stepsize = (maxfreq-minfreq)/nfreqdesired
             nfreq = int(np.ceil((maxfreq - minfreq)/stepsize))
             nphasebins = int(np.ceil(2.0/minTdur_φ))
