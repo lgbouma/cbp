@@ -7,7 +7,7 @@ from datetime import datetime
 
 from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
-    sum as npsum, array as nparr
+    sum as npsum, array as nparr, std as npstd
 from astrobase.varbase import lcfit as lcf
 from astrobase.varbase.lcfit import spline_fit_magseries
 from astrobase import lcmath
@@ -651,7 +651,7 @@ def add_inset_axes(ax,fig,rect,axisbg='w'):
 
 
 
-def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
+def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         phasebin=0.002, inset=True):
     '''
     The phased lightcurves in this plot shamelessly rip from those written by
@@ -674,8 +674,10 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
     stage (str): stage of processing at which this was made. E.g., "redtr_inj"
         if after redtrending and injecting transits.
 
-    varepoch (str or None): if 'min', tries to actually find a good epoch so
-        that your phase-folded LCs have dips at phase 0.5
+    varepoch (str or None): if 'bls', goes by the ingress/egress computed in
+        binned-phase from BLS. If 'splfit', tries to find a good epoch by
+        spline fitting to the binned phase-folded LC (formerly implemented, now
+        broken).
 
     Returns: nothing, but saves the plot with a smart name to
         ../results/dipsearchplot/
@@ -711,10 +713,13 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
     LOGINFO('Beginning dipsearchplot. KEPID %s (%s)' %
             (str(keplerid), ap))
 
-    # TIME SERIES
+    ###############
+    # TIME SERIES #
+    ###############
     qnums = np.unique(allq['dipfind']['tfe'][ap]['qnums'])
     lc = allq['dipfind']['tfe'][ap]
     quarters = lc['qnums']
+    ylim_raw = [-0.015,0.015]
 
     for ix, qnum in enumerate(qnums):
 
@@ -730,7 +735,9 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
 
         txt = '%d' % (int(qnum))
         txt_x = npmin(times) + (npmax(times)-npmin(times))/2
-        txt_y = npmin(fluxs) + (npmax(fluxs)-npmin(fluxs))/6
+        txt_y = npmedian(fluxs) - 2*npstd(fluxs)
+        if txt_y < ylim_raw[0]:
+            txt_y = min(ylim_raw) + 0.001
 
         ax_raw.text(txt_x, txt_y, txt, horizontalalignment='center',
                 verticalalignment='center')
@@ -753,124 +760,100 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
     xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
     ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux (redtr)',
         xlim=[xmin,xmax],
-        ylim = [-0.015,0.015])
+        ylim = ylim_raw)
     ax_raw.set_title(
         'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f} '.format(
         str(keplerid), ap.upper(), kebc_period)+\
         'day, inj, dtr, whitened, redtr (n=20 legendre series fit)',
-        fontsize='small')
+        fontsize='x-small')
     ax_raw.hlines([0.005,-0.005], xmin, xmax,
             colors='k',
             linestyles='--',
             zorder=-20)
 
-
-    # PERIODOGRAMS
-    pgd = allq['dipfind']['bls'][ap]
-
-    ax_pg.plot(pgd['periods'], pgd['lspvals'], 'k-')
-
-    pwr_ylim = ax_pg.get_ylim()
+    ############################
+    # PHASE-FOLDED LIGHTCURVES #
+    ############################
+    pgd = allq['dipfind']['bls'][ap]['coarsebls']
     nbestperiods = pgd['nbestperiods']
-    bestperiod = pgd['bestperiod']
-    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
-            linestyles=':', alpha=0.8, zorder=20)
-
-    p = allq['inj_model']
-    injperiod = p['params'].per
-    ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
-            linestyles='-', alpha=0.8, zorder=10)
-
-    selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
-    txt = 'P_inj: %.4f d\nP_rec: %.4f d' % (injperiod, bestperiod)
-    ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
-            verticalalignment='top',
-            transform=ax_pg.transAxes)
-
-    ax_pg.set(xlabel='period [d]', xscale='log')
-    ax_pg.get_yaxis().set_ticks([])
-    ax_pg.set(ylabel='BLS power')
-
-    # PHASE-FOLDED LIGHTCURVES
-    lc = allq['dipfind']['tfe'][ap]
-    times = lc['times']
-    fluxs = lc['fluxs']
-    errs = lc['errs']
-
     for ix, ax in enumerate(axs_φ):
 
         foldperiod = nbestperiods[ix]
 
-        # figure out the epoch, if it's None, use the min of the time
-        if varepoch is None:
-            varepoch = np.min(times)
-
-        # if the varepoch is 'min', then fit a spline to the light curve
-        # phased using the min of the time, find the fit mag minimum and use
-        # the time for that as the varepoch
-        elif isinstance(varepoch,str) and varepoch == 'min':
+        if isinstance(varepoch,str) and varepoch == 'splfit':
             try:
-                spfit = spline_fit_magseries(times,
-                                             fluxs,
-                                             errs,
+                assert 0
+                lc = allq['dipfind']['tfe'][ap]
+                ftimes = lc['times']
+                ffluxs = lc['fluxs']
+                ferrs = lc['errs']
+                spfit = spline_fit_magseries(ftimes,
+                                             ffluxs,
+                                             ferrs,
                                              foldperiod,
                                              magsarefluxes=True,
                                              sigclip=None)
                 varepoch = spfit['fitinfo']['fitepoch']
                 if len(varepoch) != 1:
                     varepoch = varepoch[0]
+
+                LOGINFO('KEPID %s (%s) making phased LC. P: %.6f, t_0: %.5f' %
+                        (str(keplerid), ap, foldperiod, varepoch))
+
             except Exception as e:
-                LOGEXCEPTION('spline fit failed, using min(times) as epoch')
-                varepoch = np.min(stimes)
+                LOGEXCEPTION(
+                'option not yet implemented (call lcmath.phase_magseries)'
+                )
 
-        LOGINFO('KEPID %s (%s) plotting phased LC. period: %.6f, epoch: %.5f' %
-                (str(keplerid), ap, foldperiod, varepoch))
+        # Recover quantities to plot, defined on φ=[0,1]
+        fbls = allq['dipfind']['bls'][ap]['finebls'][foldperiod]
+        plotφ = fbls['φ']
+        plotfluxs = fbls['flux_φ']
+        binplotφ = fbls['binned_φ']
+        binplotfluxs = fbls['binned_flux_φ']
+        φ_0 = fbls['φ_0']
+        if ix == 0:
+            bestφ_0 = φ_0
+        φ_ing, φ_egr = fbls['φ_ing'],fbls['φ_egr']
+        # Want to wrap over φ=[-1,1]
+        plotφ = np.concatenate(
+                (plotφ-2.,plotφ-1.,plotφ,plotφ+1.,plotφ+2.)
+                )
+        plotfluxs = np.concatenate(
+                (plotfluxs,plotfluxs,plotfluxs,plotfluxs,plotfluxs)
+                )
+        binplotφ = np.concatenate(
+                (binplotφ-2.,binplotφ-1.,binplotφ,binplotφ+1.,binplotφ+2.)
+                )
+        binplotfluxs = np.concatenate(
+                (binplotfluxs,binplotfluxs,binplotfluxs,binplotfluxs,binplotfluxs)
+                )
 
-        # phase the magseries
-        phasedlc = lcmath.phase_magseries(times,
-                                          fluxs,
-                                          foldperiod,
-                                          varepoch,
-                                          wrap=True,
-                                          sort=True)
-        plotphase = phasedlc['phase']
-        plotfluxs = phasedlc['mags']
-
-        # if we're supposed to bin the phases, do so
+        # Make the phased LC plot
+        ax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=2,color='gray')
+        # Overlay the binned phased LC plot
         if phasebin:
-            binphasedlc = lcmath.phase_bin_magseries(plotphase,
-                                              plotfluxs,
-                                              binsize=phasebin)
-            binplotphase = binphasedlc['binnedphases']
-            binplotfluxs = binphasedlc['binnedmags']
-
-        else:
-            binplotphase = None
-            binplotfluxs = None
-
-        # finally, make the phased LC plot
-        ax.scatter(plotphase,plotfluxs,marker='o',s=2,color='gray')
-        # overlay the binned phased LC plot if we're making one
-        if phasebin:
-            ax.scatter(binplotphase,binplotfluxs,marker='o',s=10,color='blue')
+            ax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10,color='blue')
 
         if inset:
             subpos = [0.03,0.79,0.25,0.2]
             iax = add_inset_axes(ax,f,subpos)
 
-            iax.scatter(plotphase,plotfluxs,marker='o',s=2*0.3,color='gray')
+            iax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=2*0.3,color='gray')
             if phasebin:
-                iax.scatter(binplotphase,binplotfluxs,marker='o',s=10*0.3,color='blue')
+                iax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10*0.3,color='blue')
             iaxylim = iax.get_ylim()
 
             iax.set(ylabel='', xlim=[-0.7,0.7])
             iax.get_xaxis().set_visible(False)
             iax.get_yaxis().set_visible(False)
 
-        txt = 'P_fold: %.5f d' % (foldperiod)
+        t0 = min_time + φ_0*foldperiod
+        txt = 'P_fold: {:.5f} d\nt_0: {:.5f} \n$\phi_0$= {:.5f}'.format(
+            foldperiod, t0, φ_0)
         ax.text(0.98, 0.02, txt, horizontalalignment='right',
                 verticalalignment='bottom',
-                transform=ax.transAxes, fontsize='small')
+                transform=ax.transAxes, fontsize='x-small')
 
         ax.set(ylabel='', xlim=[-0.1,0.1])
         axylim = ax.get_ylim()
@@ -881,6 +864,38 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='min',
                     linestyles='-', alpha=0.7, zorder=30)
             iax.vlines([0.], min(iaxylim), max(iaxylim), colors='red',
                     linestyles='-', alpha=0.9, zorder=30)
+
+
+    ################
+    # PERIODOGRAMS #
+    ################
+    pgd = allq['dipfind']['bls'][ap]['coarsebls']
+
+    ax_pg.plot(pgd['periods'], pgd['lspvals'], 'k-')
+
+    pwr_ylim = ax_pg.get_ylim()
+    nbestperiods = pgd['nbestperiods']
+    bestperiod = pgd['bestperiod']
+    best_t0 = min_time + bestφ_0*bestperiod
+    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
+            linestyles=':', alpha=0.8, zorder=20)
+
+    p = allq['inj_model']
+    injperiod = p['params'].per
+    inj_t0 = p['params'].t0
+    ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
+            linestyles='-', alpha=0.8, zorder=10)
+
+    selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
+    txt = 'P_inj: %.4f d\nP_rec: %.4f d\nt_0,inj: %.4f\nt_0,rec: %.4f' % \
+          (injperiod, bestperiod, inj_t0, best_t0)
+    ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
+            verticalalignment='top',
+            transform=ax_pg.transAxes)
+
+    ax_pg.set(xlabel='period [d]', xscale='log')
+    ax_pg.get_yaxis().set_ticks([])
+    ax_pg.set(ylabel='BLS power')
 
 
 
