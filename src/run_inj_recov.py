@@ -7,8 +7,26 @@ import inj_recov_plots as irp
 ######
 '''
 TODO
-* implement Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending
-  (add it in astrobase, then call in find_dips)
+
+* add routine to rule for or against "recovery" by whether the injected (P,t_0)
+agree with recovered (P,t_0) within 0.1 days.
+
+* draw injected signal parameters following Foreman-Mackey et al (2015)'s K2
+procedure
+
+
+##########
+Possible improvements:
+
+* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
+-> can do this in post-processing, or (likely better) add direct to
+astrobase. See FIXME below.
+
+* iteratively whiten via either:
+    1. if next bst period is a harmonic of original signal, subtract off new
+    legendre fit
+    2. scipy.signal: genereate filters based on Fourier representation of LC,
+    including all the harmonics, and pass them thru
 
 * In "redtrending": cut out data within "0.5d regions" of gaps (defined by
     >0.5day space btwn points)
@@ -27,8 +45,11 @@ TODO
     quarter. **If (once detrended+whitened) it's very small, we must allow
     bigger dips (w/out clipping them).**
 
+* Understand how DFM+ peerless implemented model comparison once you have nice
+    transits. Implement it.
 
-
+* implement Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending
+  (add it in astrobase, then call in find_dips)
 
 ----------
 
@@ -137,6 +158,8 @@ def N_lc_injrecov(N,
             if 'redtr' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
             allq = ir.find_dips(lcd, allq, method='bls')
+            #allq = ir.find_epochs(lcd, allq, method='bls')
+            #FIXME implement the above? needed?
             if 'dipsearch' in stage:
                 kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
 
@@ -182,24 +205,34 @@ def N_lc_injrecov(N,
 
 
 
-def get_lcd(stage='redtr'):
-    N = 100
-    np.random.seed(N)
-    seeds = np.random.randint(0, 99999999, size=N)
-    np.random.seed(seeds[0])
+def get_lcd(stage='redtr', inj=None, allq=None):
+    datapath = '../data/injrecov_pkl/'
+    if inj:
+        datapath += 'inj/'
+        stage += '_inj'
+    else:
+        datapath += 'no_inj/'
+    pklnames = [f for f in os.listdir(datapath) if stage in f]
 
-    lcd = ir.retrieve_random_lc()
-    kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+    kicids = np.unique([pn.split('_')[0] for pn in pklnames])
+    sind = np.random.randint(0, len(kicids))
+    kicid = kicids[sind]
 
     lcd = ir.load_lightcurve_data(kicid, stage=stage)
+    if 'dipsearch' in stage:
+        allq = ir.load_allq_data(kicid, stage=stage)
 
-    return lcd
+    if isinstance(allq, dict):
+        return lcd, allq
+    else:
+        return lcd
 
 
 if __name__ == '__main__':
 
     # If you just need a quick `lcd` to play with:
-    #lcd = get_lcd()
+    #lcd = get_lcd(stage='dtr', inj=False)
+    #lcd, allq = get_lcd(stage='dipsearch', inj=True)
 
     # Testing out injection:
     #N_lc_injrecov(100, stage='redtr', inj=True)

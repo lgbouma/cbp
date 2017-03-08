@@ -1137,35 +1137,143 @@ def find_dips(lcd, allq, method='bls'):
     df_dict = {}
     for ap in ['sap','pdc']:
 
+        df_dict[ap] = {}
+        df_dict[ap]['finebls'] = {}
+
         times, fluxs, errs = \
                 tfe[ap]['times'], tfe[ap]['fluxs'], tfe[ap]['errs']
 
-        if method == 'bls':
-            pgd = periodbase.bls_parallel_pfind(times,fluxs,errs,
-                startp=smallest_p,
-                endp=biggest_p, # don't search full timebase
-                stepsize=5.0e-5,
-                mintransitduration=minTdur_φ,
-                maxtransitduration=maxTdur_φ,
-                nphasebins=100,
-                autofreq=True, # figure out f0, nf, and df automatically
-                nbestpeaks=5,
-                periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
-                nworkers=None,
-                sigclip=None)
+        if method != 'bls':
+            raise Exception
 
+        pgd = periodbase.bls_parallel_pfind(times,fluxs,errs,
+            magsarefluxes=True,
+            startp=smallest_p,
+            endp=biggest_p, # don't search full timebase
+            stepsize=5.0e-5,
+            mintransitduration=minTdur_φ,
+            maxtransitduration=maxTdur_φ,
+            autofreq=True, # auto-find frequencies and nphasebins
+            nbestpeaks=5,
+            periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
+            nworkers=None,
+            sigclip=None)
+        pgd['nphasebins'] = int(np.ceil(2.0/minTdur_φ))
 
-        LOGINFO('\n\tKICID: {:s}. Completed dip find ({:s}) ap: {:s}'.format(
+        nbestperiods = pgd['nbestperiods']
+
+        LOGINFO('KICID: {:s}. Finished coarsebls ({:s}) ap:{:s}'.format(
                 keplerid, method.upper(), ap.upper()))
 
-        df_dict[ap] = pgd
+        df_dict[ap]['coarsebls'] = pgd
+
+        # coarsebls has blsresults from each worker's frequency chunk. To 
+        # get epochs, you need to go from the BIN INDEX at ingress of the 
+        # best transit to that of egress. As eebls.f is written, it only 
+        # returns the "best transit" from whatever frequency chunk was 
+        # given to it. So we need to run SERIAL BLS around the nbestperiods
+        # that we want epochs for, and wrangle the results of that to get 
+        # good epochs.
+        for nbestperiod in nbestperiods:
+            # do ~3000 frequencies within +/- 0.5% of nbestperiod
+            rdiff = 0.005
+            startp = nbestperiod - rdiff*nbestperiod
+            endp = nbestperiod + rdiff*nbestperiod
+            maxfreq = 1/startp
+            minfreq = 1/endp
+            nfreqdesired = 3e3
+            stepsize = (maxfreq-minfreq)/nfreqdesired
+            nfreq = int(np.ceil((maxfreq - minfreq)/stepsize))
+            nphasebins = int(np.ceil(2.0/minTdur_φ))
+
+            LOGINFO('Narrow serial BLS: {:d} freqs, '.format(nfreq)+\
+                    'start {:.6g} d, end {:.6g} d. {:d} phasebins.'.format(
+                    startp, endp, nphasebins))
+
+            sd = periodbase.bls_serial_pfind(times, fluxs, errs,
+                 magsarefluxes=True,
+                 startp=startp,
+                 endp=endp,
+                 stepsize=stepsize,
+                 mintransitduration=minTdur_φ,
+                 maxtransitduration=maxTdur_φ,
+                 nphasebins=nphasebins,
+                 autofreq=False,
+                 periodepsilon=rdiff*nbestperiod/3.,
+                 nbestpeaks=1,
+                 sigclip=None)
+
+            df_dict[ap]['finebls'][nbestperiod] = {}
+            df_dict[ap]['finebls'][nbestperiod]['serialdict'] = sd
+            #serialdict (sd) keys:['nfreq', 'maxtransitduration', 'nphasebins',
+            #'nbestpeaks', 'nbestperiods', 'lspvals', 'blsresult', 'bestperiod',
+            #'method', 'mintransitduration', 'stepsize', 'bestlspval',
+            #'nbestlspvals', 'periods', 'frequencies'].
+            #blsresult['transingressbin'] and blsresult['transegressbin'] are
+            #what are relevant for finding the epoch.
+
+            # -1 because fortran is 1-based
+            ingbinind = int(sd['blsresult']['transingressbin']-1)
+            egrbinind = int(sd['blsresult']['transegressbin']-1)
+
+            # Kovacs' eebls.f uses the first time as the epoch when computing
+            # the phase. (Note he keeps the phases in time-sorted order).
+            tempepoch = np.min(times)
+            phasedlc = lcmath.phase_magseries(times,
+                                              fluxs,
+                                              nbestperiod,
+                                              tempepoch,
+                                              wrap=False,
+                                              sort=False)
+
+            # N.b. these phases and fluxes (at the corresponding phase-values) 
+            # are in time-sorted order.
+            φ = phasedlc['phase']
+            flux_φ = phasedlc['mags']
+
+            phasebin = 1./sd['nphasebins']
+            binphasedlc = lcmath.phase_bin_magseries(φ,flux_φ,binsize=phasebin)
+
+            φ_bin = binphasedlc['binnedphases']
+            flux_φ_bin = binphasedlc['binnedmags']
+            φ_ing = φ_bin[ingbinind]
+            φ_egr = φ_bin[egrbinind]
+
+            # Get φ_0, the phase of central transit.
+            if φ_ing < φ_egr:
+                halfwidth = (φ_egr-φ_ing)/2.
+                φ_0 = φ_ing + halfwidth
+            elif φ_ing > φ_egr:
+                halfwidth = (1+φ_egr-φ_ing)/2.
+                if 1-φ_ing > φ_egr:
+                    φ_0 = (φ_egr - halfwidth)%1.
+                elif 1-φ_ing < φ_egr:
+                    φ_0 = (φ_ing + halfwidth)%1.
+                elif 1-φ_ing == φ_egr:
+                    φ_0 = 0.
+
+            df_dict[ap]['finebls'][nbestperiod]['φ'] = phasedlc['phase']
+            df_dict[ap]['finebls'][nbestperiod]['flux_φ'] = phasedlc['mags']
+            df_dict[ap]['finebls'][nbestperiod]['binned_φ'] = φ_bin
+            df_dict[ap]['finebls'][nbestperiod]['binned_flux_φ'] = flux_φ_bin
+            df_dict[ap]['finebls'][nbestperiod]['φ_ing'] = φ_ing
+            df_dict[ap]['finebls'][nbestperiod]['φ_egr'] = φ_egr
+            df_dict[ap]['finebls'][nbestperiod]['φ_0'] = φ_0
+            #FIXME: verify it works
+
+        LOGINFO('KICID: {:s}. Finished finebls ({:s}) ap:{:s}'.format(
+                keplerid, method.upper(), ap.upper()))
 
     allq['dipfind'] = {}
     allq['dipfind'][method] = df_dict
     allq['dipfind']['tfe'] = tfe
 
-
     return allq
+
+
+def find_epochs(lcd, allq, method='bls'):
+    pass
+    #FIXME: implement
 
 
 def drop_gaps_in_lightcurves(times, mags, errs):
