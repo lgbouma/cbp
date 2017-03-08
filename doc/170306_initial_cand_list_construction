@@ -1,0 +1,57 @@
+Mon 06 Mar 2017 08:52:01 AM EST
+
+What cuts to make to produce an initial candidate list?
+####################
+
+Petigura et al. (2013, PNAS):
+
+For actual candidates (not the injected ones), a mix of machine and manual
+triage. For machine:
+* Compute `s2n_on_grass`. Take the most significant period, P_max, and define
+  `s2n_on_grass := SNR of P_max / (median of next five tallest peaks in
+  [P_max/1.4, P_max*1.4]`.
+* Require s2n_on_grass > 1.2 for transiting candidate event status (cuts
+  ~60-70% of candidate events).
+* Also require P_max>5 days
+
+Citing Petigura et al. (2013) ApJ 770:69, he notes more aggressive automatic
+cuts are feasible. However, they remove a handful of compelling candidates. You
+can get higher completeness by relying more heavily on visual inspection.
+
+Manual triage:
+* Generates data validation summary plots, with diagnostics that are relevant
+for mine too:
+  * a `transit stack`: at identified transits
+  * "single event statistic" vs phase 
+
+
+TO MEASURE COMPLETENESS: (S7)
+The injection/recovery framework was developed for P13 (the ApJ paper). More
+details are there.
+
+Injection procedure:
+Generate 40,000 synthetic lightcurves according to the steps:
+1. select a random star from sample
+2. draw (P,Rp) from log-uniform distribns over 5-400d and 0.5-16Re
+3. draw b and t_0 from uniform distrbns on 0-1
+4. synthesize mandel-agol transit
+5. inject the model into SAP flux of the star.
+
+Then process it with all the same calibration, search, and data validation done
+on the actual LCs.
+
+**A synthetic light curve is "recovered" if the injected (P, t_0) agree with the
+recovered (P,t_0) to 0.1 days)**
+
+####################
+Compare to Foreman-Mackey et al. (2015)'s K2 procedure, described in their
+table 1:
+* q1 and q2 from q~U(0,1)
+* P [days] from lnP ~ U(ln0.5, ln70)
+* Reference transit time T_0 [days] from T_0 ~ U(0,P)
+* Radius ratio Rp/Rstar, lnRp/Rstar ~ U(ln0.02,ln0.2)
+* Impact parameter b~U(0,1)
+* Eccentricity e~Beta(0.867,3.03)
+* Argument of periapsis ω~U(-π,π)
+
+  
