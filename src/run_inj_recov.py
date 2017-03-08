@@ -1,12 +1,14 @@
 import numpy as np, os
 import inj_recov as ir
 import inj_recov_plots as irp
+import injrecovresult_analysis as irra
 
 ######
 #TODO#
 ######
 '''
-TODO
+* verify that we get _better_ periods by taking fine over coarse.
+    (in the inj/recov result writing...)
 
 * add routine to rule for or against "recovery" by whether the injected (P,t_0)
 agree with recovered (P,t_0) within 0.1 days.
@@ -133,7 +135,9 @@ def N_lc_injrecov(N,
     for s in seeds:
         np.random.seed(s)
 
-        lcd = ir.retrieve_random_lc()
+        lcd, lcflag = ir.retrieve_random_lc()
+        if lcflag:
+            continue
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 
         pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
@@ -158,8 +162,6 @@ def N_lc_injrecov(N,
             if 'redtr' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
             allq = ir.find_dips(lcd, allq, method='bls')
-            #allq = ir.find_epochs(lcd, allq, method='bls')
-            #FIXME implement the above? needed?
             if 'dipsearch' in stage:
                 kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
 
@@ -167,6 +169,11 @@ def N_lc_injrecov(N,
         lcd = ir.load_lightcurve_data(kicid, stage=stage)
         if 'dipsearch' in stage:
             allq = ir.load_allq_data(kicid, stage=stage)
+
+        #WRITE RESULTS TABLES
+        if 'dipsearch' in stage:
+            if inj:
+                ir.write_injrecov_result(lcd, allq, stage=stage)
 
         #MAKE PLOTS
         if ors:
@@ -178,7 +185,7 @@ def N_lc_injrecov(N,
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
             if len(plotmatches)>0:
-                print('Found dipsearchplot, continuing.')
+                print('\nFound dipsearchplot, continuing.\n')
                 continue
 
             if 'dipsearch' in stage:
@@ -190,7 +197,7 @@ def N_lc_injrecov(N,
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
             if len(plotmatches)>0:
-                print('Found whitened_diagnostic, continuing.')
+                print('\nFound whitened_diagnostic, continuing.\n')
                 continue
 
             if 'pw' in stage:
@@ -202,6 +209,9 @@ def N_lc_injrecov(N,
             elif 'dipsearch' in stage:
                 irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
                 irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
+
+    if inj:
+        irra.summarize_injrecov_result()
 
 
 

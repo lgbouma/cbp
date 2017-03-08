@@ -17,6 +17,7 @@ from numpy import nan as npnan, median as npmedian, \
     sum as npsum, array as nparr
 from numpy.polynomial.legendre import Legendre, legval
 import batman
+import pandas as pd
 
 #############
 ## LOGGING ##
@@ -201,9 +202,14 @@ def retrieve_random_lc():
     ind = int(np.random.randint(0, len(kebc['KIC']), size=1))
 
     rd = get_all_quarters_lc_data(kebc_kic_ids[ind])
-    assert len(rd) > 1, 'failed for KIC ID {:s}'.format(str(kebc_kic_ids[ind]))
+    if len(rd) < 1:
+        lcflag = True
+        LOGERROR('Error getting LC data. KICID-{:s}'.format(
+            str(kebc_kic_ids[ind])))
+    else:
+        lcflag = False
 
-    return rd
+    return rd, lcflag
 
 
 def get_kepler_ebs_info():
@@ -1001,84 +1007,6 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
     return dat
 
 
-
-def save_lightcurve_data(lcd, allq=None, stage=False):
-    '''
-    Args:
-        lcd (anytype): the thing you want to write to a pickle file. Always
-        "lcd" object, keyed by quarters.
-
-    Kwargs:
-        allq (anytype): if you also have "all of the quarters" concatenated
-        data that you'd like to save in a separate pickle.
-
-        stage (str): a short string that will be appended to the pickle file
-        name to simplify subsequent reading. E.g., "pw" for "post-whitening",
-        or "redtr_inj" if it's post-redetrending, and you've injected fake
-        transits.
-    '''
-
-    kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
-
-    if stage:
-        pklname = kicid+'_'+stage+'.p'
-        pklallqname = kicid+'_allq_'+stage+'.p'
-    else:
-        pklname = kicid+'.p'
-
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
-    spath = '../data/injrecov_pkl/'+predir+pklname
-    sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
-
-    pickle.dump(lcd, open(spath, 'wb'))
-    LOGINFO('Saved (pickled) lcd data to %s' % spath)
-    if isinstance(allq, dict):
-        pickle.dump(allq, open(sallqpath, 'wb'))
-        LOGINFO('Saved (pickled) allquarter data to %s' % sallqpath)
-
-
-    return kicid
-
-
-def load_lightcurve_data(kicid, stage=None):
-
-    pklname = str(kicid)+'_'+stage+'.p'
-
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
-
-    lpath = '../data/injrecov_pkl/'+predir+pklname
-
-    dat = pickle.load(open(lpath, 'rb'))
-    LOGINFO('Loaded pickled data from %s' % lpath)
-
-    return dat
-
-def load_allq_data(kicid, stage=None):
-
-    pklname = str(kicid)+'_allq_'+stage+'.p'
-
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
-
-    lpath = '../data/injrecov_pkl/'+predir+pklname
-
-    allq = pickle.load(open(lpath, 'rb'))
-    LOGINFO('Loaded allquarter pickled data from %s' % lpath)
-
-    return allq
-
-
 def find_dips(lcd, allq, method='bls'):
     '''
     Find dips (e.g., what planets would do) over the entire magnitude time
@@ -1259,7 +1187,6 @@ def find_dips(lcd, allq, method='bls'):
             df_dict[ap]['finebls'][nbestperiod]['φ_ing'] = φ_ing
             df_dict[ap]['finebls'][nbestperiod]['φ_egr'] = φ_egr
             df_dict[ap]['finebls'][nbestperiod]['φ_0'] = φ_0
-            #FIXME: verify it works
 
         LOGINFO('KICID: {:s}. Finished finebls ({:s}) ap:{:s}'.format(
                 keplerid, method.upper(), ap.upper()))
@@ -1271,9 +1198,188 @@ def find_dips(lcd, allq, method='bls'):
     return allq
 
 
-def find_epochs(lcd, allq, method='bls'):
-    pass
-    #FIXME: implement
+def save_lightcurve_data(lcd, allq=None, stage=False):
+    '''
+    Args:
+        lcd (anytype): the thing you want to write to a pickle file. Always
+        "lcd" object, keyed by quarters.
+
+    Kwargs:
+        allq (anytype): if you also have "all of the quarters" concatenated
+        data that you'd like to save in a separate pickle.
+
+        stage (str): a short string that will be appended to the pickle file
+        name to simplify subsequent reading. E.g., "pw" for "post-whitening",
+        or "redtr_inj" if it's post-redetrending, and you've injected fake
+        transits.
+    '''
+
+    kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+
+    if stage:
+        pklname = kicid+'_'+stage+'.p'
+        pklallqname = kicid+'_allq_'+stage+'.p'
+    else:
+        pklname = kicid+'.p'
+
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+    spath = '../data/injrecov_pkl/'+predir+pklname
+    sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
+
+    pickle.dump(lcd, open(spath, 'wb'))
+    LOGINFO('Saved (pickled) lcd data to %s' % spath)
+    if isinstance(allq, dict):
+        pickle.dump(allq, open(sallqpath, 'wb'))
+        LOGINFO('Saved (pickled) allquarter data to %s' % sallqpath)
+
+
+    return kicid
+
+
+def load_lightcurve_data(kicid, stage=None):
+
+    pklname = str(kicid)+'_'+stage+'.p'
+
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+
+    lpath = '../data/injrecov_pkl/'+predir+pklname
+
+    dat = pickle.load(open(lpath, 'rb'))
+    LOGINFO('Loaded pickled data from %s' % lpath)
+
+    return dat
+
+
+def load_allq_data(kicid, stage=None):
+
+    pklname = str(kicid)+'_allq_'+stage+'.p'
+
+    predir = ''
+    if 'inj' in stage:
+        predir += 'inj/'
+    elif 'inj' not in stage:
+        predir += 'no_inj/'
+
+    lpath = '../data/injrecov_pkl/'+predir+pklname
+
+    allq = pickle.load(open(lpath, 'rb'))
+    LOGINFO('Loaded allquarter pickled data from %s' % lpath)
+
+    return allq
+
+
+def write_injrecov_result(lcd, allq, stage=None):
+    '''
+    Append the result of this injection-recovery experiment (i.e. whether it
+    was successful, what the basic parameters of the EB and the injected system
+    were, what the basic parameters of the LC were) to csv files.
+
+    A system is discovered if its "fine" (rather than coarse) best period and
+    best transit epoch agree with the injected ones to some precision.
+
+    There are two files:
+    csv1: rows are results with only best periodogram period for each system.
+    csv2: rows are results with all 5 "best guesses" at period for each system.
+
+    These csv files are aperture specific.
+    '''
+
+    kicid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+    morph = float(lcd[list(lcd.keys())[0]]['kebwg_info']['morph'])
+    im = allq['inj_model']
+    P_inj = im['params'].per
+    t0_inj = im['params'].t0
+
+    csvdir = '../results/injrecovresult/'
+
+    for ap in ['sap','pdc']:
+        csv1name = 'irresult_'+ap+'_'+stage+'_top1.csv'
+        csv2name = 'irresult_'+ap+'_'+stage+'_allN.csv'
+
+        # Get minimum time for epoch zero-point
+        lc = allq['dipfind']['tfe'][ap]
+        min_time = np.min(lc['times'])
+        fluxs = lc['fluxs']
+        meanflux = np.mean(fluxs)
+        rms_biased = float(np.sqrt(np.sum((fluxs-meanflux)**2) / len(fluxs)))
+
+        # Recover best period
+        pgdc = allq['dipfind']['bls'][ap]['coarsebls']
+        pgdf = allq['dipfind']['bls'][ap]['finebls']
+        cnbestperiods = np.sort(pgdc['nbestperiods'])
+        cbestperiod = pgdc['bestperiod']
+        fnbestperiods = np.sort([pgdf[cnbp]['serialdict']['bestperiod']
+                for cnbp in cnbestperiods])
+        fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
+        bestperiod = fbestperiod
+
+        for ix, ffoldperiod in enumerate(fnbestperiods):
+
+            cfoldperiod = cnbestperiods[ix]
+            fbls = allq['dipfind']['bls'][ap]['finebls'][cfoldperiod]
+            φ_0 = fbls['φ_0']
+
+            t0_rec = min_time + φ_0*ffoldperiod
+            P_rec = ffoldperiod
+
+            # If the recovered epoch and period are within +/- 0.1 days of the
+            # injected epoch and period, we "recovered" the injected signal.
+            tol = 0.1
+            if (abs(P_inj - P_rec) < tol) and (abs(t0_inj - t0_rec) < tol):
+                foundinj = True
+            else:
+                foundinj = False
+
+            results = pd.DataFrame({
+                    'kicid':kicid,
+                    'kebc_period':kebc_period,
+                    'morph':morph,
+                    'ap':ap,
+                    'P_inj':P_inj,
+                    'P_rec':P_rec,
+                    'coarseperiod':cfoldperiod,
+                    't0_inj':t0_inj,
+                    't0_rec':t0_rec,
+                    'foundinj':foundinj,
+                    'rms_biased':rms_biased
+                    }, index=['0'])
+
+            # Write csv1 (appending if the csv file already exists)
+            if ffoldperiod == bestperiod:
+                if not os.path.isfile(csvdir+csv1name):
+                    results.to_csv(csvdir+csv1name,
+                            header=True,
+                            index=False)
+                else:
+                    results.to_csv(csvdir+csv1name,
+                            header=False,
+                            index=False,
+                            mode='a')
+
+            # Write csv2
+            if not os.path.isfile(csvdir+csv2name):
+                results.to_csv(csvdir+csv2name,
+                        header=True,
+                        index=False)
+            else:
+                results.to_csv(csvdir+csv2name,
+                        header=False,
+                        index=False,
+                        mode='a')
+
+            LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
+                kicid,csvdir,ap))
+
+
 
 
 def drop_gaps_in_lightcurves(times, mags, errs):

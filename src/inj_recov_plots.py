@@ -815,7 +815,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         if ix == 0:
             bestφ_0 = φ_0
         φ_ing, φ_egr = fbls['φ_ing'],fbls['φ_egr']
-        # Want to wrap over φ=[-1,1]
+        # Want to wrap over φ=[-2,2]
         plotφ = np.concatenate(
                 (plotφ-2.,plotφ-1.,plotφ,plotφ+1.,plotφ+2.)
                 )
@@ -869,14 +869,21 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ################
     # PERIODOGRAMS #
     ################
-    pgd = allq['dipfind']['bls'][ap]['coarsebls']
+    pgdc = allq['dipfind']['bls'][ap]['coarsebls']
+    pgdf = allq['dipfind']['bls'][ap]['finebls']
 
-    ax_pg.plot(pgd['periods'], pgd['lspvals'], 'k-')
+    ax_pg.plot(pgdc['periods'], pgdc['lspvals'], 'k-')
 
     pwr_ylim = ax_pg.get_ylim()
-    nbestperiods = pgd['nbestperiods']
-    bestperiod = pgd['bestperiod']
-    best_t0 = min_time + bestφ_0*bestperiod
+    nbestperiods = pgdc['nbestperiods']
+    cbestperiod = pgd['bestperiod']
+
+    # We want the FINE best period, not the coarse one (although the frequency
+    # grid might actually be small enough that this doesn't improve much!)
+    # TODO: verify that we get _better_ periods by doing this.
+    fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
+
+    best_t0 = min_time + bestφ_0*fbestperiod
     ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
             linestyles=':', alpha=0.8, zorder=20)
 
@@ -888,7 +895,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
     txt = 'P_inj: %.4f d\nP_rec: %.4f d\nt_0,inj: %.4f\nt_0,rec: %.4f' % \
-          (injperiod, bestperiod, inj_t0, best_t0)
+          (injperiod, fbestperiod, inj_t0, best_t0)
     ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
             verticalalignment='top',
             transform=ax_pg.transAxes)
