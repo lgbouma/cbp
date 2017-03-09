@@ -272,11 +272,13 @@ def N_lc_injrecov(N,
         #INJECT TRANSITS AND PROCESS LIGHTCURVES
         δarr = np.array([2.,1.,1/2.,1/4.,1/8.,1/16.])/100.
 
+        origstage = stage
         for δ in δarr:
-            stage = stage + '_' + str(δ)
+            stage = origstage + '_' + str(δ)
             pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
                     f.endswith('.p') and f.startswith(kicid) and stage in f]
             if len(pklmatch) > 0:
+                print('Found {:s}, {:f}, continue'.format(kicid, δ))
                 continue
             lcd, allq = ir.inject_transit_known_depth(lcd, δ)
             lcd = ir.detrend_allquarters(lcd,
@@ -298,53 +300,55 @@ def N_lc_injrecov(N,
                 kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
 
 
-        #LOAD STUFF
-        lcd = ir.load_lightcurve_data(kicid, stage=stage)
-        if 'dipsearch' in stage:
-            allq = ir.load_allq_data(kicid, stage=stage)
-
-        #WRITE RESULTS TABLES
-        if 'dipsearch' in stage:
-            if inj:
-                ir.write_injrecov_result(lcd, allq, stage=stage)
-
-        #MAKE PLOTS
-        if ors:
-            irp.orosz_style_flux_vs_time(lcd, flux_to_use='sap', stage=stage)
-            irp.orosz_style_flux_vs_time(lcd, flux_to_use='pdc', stage=stage)
-
-        if ds:
-            doneplots = os.listdir('../results/dipsearchplot/'+predir)
-            plotmatches = [f for f in doneplots if f.startswith(kicid) and
-                    stage in f]
-            if len(plotmatches)>0:
-                print('\nFound dipsearchplot, continuing.\n')
-                continue
-
+        for δ in δarr:
+            stage = origstage + '_' + str(δ)
+            #LOAD STUFF
+            lcd = ir.load_lightcurve_data(kicid, stage=stage)
             if 'dipsearch' in stage:
-                irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
-                irp.dipsearchplot(lcd, allq, ap='pdc', stage=stage, inj=inj)
+                allq = ir.load_allq_data(kicid, stage=stage)
 
-        if whitened:
-            doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
-            plotmatches = [f for f in doneplots if f.startswith(kicid) and
-                    stage in f]
-            if len(plotmatches)>0:
-                print('\nFound whitened_diagnostic, continuing.\n')
-                continue
+            #WRITE RESULTS TABLES
+            if 'dipsearch' in stage:
+                if inj:
+                    ir.write_injrecov_result(lcd, allq, stage=stage)
 
-            if 'pw' in stage:
-                irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
-                irp.whitenedplot_5row(lcd, ap='pdc', stage=stage)
-            elif 'redtr' in stage:
-                irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
-                irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
-            elif 'dipsearch' in stage:
-                irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
-                irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
+            #MAKE PLOTS
+            if ors:
+                irp.orosz_style_flux_vs_time(lcd, flux_to_use='sap', stage=stage)
+                irp.orosz_style_flux_vs_time(lcd, flux_to_use='pdc', stage=stage)
 
-    if inj:
-        irra.summarize_injrecov_result()
+            if ds:
+                doneplots = os.listdir('../results/dipsearchplot/'+predir)
+                plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                        stage in f]
+                if len(plotmatches)>0:
+                    print('\nFound dipsearchplot, continuing.\n')
+                    continue
+
+                if 'dipsearch' in stage:
+                    irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
+                    irp.dipsearchplot(lcd, allq, ap='pdc', stage=stage, inj=inj)
+
+            if whitened:
+                doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
+                plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                        stage in f]
+                if len(plotmatches)>0:
+                    print('\nFound whitened_diagnostic, continuing.\n')
+                    continue
+
+                if 'pw' in stage:
+                    irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
+                    irp.whitenedplot_5row(lcd, ap='pdc', stage=stage)
+                elif 'redtr' in stage:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
+                elif 'dipsearch' in stage:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
+
+        if inj:
+            irra.summarize_injrecov_result()
 
 
 
