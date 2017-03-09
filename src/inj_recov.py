@@ -72,7 +72,164 @@ def LOGEXCEPTION(message):
 # INJECTION #
 #############
 
-def inject_transit(lcd):
+def inject_transit_known_depth(lcd, δ):
+    '''
+    Same as inject_hard_transit, but made easier by gridding over transit depth
+    from δ = (2,1,1/2,1/4,1/8,1/16,1/32)%.
+
+    Args:
+        lcd (dict): the dictionary with everything, before any processing has
+        been done. (Keys are quarter numbers).
+
+        δ (float): transit depth in relative flux units
+
+    Returns:
+        lcd (dict): lcd, with injected fluxes keyed as 'sap_inj_flux' and
+        'pdcsap_inj_flux' in each quarter. Separately, return (over the
+        baseline of the entire set of observations) 'perfect_inj_fluxes' and
+        'perfect_times'. These are in a separate dictionary.
+    '''
+
+    # Find max & min times (& grid appropriately). If there are many nans at 
+    # the beginning/end of the data, this underestimates the total timespan.
+    # This should be negligible.
+    qnums = np.sort(list(lcd.keys()))
+    maxtime = np.nanmax(lcd[max(qnums)]['time'])
+    mintime = np.nanmin(lcd[min(qnums)]['time'])
+
+    for ix, qnum in enumerate(qnums):
+        if ix == 0:
+            times = lcd[qnum]['time']
+        else:
+            times = np.append(times, lcd[qnum]['time'])
+
+    # Injected model: select a random phase, so that the time of inferior
+    # conjunction is not initially right over the main EB transit.
+    # X q1 and q2 from q~U(0,1)
+    # X Argument of periapsis ω (which, per Winn Ch of Exoplanets, is the same
+    #   as curly-pi up to 180deg) ω~U(-180deg,180deg).
+    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*4, ln P_EB*40)), i.e. a
+    #   log-uniform distribution, where P_EB is the value reported by the
+    #   KEBWG.
+    # X Reference transit time t_0 [days] from t_0 ~ U(0,P_CBP) (plus the
+    #   minimum time of the timeseries).
+    # X Radius ratio Rp/Rstar from lnRp/Rstar ~ U(ln0.04,ln0.2)
+    # X Eccentricity e~Beta(0.867,3.03)
+    # X Assume M1+M2 = 2Msun. R_star=1.5Rsun. Draw cosi~U(0,1) (so that 
+    #   pdf(i)*di=sini*di). Compute the impact parameter, b_tra. If b_tra is 
+    #   within [-1,1] continue, else redraw cosi, repeat (we only want 
+    #   transiting planets). Then set the inclination as arccos of the
+    #   first inclination drawn that transits.
+    # Note that argument of periapsis = longitude of periastron, w=ω. The
+    # parameters are inspired by Foreman-Mackey et al (2015), Table 1 (K2).
+    # Calculate the models for 10 samples over each full ~29.4 minute exposure
+    # time, and then average to get the data point over the full exposure time.
+
+    params = batman.TransitParams()
+
+    q1, q2 = np.random.uniform(low=0.0,high=1.0), \
+             np.random.uniform(low=0.0,high=1.0)
+    params.u = [q1,q2]
+    params.limb_dark = "quadratic"
+    w = np.random.uniform(
+            low=np.rad2deg(-np.pi),
+            high=np.rad2deg(np.pi))
+    params.w = w
+
+    period_eb = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+    lowpref, highpref = 4, 40
+    ln_period_cbp = np.random.uniform(
+            low=np.log(lowpref*period_eb),
+            high=np.log(highpref*period_eb))
+    period_cbp = np.e**ln_period_cbp
+    params.per = period_cbp
+
+    t0 = np.random.uniform(
+            low=0.,
+            high=period_cbp)
+    params.t0 = mintime + t0
+
+    params.rp = δ**(1/2.)
+
+    ecc = np.random.beta(0.867,3.03)
+    params.ecc = ecc
+
+    # Prefactor of 2^(1/3) comes from assuming M1+M2=2Msun. (Kepler's 3rd).
+    a_in_AU = 2**(1/3.)*(period_cbp*u.day/u.yr)**(2/3.)
+    Rstar_in_AU = (1.5*u.Rsun/u.au)
+    a_by_Rstar = a_in_AU.cgs.value / Rstar_in_AU.cgs.value
+    b_tra = 42. # initialize to whatever.
+    while b_tra > 1:
+        cosi = np.random.uniform(low=0.0,high=1.0)
+        # Equation (7) of Winn's Ch in Exoplanets textbook.
+        b_tra = a_by_Rstar*cosi * (1-ecc*ecc)/(1 + ecc*np.sin(w))
+
+    params.a = a_by_Rstar
+    inc = np.arccos(cosi)
+    params.inc = inc
+
+    exp_time_minutes = 29.423259
+    exp_time_days = exp_time_minutes / (24.*60)
+
+    ss_factor = 10
+    # Initialize model
+    m_toinj = batman.TransitModel(params,
+                            times,
+                            supersample_factor = ss_factor,
+                            exp_time = exp_time_days)
+
+    # We also want a "perfect times" model, to assess whether the reasonable 
+    # fraction of the above have non-zero quality flags, nans, etc. are
+    # important. The independent time grid starts and ends at the same times 
+    # (& with 30minute cadence). Nb. that batman deals with nans in times by 
+    # returning zeros (which, in injection below, have no effect -- as you'd 
+    # hope!)
+    perftimes = np.arange(mintime, maxtime, exp_time_days)
+    m_perftimes = batman.TransitModel(params,
+                            perftimes,
+                            supersample_factor = ss_factor,
+                            exp_time = exp_time_days)
+
+    # Calculate light curve
+    fluxtoinj = m_toinj.light_curve(params)
+    perfflux = m_perftimes.light_curve(params)
+
+    # Append perfect times and injected fluxes.
+    allq = {}
+    allq['perfect_times'] = perftimes
+    allq['perfect_inj_fluxes'] = perfflux
+    allq['inj_model'] = {'params':params} # has things like the period.
+
+    # Inject, by quarter
+    kbegin, kend = 0, 0
+    for ix, qnum in enumerate(qnums):
+
+        qsapflux = lcd[qnum]['sap']['sap_flux']
+        qpdcflux = lcd[qnum]['pdc']['pdcsap_flux']
+        qtimes = lcd[qnum]['time']
+
+        kend += len(qtimes)
+
+        qfluxtoinj = fluxtoinj[kbegin:kend]
+
+        qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+        qinjpdcflux = qpdcflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+
+        lcd[qnum]['sap_inj_flux'] = qinjsapflux
+        lcd[qnum]['pdcsap_inj_flux'] = qinjpdcflux
+
+        kbegin += len(qtimes)
+
+    kicid = str(lcd[qnum]['objectinfo']['keplerid'])
+    LOGINFO('KICID {:s}: injected transit to both SAP and PDC fluxes.'.\
+            format(kicid))
+
+    return lcd, allq
+
+
+
+
+def inject_hard_transit(lcd):
     '''
     Inject a transit with the following parameters into both the SAP and PDC
     fluxes of the passed light curve dictionary.
@@ -133,7 +290,7 @@ def inject_transit(lcd):
     # X q1 and q2 from q~U(0,1)
     # X Argument of periapsis ω (which, per Winn Ch of Exoplanets, is the same
     #   as curly-pi up to 180deg) ω~U(-180deg,180deg).
-    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*2.5, ln365)), i.e. a
+    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*4, ln P_EB*40)), i.e. a
     #   log-uniform distribution, where P_EB is the value reported by the
     #   KEBWG.
     # X Reference transit time t_0 [days] from t_0 ~ U(0,P_CBP) (plus the
@@ -162,10 +319,10 @@ def inject_transit(lcd):
     params.w = w
 
     period_eb = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
-    pref = 2.5
+    lowpref, highpref = 4, 40
     ln_period_cbp = np.random.uniform(
-            low=np.log(pref*period_eb),
-            high=np.log(365.))
+            low=np.log(lowpref*period_eb),
+            high=np.log(highpref*period_eb))
     period_cbp = np.e**ln_period_cbp
     params.per = period_cbp
 
@@ -1239,10 +1396,9 @@ def find_dips(lcd, allq, method='bls'):
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
-    DYNAMICALFACTOR = 5.
-    smallest_p = DYNAMICALFACTOR * kebc_period
-    biggest_p = min((times[-1] - times[0])/2.01, 200.)
-
+    smallfactor, bigfactor = 4., 40.
+    smallest_p = smallfactor * kebc_period
+    biggest_p = bigfactor * kebc_period
     minTdur_φ = 0.005 # minimum transit length in phase
     maxTdur_φ = 0.2 # maximum transit length in phase
 
@@ -1407,9 +1563,9 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
         pklname = kicid+'.p'
 
     predir = ''
-    if 'inj' in stage:
+    if 'no_inj' not in stage:
         predir += 'inj/'
-    elif 'inj' not in stage:
+    elif 'no_inj' in stage:
         predir += 'no_inj/'
     spath = '../data/injrecov_pkl/'+predir+pklname
     sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
@@ -1482,6 +1638,7 @@ def write_injrecov_result(lcd, allq, stage=None):
     im = allq['inj_model']
     P_inj = im['params'].per
     t0_inj = im['params'].t0
+    δ = (im['params'].rp)**2
 
     csvdir = '../results/injrecovresult/'
 
@@ -1534,7 +1691,8 @@ def write_injrecov_result(lcd, allq, stage=None):
                     't0_inj':t0_inj,
                     't0_rec':t0_rec,
                     'foundinj':foundinj,
-                    'rms_biased':rms_biased
+                    'rms_biased':rms_biased,
+                    'depth':δ
                     }, index=['0'])
 
             # Write csv1 (appending if the csv file already exists)

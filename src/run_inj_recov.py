@@ -95,15 +95,16 @@ def N_lc_fixedinjrecov(N,
 
     The current processing is as follows:
 
-        inject a 1% transit at (20-25)x the binary period->
-        detrend (n=20 legendre and [20,20]σ sigclip)->
+        inject a transit δ = 1% at (20-25)x the binary
+            period->
+        detrend (n=20 legendre and [30,30]σ sigclip)->
         normalize (median by quarter)->
         run periodograms (stellingwerf_pdm)->
         get nominal EB period->
         run finer periodogram (stellingwerf_pdm narrow window)->
         select a real EB period->
-        "whiten" (phase-fold [20,5]σ sigclip, fit & subtract out fit)->
-        redetrend (n=20 legendre, and [20,5]σ  sigclip)->
+        "whiten" (phase-fold [30,5]σ sigclip, fit & subtract out fit)->
+        redetrend (n=20 legendre, and [30,5]σ  sigclip)->
         normalize (median by quarter)->
         find dips (BLS, over all the quarters)
 
@@ -147,16 +148,16 @@ def N_lc_fixedinjrecov(N,
             #INJECT TRANSITS AND PROCESS LIGHTCURVES
             lcd, allq = ir.inject_fixed_transit(lcd)
             lcd = ir.detrend_allquarters(lcd,
-                    σ_clip=20., legendredeg=20, inj=inj)
+                    σ_clip=30., legendredeg=20, inj=inj)
             lcd = ir.normalize_allquarters(lcd, dt='dtr')
             lcd = ir.run_periodograms_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=False)
             lcd = ir.run_fineperiodogram_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=True)
-            lcd = ir.whiten_allquarters(lcd, σ_clip=[20.,5.])
+            lcd = ir.whiten_allquarters(lcd, σ_clip=[30.,5.])
             if 'pw' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
-            lcd = ir.redetrend_allquarters(lcd, σ_clip=[20.,5.], legendredeg=20)
+            lcd = ir.redetrend_allquarters(lcd, σ_clip=[30.,5.], legendredeg=20)
             lcd = ir.normalize_allquarters(lcd, dt='redtr')
             if 'redtr' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
@@ -223,15 +224,16 @@ def N_lc_injrecov(N,
 
     The current processing is as follows:
 
-        inject a realistic transit signal->
-        detrend (n=20 legendre and [20,20]σ sigclip)->
+        inject a realistic transit signal at δ=(2,1,1/2,1/4,1/8,1/16,1/32)%
+            depth, anywhere from P_CBP=(4-40)x P_EB.
+        detrend (n=20 legendre and [30,30]σ sigclip)->
         normalize (median by quarter)->
         run periodograms (stellingwerf_pdm)->
         get nominal EB period->
         run finer periodogram (stellingwerf_pdm narrow window)->
         select a real EB period->
-        "whiten" (phase-fold [20,5]σ sigclip, fit & subtract out fit)->
-        redetrend (n=20 legendre, and [20,5]σ  sigclip)->
+        "whiten" (phase-fold [30,5]σ sigclip, fit & subtract out fit)->
+        redetrend (n=20 legendre, and [30,5]σ  sigclip)->
         normalize (median by quarter)->
         find dips (BLS, over all the quarters)
 
@@ -267,30 +269,34 @@ def N_lc_injrecov(N,
             continue
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 
-        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
-                f.endswith('.p') and f.startswith(kicid) and stage in f]
+        #INJECT TRANSITS AND PROCESS LIGHTCURVES
+        δarr = np.array([2.,1.,1/2.,1/4.,1/8.,1/16.])/100.
 
-        if len(pklmatch) < 1:
-
-            #INJECT TRANSITS AND PROCESS LIGHTCURVES
-            lcd, allq = ir.inject_transit(lcd)
+        for δ in δarr:
+            stage = stage + '_' + str(δ)
+            pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
+                    f.endswith('.p') and f.startswith(kicid) and stage in f]
+            if len(pklmatch) > 0:
+                continue
+            lcd, allq = ir.inject_transit_known_depth(lcd, δ)
             lcd = ir.detrend_allquarters(lcd,
-                    σ_clip=20., legendredeg=20, inj=inj)
+                    σ_clip=30., legendredeg=20, inj=inj)
             lcd = ir.normalize_allquarters(lcd, dt='dtr')
             lcd = ir.run_periodograms_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=False)
             lcd = ir.run_fineperiodogram_allquarters(lcd)
             lcd = ir.select_eb_period(lcd, fine=True)
-            lcd = ir.whiten_allquarters(lcd, σ_clip=[20.,5.])
+            lcd = ir.whiten_allquarters(lcd, σ_clip=[30.,5.])
             if 'pw' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
-            lcd = ir.redetrend_allquarters(lcd, σ_clip=[20.,5.], legendredeg=20)
+            lcd = ir.redetrend_allquarters(lcd, σ_clip=[30.,5.], legendredeg=20)
             lcd = ir.normalize_allquarters(lcd, dt='redtr')
             if 'redtr' in stage:
                 kicid = ir.save_lightcurve_data(lcd, stage=stage)
             allq = ir.find_dips(lcd, allq, method='bls')
             if 'dipsearch' in stage:
                 kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
+
 
         #LOAD STUFF
         lcd = ir.load_lightcurve_data(kicid, stage=stage)
@@ -373,7 +379,7 @@ if __name__ == '__main__':
     #lcd, allq = get_lcd(stage='dipsearch', inj=True)
 
     # Testing out injection:
-    #N_lc_injrecov(100, stage='redtr', inj=True)
+    #N_lc_fixedinjrecov(100, stage='redtr', inj=True)
 
     # Testing out recovery:
     #N_lc_fixedinjrecov(100, stage='dipsearch', inj=True)
