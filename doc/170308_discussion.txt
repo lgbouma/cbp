@@ -29,8 +29,7 @@ the BLS spectrum (these should be the EB periodicity hrmonics).
 The spread out peaks in the Fourier periodogram should be the narrow, box-like
 planet peaks in the BLS spectrum
 
-* Email Joshua Carter / is there a QATS implementation anywhere so that I don't
-have to implement it?
+* Implement a wrapper for the QATS implementation from Eric Agol's website
 
 * Update BLS dipfind to use vartools. Or something more sophisticated than Geza
 Kovacs' implementation (e.g., vartools has the ability to change the acceptable
