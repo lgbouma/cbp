@@ -1,0 +1,82 @@
+######
+#TODO#
+######
+'''
+* make completeness maps (vs δ_inj, P_inj, P_EB, rms_biased)
+
+* check normalization is being done thru *DIVISION* by mean (not subtraction),
+b/c division preservers relative fluxes...
+
+* review doc/discussion from 170308. consider integrating QATS now.
+
+* use terra's GP regression for detrending, rather than legendre series sums.
+
+##########
+Possible improvements:
+
+* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
+-> can do this in post-processing, or (likely better) add direct to
+astrobase. See FIXME below.
+
+* iteratively whiten via either:
+    1. if next bst period is a harmonic of original signal, subtract off new
+    legendre fit
+    2. scipy.signal: genereate filters based on Fourier representation of LC,
+    including all the harmonics, and pass them thru
+
+* In "redtrending": cut out data within "0.5d regions" of gaps (defined by
+    >0.5day space btwn points)
+  -> nb. lcmath.find_lc_timegroups(fsaptimes, mingap=mingap) is most relevant.
+  -> implement as trim_near_gaps. (nb. requires "stitching" to get full LC)
+
+    ```
+    # Drop intra-quarter and interquarter gaps in the lightcurves
+    mingap = 0.5 # days
+    ngroups, groups = lcmath.find_lc_timegroups(fsaptimes, mingap=mingap)
+
+    for group in groups:
+    ```
+
+* Similarly, fine-tune the sigma clipping based on the actual RMS across a
+    quarter. **If (once detrended+whitened) it's very small, we must allow
+    bigger dips (w/out clipping them).**
+
+* Understand how DFM+ peerless implemented model comparison once you have nice
+    transits. Implement it.
+
+* implement Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending
+  (add it in astrobase, then call in find_dips)
+
+----------
+
+Consider:
+* Iteratively whiten out more frequencies. (Say ~few more) (Nb. this depends on
+  whether there are strong periodicities in current redtrended residuals, or
+  whether the spot-movement is "pseudo-periodic")
+* Possible to high/loss pass filter at ~<2x EB period? (Read Feigelson text & see)
+* How to fit out spots: e.g., with `george` (GP regression)?
+* Email Johan for his code -- more general fourier approach (more expensive
+  too).
+
+Longer-term ideas:
+*Detrend+normalize:
+    Match the KEBC detrending? As-is, I think I'm leaving in trends that are
+    too big.
+*Period finder:
+    Assess for what fraction we need to revert to KEBC period.
+
+astrokep.find_lightcurve_gaps
+
+ ALSO:
+lcmath.find_lc_timegroups -- basically an implementation of astrokep's
+ find_lightcurve_gaps, already done.
+
+astrokep.stitch_lightcurve_gaps
+
+astrokep.keplerflux_to_keplermag
+
+ALSO:
+ PyKE is also worth assessing.
+'''
+
+
