@@ -1,5 +1,55 @@
 import pandas as pd, numpy as np, os
-import time
+import time, logging
+from datetime import datetime
+
+#############
+## LOGGING ##
+#############
+
+# setup a logger
+LOGGER = None
+
+def set_logger_parent(parent_name):
+    globals()['LOGGER'] = logging.getLogger('%s.kepler' % parent_name)
+
+def LOGDEBUG(message):
+    if LOGGER:
+        LOGGER.debug(message)
+    elif DEBUG:
+        print('%sZ [DBUG]: %s' % (datetime.utcnow().isoformat(), message))
+
+def LOGINFO(message):
+    if LOGGER:
+        LOGGER.info(message)
+    else:
+        print('%sZ [INFO]: %s' % (datetime.utcnow().isoformat(), message))
+
+def LOGERROR(message):
+    if LOGGER:
+        LOGGER.error(message)
+    else:
+        print('%sZ [ERR!]: %s' % (datetime.utcnow().isoformat(), message))
+
+def LOGWARNING(message):
+    if LOGGER:
+        LOGGER.warning(message)
+    else:
+        print('%sZ [WRN!]: %s' % (datetime.utcnow().isoformat(), message))
+
+def LOGEXCEPTION(message):
+    if LOGGER:
+        LOGGER.exception(message)
+    else:
+        print(
+            '%sZ [EXC!]: %s\nexception was: %s' % (
+                datetime.utcnow().isoformat(),
+                message, format_exc()
+                )
+            )
+
+##############################
+##############################
+##############################
 
 def summarize_injrecov_result():
     '''

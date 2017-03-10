@@ -178,7 +178,6 @@ def N_lc_injrecov(N,
     elif 'inj' not in stage:
         predir += 'no_inj/'
 
-
     origstage = stage
 
     for s in seeds:
