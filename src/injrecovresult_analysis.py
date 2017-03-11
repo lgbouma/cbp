@@ -1,6 +1,24 @@
+'''
+Routines for analyzing the results of the injection recovery experiments.
+
+>>> python inj_recovresultanalysis.py
+:: Just runs completeness_top1_plots below.
+
+write_injrecov_result:
+    Parses success/failure & injected parameters into csv files.
+
+summarize_injrecov_result:
+    Summarizes csv files into a text file
+
+completeness_top1_plots:
+    Turns csv files into pdf plots (stored in ../results/injrecovresult/plots)
+
+'''
 import pandas as pd, numpy as np, os
 import time, logging
 from datetime import datetime
+import matplotlib.pyplot as plt
+plt.style.use('utils/lgb-notebook.mplstyle')
 
 #############
 ## LOGGING ##
@@ -47,9 +65,9 @@ def LOGEXCEPTION(message):
                 )
             )
 
-##############################
-##############################
-##############################
+##################
+# RESULT WRITING #
+##################
 
 def summarize_injrecov_result():
     '''
@@ -205,3 +223,124 @@ def write_injrecov_result(lcd, allq, stage=None):
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
                 kicid,csvdir,ap))
 
+
+#########
+# PLOTS #
+#########
+
+def completeness_top1_plots():
+    fpath = '../results/injrecovresult/irresult_sap_top1.csv'
+    df = pd.read_csv(fpath)
+
+    # δ vs P_CBP
+    f, ax = plt.subplots()
+
+    ax.scatter(df['P_inj'][df['foundinj']==True],
+               df['depth'][df['foundinj']==True],
+               c='green', lw=0)
+    ax.scatter(df['P_inj'][df['foundinj']==False],
+               df['depth'][df['foundinj']==False],
+               c='red', lw=0)
+
+    ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
+           ylabel='$(R_p/R_\star)^2$',
+           xscale='log',
+           yscale='log')
+
+    f.tight_layout()
+    f.savefig('../results/injrecovresult/plots/completeness_top1_depth_vs_periodcbp.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+    # SNR vs P_CBP
+    f, ax = plt.subplots()
+
+    ax.scatter(df['P_inj'][df['foundinj']==True],
+               df['depth'][df['foundinj']==True]/df['rms_biased'][df['foundinj']==True],
+               c='green', lw=0)
+    ax.scatter(df['P_inj'][df['foundinj']==False],
+               df['depth'][df['foundinj']==False]/df['rms_biased'][df['foundinj']==False],
+               c='red', lw=0)
+
+    ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
+           ylabel='$\delta/\mathrm{RMS\ (per\ transit)}$',
+           xscale='log',
+           yscale='log')
+
+    f.tight_layout()
+    f.savefig('../results/injrecovresult/plots/completeness_top1_SNR_vs_periodcbp.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+    # Rp/Rstar vs P_CBP
+    f, ax = plt.subplots()
+
+    ax.scatter(df['P_inj'][df['foundinj']==True],
+               np.sqrt(df['depth'][df['foundinj']==True]),
+               c='green', lw=0)
+    ax.scatter(df['P_inj'][df['foundinj']==False],
+               np.sqrt(df['depth'][df['foundinj']==False]),
+               c='red', lw=0)
+
+    ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
+           ylabel='$R_p/R_\star$',
+           xscale='log',
+           yscale='log')
+
+    f.tight_layout()
+    f.savefig('../results/injrecovresult/plots/completeness_top1_RpbyRs_vs_periodcbp.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+    # Rp [R_earth] vs P_CBP
+    import astropy.units as u
+    import astropy.constants as c
+
+    f, ax = plt.subplots()
+
+    δdet = np.array(np.sqrt(df['depth'][df['foundinj']==True]))*1.5*u.Rsun
+    δnotdet = np.array(np.sqrt(df['depth'][df['foundinj']==False]))*1.5*u.Rsun
+
+    ax.scatter(df['P_inj'][df['foundinj']==True],
+               δdet.to(u.Rearth),
+               c='green', lw=0)
+    ax.scatter(df['P_inj'][df['foundinj']==False],
+               δnotdet.to(u.Rearth),
+               c='red', lw=0)
+
+    ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
+           ylabel='$R_p\ [R_\oplus]$',
+           title='$\mathrm{Assume}\ R_\star = 1.5R_\odot$',
+           xscale='log',
+           yscale='log')
+
+    f.tight_layout()
+    f.savefig('../results/injrecovresult/plots/completeness_top1_Rp_vs_periodcbp.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+    # Morph vs RMS
+    import astropy.units as u
+    import astropy.constants as c
+
+    f, ax = plt.subplots()
+
+    ax.scatter(df['rms_biased'][df['foundinj']==True],
+               df['morph'][df['foundinj']==True],
+               c='green', lw=0)
+    ax.scatter(df['rms_biased'][df['foundinj']==False],
+               df['morph'][df['foundinj']==False],
+               c='red', lw=0)
+
+    ax.set(xlabel='$\mathrm{RMS}$',
+           ylabel='$\mathrm{morph}$',
+           xscale='log',
+           yscale='linear')
+
+    f.tight_layout()
+    plt.savefig('../results/injrecovresult/plots/completeness_top1_morph_vs_RMS.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+if __name__ == '__main__':
+    completeness_top1_plots()
