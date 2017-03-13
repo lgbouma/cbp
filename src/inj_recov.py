@@ -896,7 +896,6 @@ def redetrend_lightcurve(lcd,
                 times, fluxes, errs,
                 magsarefluxes=True, sigclip=σ_clip)
 
-
         nafter = stimes.size
         LOGINFO('for refilter & sigclip ({:s}), '.format(ap)+\
                 'ndet before: {:d}, ndet after: {:d}'.format(nbefore, nafter))
@@ -1325,7 +1324,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         ptimes = tms['times']
         pfluxs = tms['mags']
         perrs = tms['errs']
-        presiduals = tms['mags'] - tfi['fitmags']
+        presiduals = tms['mags'] / tfi['fitmags']
 
         #get it all in time-sorted order:
         wtimeorder = np.argsort(ptimes)
@@ -1379,12 +1378,12 @@ def find_dips(lcd, allq, method='bls'):
             lc = lcd[qnum]['redtr'][ap]
             if ix == 0:
                 times = lc['times']
-                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
+                fluxs = lc['fluxs'] / lc['fitfluxs_legendre']
                 errs = lc['errs']
                 quarter = np.ones_like(times)*qnum
             else:
                 times = np.append(times, lc['times'])
-                fluxs = np.append(fluxs, lc['fluxs'] - lc['fitfluxs_legendre'])
+                fluxs = np.append(fluxs, lc['fluxs'] / lc['fitfluxs_legendre'])
                 errs = np.append(errs, lc['errs'])
                 quarter = np.append(quarter, np.ones_like(lc['times'])*qnum)
         tfe[ap] = {'times':times,
