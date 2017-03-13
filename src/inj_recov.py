@@ -248,7 +248,7 @@ def inject_hard_transit(lcd):
     # X Eccentricity e~Beta(0.867,3.03)
     # X Assume M1+M2 = 2Msun. R_star=1.5Rsun. Draw cosi~U(0,1) (so that
     #   pdf(i)*di=sini*di). Compute the impact parameter, b_tra. If b_tra is
-    #   within [-1,1] continue, else redraw cosi, repeat (we only want
+    #   within [0,1] continue, else redraw cosi, repeat (we only want
     #   transiting planets). Then set the inclination as arccos of the
     #   first inclination drawn that transits.
 
@@ -1412,6 +1412,10 @@ def find_dips(lcd, allq, method='bls'):
 
         times, fluxs, errs = \
                 tfe[ap]['times'], tfe[ap]['fluxs'], tfe[ap]['errs']
+        finiteind = np.isfinite(fluxs) & np.isfinite(times) & np.isfinite(errs)
+        times = times[finiteind]
+        fluxs = fluxs[finiteind]
+        errs = errs[finiteind]
 
         if method != 'bls':
             raise Exception
@@ -1506,8 +1510,13 @@ def find_dips(lcd, allq, method='bls'):
 
             φ_bin = binphasedlc['binnedphases']
             flux_φ_bin = binphasedlc['binnedmags']
-            φ_ing = φ_bin[ingbinind]
-            φ_egr = φ_bin[egrbinind]
+            if ingbinind < len(φ_bin):
+                φ_ing = φ_bin[ingbinind]
+                φ_egr = φ_bin[egrbinind]
+            else:
+                LOGERROR('ingbinind from eebls.f shorter than it should be.')
+                LOGERROR('Hard-setting ingress and egress phases.')
+                φ_ing, φ_egr = 0.0, 0.01
 
             # Get φ_0, the phase of central transit.
             if φ_ing < φ_egr:
