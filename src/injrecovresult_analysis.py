@@ -237,10 +237,10 @@ def completeness_top1_plots():
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
                df['depth'][df['foundinj']==True],
-               c='green', lw=0)
+               c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
                df['depth'][df['foundinj']==False],
-               c='red', lw=0)
+               c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
            ylabel='$(R_p/R_\star)^2$',
@@ -257,10 +257,10 @@ def completeness_top1_plots():
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
                df['depth'][df['foundinj']==True]/df['rms_biased'][df['foundinj']==True],
-               c='green', lw=0)
+               c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
                df['depth'][df['foundinj']==False]/df['rms_biased'][df['foundinj']==False],
-               c='red', lw=0)
+               c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
            ylabel='$\delta/\mathrm{RMS\ (per\ transit)}$',
@@ -277,10 +277,10 @@ def completeness_top1_plots():
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
                np.sqrt(df['depth'][df['foundinj']==True]),
-               c='green', lw=0)
+               c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
                np.sqrt(df['depth'][df['foundinj']==False]),
-               c='red', lw=0)
+               c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
            ylabel='$R_p/R_\star$',
@@ -303,10 +303,10 @@ def completeness_top1_plots():
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
                δdet.to(u.Rearth),
-               c='green', lw=0)
+               c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
                δnotdet.to(u.Rearth),
-               c='red', lw=0)
+               c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
            ylabel='$R_p\ [R_\oplus]$',
@@ -327,10 +327,10 @@ def completeness_top1_plots():
 
     ax.scatter(df['rms_biased'][df['foundinj']==True],
                df['morph'][df['foundinj']==True],
-               c='green', lw=0)
+               c='green', lw=0, alpha=0.9)
     ax.scatter(df['rms_biased'][df['foundinj']==False],
                df['morph'][df['foundinj']==False],
-               c='red', lw=0)
+               c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$\mathrm{RMS}$',
            ylabel='$\mathrm{morph}$',
@@ -343,4 +343,5 @@ def completeness_top1_plots():
     plt.close('all')
 
 if __name__ == '__main__':
+    summarize_injrecov_result()
     completeness_top1_plots()

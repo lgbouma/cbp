@@ -307,4 +307,4 @@ if __name__ == '__main__':
     #N_lc_fixedinjrecov(100, stage='dipsearch', inj=True)
 
     # Running something like a "bonafide test".
-    N_lc_injrecov(1001, stage='dipsearch', inj=True)
+    N_lc_injrecov(1000, stage='dipsearch', inj=True)
