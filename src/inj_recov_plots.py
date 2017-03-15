@@ -443,7 +443,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
             elif axix == 3:
                 lc = lcd[qnum]['redtr'][ap]
                 times = lc['times']
-                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
+                fluxs = lc['fluxs'] / lc['fitfluxs_legendre']
                 errs = lc['errs']
 
             thiscolor = colors[int(qnum)%len(colors)]
@@ -620,6 +620,9 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     elif 'inj' not in stage:
         savedir += 'no_inj/'
     plotname = str(keplerid)+'_'+ap+stage+'.png'
+    if 'eb_sbtr' in stage:
+        # override for EB subtraction tests
+        savedir = '../results/whitened_diagnostic/eb_subtraction/'
 
     f.savefig(savedir+plotname, dpi=300)
 
@@ -755,6 +758,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     # label axes, set xlimits for entire time series.
     timelen = max_time - min_time
+    p = allq['inj_model']
+    injdepth = (p['params'].rp)**2
 
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     ax_raw.get_xaxis().set_ticks([])
@@ -763,10 +768,11 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         xlim=[xmin,xmax],
         ylim = ylim_raw)
     ax_raw.set_title(
-        'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f} '.format(
+        'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f}. '.format(
         str(keplerid), ap.upper(), kebc_period)+\
-        'day, inj, dtr, whitened, redtr (n=20 legendre series fit)',
-        fontsize='x-small')
+        'day, inj, dtr, whitened, redtr (n=20 legendre series fit). '+\
+        'Depth_inj: {:.4f}'.format(injdepth),
+        fontsize='xx-small')
     ax_raw.hlines([0.005,-0.005], xmin, xmax,
             colors='k',
             linestyles='--',
@@ -881,7 +887,6 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     # We want the FINE best period, not the coarse one (although the frequency
     # grid might actually be small enough that this doesn't improve much!)
-    # TODO: verify that we get _better_ periods by doing this.
     fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
 
     best_t0 = min_time + bestφ_0*fbestperiod
