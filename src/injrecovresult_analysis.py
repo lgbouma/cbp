@@ -2,7 +2,7 @@
 Routines for analyzing the results of the injection recovery experiments.
 
 >>> python inj_recovresultanalysis.py
-:: Just runs completeness_top1_plots below.
+:: Runs summarize_injrecov_result and completeness_top1_plots.
 
 write_injrecov_result:
     Parses success/failure & injected parameters into csv files.
