@@ -443,7 +443,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
             elif axix == 3:
                 lc = lcd[qnum]['redtr'][ap]
                 times = lc['times']
-                fluxs = lc['fluxs'] / lc['fitfluxs_legendre']
+                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
                 errs = lc['errs']
 
             thiscolor = colors[int(qnum)%len(colors)]

@@ -1235,11 +1235,135 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
     return lcd
 
 
+def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], n_iter=5):
+    '''
+    Wrapper to iterative_whiten_lightcurve, to run for all quarters.
+    Saves iteratively whitened results to keys
+    `lcd[qnum]['white']['sap']['w_*']`, for * in (fluxs,errs,times,phases)
+    '''
+    #FIXME: this should make "whiten_lightcurve" redundant, by making it the
+    #n_iter=1 case of this function.
+
+    rd = {}
+    for k in lcd.keys():
+        rd[k] = iterative_whiten_lightcurve(lcd[k],
+                k,
+                σ_clip=σ_clip,
+                n_iter=n_iter)
+
+    return rd
+
+
+def iterative_whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
+        rescaletomedian=True, σ_clip=None, n_iter=1):
+    '''
+    Given the normalized, detrended fluxes, and the known period computed from
+    the periodogram routines, iteratively fit for the eclipsing binary signal
+    in phase and subtract it out.
+
+    Args:
+        dat (dict): the dictionary returned by astrokep.read_kepler_fitslc,
+        after normalization, detrending, and selecting the appropriate EB
+        period.
+
+        detrend (str): method by which to whiten the LC. 'legendre' is
+        currently the only one accepted (although astrobase.varbase has other
+        options, e.g., Fourier Series, Savitzky-Golay filter, etc, which could
+        be implemented).
+
+        rescaletomedian (bool): rescales the whitened fluxes to their median
+        value.
+
+        σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries.
+
+        n_iter (int or "best"): number of iterations of whitenings. If "best",
+        this routine figure out how many to do.
+
+    Returns:
+        dat (dict): dat, with the phased times, fluxes and errors in a
+        sub-dictionary, accessible as dat['white'], which gives the
+        dictionary:
+
+        dat['white'] = {'sap':ldict, 'pdc':ldict}, where ldict contains:
+
+        ldict.keys():
+            ['fitplotfile', 'fitchisq', 'fitredchisq', 'magseries',
+            'fitinfo', 'fittype', 'whiteseries']
+
+        ldict['whiteseries'].keys() # time-sorted, and sigma clipped.
+            ['mags', 'errs', 'times']
+
+        legdict['magseries'].keys() # phase-sorted
+            ['mags', 'errs', 'times', 'phase']
+
+        legdict['fitinfo'].keys()
+            ['fitepoch', 'legendredeg', 'fitmags']
+    '''
+
+    assert isinstance(n_iter, int) or \
+            (isinstance(n_iter, str) and n_iter=='best')
+
+    dat['white'] = {}
+
+    #FIXME loop over number of iterations.
+    for ap in ['sap', 'pdc']:
+
+        period = dat['fineper'][ap]['selperiod']
+        times = dat['dtr'][ap]['times']
+        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+        errs = dat['dtr'][ap]['errs_dtr_norm']
+
+        try:
+            legdict = lcf.legendre_fit_magseries(
+                times,fluxs,errs,period,
+                legendredeg=legendredeg,
+                sigclip=σ_clip,
+                plotfit=False,
+                magsarefluxes=True)
+            LOGINFO('Whitened KICID %s, quarter %s, (%s) (Legendre).'
+                % (str(dat['objectinfo']['keplerid']), str(qnum), ap))
+
+        except:
+            LOGERROR('Legendre whitening error in KICID %s, quarter %s, (%s).'
+                % (str(dat['objectinfo']['keplerid']), str(qnum), ap))
+
+        tms = legdict['magseries']
+        tfi = legdict['fitinfo']
+
+        #everything in phase-sorted order:
+        phase = tms['phase']
+        ptimes = tms['times']
+        pfluxs = tms['mags']
+        perrs = tms['errs']
+        presiduals = tms['mags'] - tfi['fitmags']
+
+        #get it all in time-sorted order:
+        wtimeorder = np.argsort(ptimes)
+        wtimes = ptimes[wtimeorder]
+        wphase = phase[wtimeorder]
+        wfluxes = presiduals[wtimeorder]
+        werrs = perrs[wtimeorder]
+
+        if rescaletomedian:
+            median_mag = np.median(wfluxes)
+            wfluxes = wfluxes + median_mag
+
+        whitedict = {'times':wtimes,
+                'phase': wphase,
+                'fluxes':wfluxes,
+                'errs':werrs}
+
+        legdict['whiteseries'] = whitedict
+
+        dat['white'][ap] = legdict
+
+    return dat
+
 
 def whiten_allquarters(lcd, σ_clip=None):
     '''
     Wrapper to whiten_lightcurve, to run for all quarters.
-    Saves whitened results to keys `lcd[qnum]['dtr']['sap']['w_*']`, for * in
+    Saves whitened results to keys `lcd[qnum]['white']['sap']['w_*']`, for * in
     (fluxs,errs,times,phases)
     '''
 
@@ -1324,7 +1448,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         ptimes = tms['times']
         pfluxs = tms['mags']
         perrs = tms['errs']
-        presiduals = tms['mags'] / tfi['fitmags']
+        presiduals = tms['mags'] - tfi['fitmags']
 
         #get it all in time-sorted order:
         wtimeorder = np.argsort(ptimes)
@@ -1378,12 +1502,12 @@ def find_dips(lcd, allq, method='bls'):
             lc = lcd[qnum]['redtr'][ap]
             if ix == 0:
                 times = lc['times']
-                fluxs = lc['fluxs'] / lc['fitfluxs_legendre']
+                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
                 errs = lc['errs']
                 quarter = np.ones_like(times)*qnum
             else:
                 times = np.append(times, lc['times'])
-                fluxs = np.append(fluxs, lc['fluxs'] / lc['fitfluxs_legendre'])
+                fluxs = np.append(fluxs, lc['fluxs'] - lc['fitfluxs_legendre'])
                 errs = np.append(errs, lc['errs'])
                 quarter = np.append(quarter, np.ones_like(lc['times'])*qnum)
         tfe[ap] = {'times':times,
@@ -1580,12 +1704,16 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
     spath = '../data/injrecov_pkl/'+predir+pklname
     sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
 
+    if 'eb_sbtr' in stage:
+        #override; save pickles somewhere else for EB subtraction tests.
+        spath = '../data/eb_subtr_pkl/'+pklname
+        sallqpath = '../data/eb_subtr_pkl/'+pklallqname
+
     pickle.dump(lcd, open(spath, 'wb'))
     LOGINFO('Saved (pickled) lcd data to %s' % spath)
     if isinstance(allq, dict):
         pickle.dump(allq, open(sallqpath, 'wb'))
         LOGINFO('Saved (pickled) allquarter data to %s' % sallqpath)
-
 
     return kicid
 
@@ -1601,6 +1729,10 @@ def load_lightcurve_data(kicid, stage=None):
         predir += 'no_inj/'
 
     lpath = '../data/injrecov_pkl/'+predir+pklname
+
+    if 'eb_sbtr' in stage:
+        #saved pickles somewhere else for EB subtraction tests.
+        lpath = '../data/eb_subtr_pkl/'+pklname
 
     dat = pickle.load(open(lpath, 'rb'))
     LOGINFO('Loaded pickled data from %s' % lpath)
@@ -1619,6 +1751,10 @@ def load_allq_data(kicid, stage=None):
         predir += 'no_inj/'
 
     lpath = '../data/injrecov_pkl/'+predir+pklname
+
+    if 'eb_sbtr' in stage:
+        #saved pickles somewhere else for EB subtraction tests.
+        lpath = '../data/eb_subtr_pkl/'+pklname
 
     allq = pickle.load(open(lpath, 'rb'))
     LOGINFO('Loaded allquarter pickled data from %s' % lpath)
