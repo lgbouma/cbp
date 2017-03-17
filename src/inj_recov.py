@@ -74,8 +74,9 @@ def LOGEXCEPTION(message):
 
 def inject_transit_known_depth(lcd, δ):
     '''
-    Same as inject_hard_transit, but made easier by gridding over transit depth
-    from δ = (2,1,1/2,1/4,1/8,1/16,1/32)%.
+    Same as inject_random_drawn_transit, but made easier by gridding over
+    transit depth from δ = (2,1,1/2,1/4,1/8,1/16,1/32)% in the calling
+    routine.
 
     Args:
         lcd (dict): the dictionary with everything, before any processing has
@@ -227,9 +228,7 @@ def inject_transit_known_depth(lcd, δ):
     return lcd, allq
 
 
-
-
-def inject_hard_transit(lcd):
+def inject_random_drawn_transit(lcd):
     '''
     Inject a transit with the following parameters into both the SAP and PDC
     fluxes of the passed light curve dictionary.
@@ -352,120 +351,6 @@ def inject_hard_transit(lcd):
     params.a = a_by_Rstar
     inc = np.arccos(cosi)
     params.inc = inc
-
-    exp_time_minutes = 29.423259
-    exp_time_days = exp_time_minutes / (24.*60)
-
-    ss_factor = 10
-    # Initialize model
-    m_toinj = batman.TransitModel(params,
-                            times,
-                            supersample_factor = ss_factor,
-                            exp_time = exp_time_days)
-
-    # We also want a "perfect times" model, to assess whether the reasonable 
-    # fraction of the above have non-zero quality flags, nans, etc. are
-    # important. The independent time grid starts and ends at the same times 
-    # (& with 30minute cadence). Nb. that batman deals with nans in times by 
-    # returning zeros (which, in injection below, have no effect -- as you'd 
-    # hope!)
-    perftimes = np.arange(mintime, maxtime, exp_time_days)
-    m_perftimes = batman.TransitModel(params,
-                            perftimes,
-                            supersample_factor = ss_factor,
-                            exp_time = exp_time_days)
-
-    # Calculate light curve
-    fluxtoinj = m_toinj.light_curve(params)
-    perfflux = m_perftimes.light_curve(params)
-
-    # Append perfect times and injected fluxes.
-    allq = {}
-    allq['perfect_times'] = perftimes
-    allq['perfect_inj_fluxes'] = perfflux
-    allq['inj_model'] = {'params':params} # has things like the period.
-
-    # Inject, by quarter
-    kbegin, kend = 0, 0
-    for ix, qnum in enumerate(qnums):
-
-        qsapflux = lcd[qnum]['sap']['sap_flux']
-        qpdcflux = lcd[qnum]['pdc']['pdcsap_flux']
-        qtimes = lcd[qnum]['time']
-
-        kend += len(qtimes)
-
-        qfluxtoinj = fluxtoinj[kbegin:kend]
-
-        qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
-        qinjpdcflux = qpdcflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
-
-        lcd[qnum]['sap_inj_flux'] = qinjsapflux
-        lcd[qnum]['pdcsap_inj_flux'] = qinjpdcflux
-
-        kbegin += len(qtimes)
-
-    kicid = str(lcd[qnum]['objectinfo']['keplerid'])
-    LOGINFO('KICID {:s}: injected transit to both SAP and PDC fluxes.'.\
-            format(kicid))
-
-    return lcd, allq
-
-
-
-def inject_fixed_transit(lcd):
-    '''
-    Inject a 1% transit into both the SAP and PDC fluxes of the passed light
-    curve dictionary.
-
-    Args:
-        lcd (dict): the dictionary with everything, before any processing has
-        been done. (Keys are quarter numbers).
-
-    Returns:
-        lcd (dict): lcd, with injected fluxes keyed as 'sap_inj_flux' and
-        'pdcsap_inj_flux' in each quarter. Separately, return (over the
-        baseline of the entire set of observations) 'perfect_inj_fluxes' and
-        'perfect_times'. These are in a separate dictionary.
-    '''
-
-    # Find max & min times (& grid appropriately). If there are many nans at 
-    # the beginning/end of the data, this underestimates the total timespan.
-    # This should be negligible.
-    qnums = np.sort(list(lcd.keys()))
-    maxtime = np.nanmax(lcd[max(qnums)]['time'])
-    mintime = np.nanmin(lcd[min(qnums)]['time'])
-
-    for ix, qnum in enumerate(qnums):
-        if ix == 0:
-            times = lcd[qnum]['time']
-        else:
-            times = np.append(times, lcd[qnum]['time'])
-
-    # Inject at P_CBP uniformly between 20-25x P_EB.
-    kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
-    pref = 20 + 5*np.random.rand()
-    period_eb = kebc_period
-    period_cbp = pref*kebc_period
-
-    # Injected model: select a random phase, so that the time of inferior
-    # conjunction is not initially right over the main EB transit. Set the
-    # planet radius to be a 1% dip (in stellar radii units).
-    # Calculate the models for 10 samples over each full ~29.4 minute exposure
-    # time, and then average to get the data point over the full exposure time.
-    params = batman.TransitParams()
-    injphase = np.random.rand()
-    params.t0 = mintime + injphase*period_cbp
-    params.per = period_cbp
-    params.rp = 0.01**(1/2.)
-    a_in_AU = (period_cbp*u.day/u.yr)**(2/3.)
-    Rstar_in_AU = (u.Rsun/u.au)
-    params.a = a_in_AU.cgs.value / Rstar_in_AU.cgs.scale
-    params.inc = 89.
-    params.ecc = 0.
-    params.w = 90.
-    params.u = [0.1, 0.3]
-    params.limb_dark = "quadratic"
 
     exp_time_minutes = 29.423259
     exp_time_days = exp_time_minutes / (24.*60)
@@ -861,12 +746,12 @@ def redetrend_lightcurve(lcd,
 
             redtr = {
             'sap':{'times':,
-                    'mags':,
+                    'fluxs':,
                     'fitfluxs_legendre':,
                     'errs':
                    },
             'pdc':{'times':,
-                    'mags':,
+                    'fluxs':,
                     'fitfluxs_poly':,
                     'errs':
                    }
@@ -908,8 +793,9 @@ def redetrend_lightcurve(lcd,
                     legendredeg=legendredeg)
 
         redtr = {'times':stimes,
-                  'fluxs':sfluxes,
+                  'fluxs_pre_redtr':sfluxes,
                   'fitfluxs_'+detrend:fitfluxs,
+                  'fluxs_redtr':sfluxes-fitfluxs,
                   'errs':serrs
                  }
 
@@ -976,7 +862,7 @@ def normalize_allquarters(lcd, dt='dtr'):
 
 
 
-def run_fineperiodogram_allquarters(lcd):
+def run_fineperiodogram_allquarters(lcd, iter_n=0):
     '''
     Wrapper to run_periodogram, to run for all quarters after selected best
     period has been identified.
@@ -985,12 +871,12 @@ def run_fineperiodogram_allquarters(lcd):
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = run_fineperiodogram(lcd[k], k, 'pdm')
+        rd[k] = run_fineperiodogram(lcd[k], k, 'pdm', iter_n=iter_n)
 
     return rd
 
 
-def run_periodograms_allquarters(lcd):
+def run_periodograms_allquarters(lcd, iter_n=0):
     '''
     Wrapper to run_periodogram, to run for all quarters.
     Saves periodogram results to keys `lcd[qnum]['per']['sap']['*']`.
@@ -998,12 +884,12 @@ def run_periodograms_allquarters(lcd):
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = run_periodogram(lcd[k], k, 'pdm')
+        rd[k] = run_periodogram(lcd[k], k, 'pdm', iter_n=iter_n)
 
     return rd
 
 
-def run_fineperiodogram(dat, qnum, pertype='pdm'):
+def run_fineperiodogram(dat, qnum, pertype='pdm', iter_n=0):
     '''
     See run_periodogram docstring. It's that, but for narrowing down the period
     of an EB once select_eb_period has been run.
@@ -1011,11 +897,20 @@ def run_fineperiodogram(dat, qnum, pertype='pdm'):
     assert pertype=='pdm'
 
     dat['fineper'] = {}
-    for ap in ['sap','pdc']:
 
-        times = dat['dtr'][ap]['times']
-        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
-        errs = dat['dtr'][ap]['errs_dtr_norm']
+    keyd = {
+            0: {'dtr': ['times', 'fluxs_dtr_norm', 'errs_dtr_norm']},
+            1: {'redtr': ['times', 'fluxs_redtr', 'errs']}
+           }
+    mk = list(keyd[iter_n].keys()).pop()
+
+    for ap in ['sap', 'pdc']:
+
+        times = dat[mk][ap][keyd[iter_n][mk][0]]
+        #FIXME: remove this.
+        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
+        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         if len(times) < 50 or len(fluxs) < 50:
             LOGERROR('Got quarter with too few points. Continuing.')
@@ -1061,7 +956,7 @@ def run_fineperiodogram(dat, qnum, pertype='pdm'):
 
 
 
-def run_periodogram(dat, qnum, pertype='pdm'):
+def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
     '''
     Given normalized, detrended fluxes, this function computes periodograms of
     choice. Most importantly in the context of being able to subsequently
@@ -1078,6 +973,7 @@ def run_periodogram(dat, qnum, pertype='pdm'):
         for Stellingwerf phase dispersion minimization, box least squares, and
         a generalized Lomb-Scargle periodogram respectively. (See astrobase
         for details).
+        iter_n (int): same as for whiten_allquarters.
 
     Returns:
         dat (dict): dat, with the periodogram information in a sub-dictionary,
@@ -1100,11 +996,21 @@ def run_periodogram(dat, qnum, pertype='pdm'):
     assert pertype=='pdm' or pertype=='bls' or pertype=='lsp'
 
     dat['per'] = {}
-    for ap in ['sap','pdc']:
 
-        times = dat['dtr'][ap]['times']
-        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
-        errs = dat['dtr'][ap]['errs_dtr_norm']
+    keyd = {
+            0: {'dtr': ['times', 'fluxs_dtr_norm', 'errs_dtr_norm']},
+            1: {'redtr': ['times', 'fluxs_redtr', 'errs']}
+           }
+    mk = list(keyd[iter_n].keys()).pop()
+
+    for ap in ['sap', 'pdc']:
+
+        period = dat['fineper'][ap]['selperiod']
+        times = dat[mk][ap][keyd[iter_n][mk][0]]
+        #FIXME: remove this.
+        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
+        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         # Range of interesting periods (morph>0.7): 0.05days (1.2hr)-20days.
         # BLS can only search for periods < half the light curve observing 
@@ -1360,7 +1266,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
     return dat
 
 
-def whiten_allquarters(lcd, σ_clip=None):
+def whiten_allquarters(lcd, σ_clip=None, iter_n=0):
     '''
     Wrapper to whiten_lightcurve, to run for all quarters.
     Saves whitened results to keys `lcd[qnum]['white']['sap']['w_*']`, for * in
@@ -1369,13 +1275,13 @@ def whiten_allquarters(lcd, σ_clip=None):
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = whiten_lightcurve(lcd[k], k, σ_clip=σ_clip)
+        rd[k] = whiten_lightcurve(lcd[k], k, σ_clip=σ_clip, iter_n=iter_n)
 
     return rd
 
 
 def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
-        rescaletomedian=True, σ_clip=None):
+        rescaletomedian=True, σ_clip=None, iter_n=0):
     '''
     Given the normalized, detrended fluxes, and the known period computed from
     the periodogram routines, fit for the eclipsing binary signal in phase and
@@ -1395,6 +1301,10 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         value.
 
         σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries.
+
+        iter_n (int): 0: 'dtr', no whitening has yet been done
+                     1: 'redtr', the first round of whitening has been done,
+                     2: etc.
 
     Returns:
         dat (dict): dat, with the phased times, fluxes and errors in a
@@ -1419,12 +1329,21 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
     dat['white'] = {}
 
+    keyd = {
+            0: {'dtr': ['times', 'fluxs_dtr_norm', 'errs_dtr_norm']},
+            1: {'redtr': ['times', 'fluxs_redtr', 'errs']}
+           }
+
+    mk = list(keyd[iter_n].keys()).pop()
+
     for ap in ['sap', 'pdc']:
 
         period = dat['fineper'][ap]['selperiod']
-        times = dat['dtr'][ap]['times']
-        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
-        errs = dat['dtr'][ap]['errs_dtr_norm']
+        times = dat[mk][ap][keyd[iter_n][mk][0]]
+        #FIXME: remove this.
+        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
+        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         try:
             legdict = lcf.legendre_fit_magseries(
