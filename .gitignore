@@ -6,4 +6,5 @@ notebooks/.*
 notebooks/plots/*demo
 results*
 src/LOGS*
+src/__*
 doc/refs/*pdf
