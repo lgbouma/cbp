@@ -3,5 +3,7 @@ notebooks/*csv
 notebooks/plots/*pdf
 notebooks/nb-data*
 notebooks/.*
+notebooks/plots/*demo
 results*
 src/LOGS*
+doc/refs/*pdf
