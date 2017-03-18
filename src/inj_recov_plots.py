@@ -924,3 +924,112 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
+
+def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
+
+    #lcd[qnum]['white'][inum][ap]['w*']`, for * in (fluxs,errs,times,phases)
+
+    assert ap == 'sap' or ap == 'pdc'
+    keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+    kebc_period = nparr(float(lcd[list(lcd.keys())[0]]['kebwg_info']['period']))
+
+    qnums = list(lcd.keys())
+
+    for qnum in qnums:
+        inums = list(lcd[qnum]['white'].keys())
+        for inum in inums:
+            ap = 'sap'
+
+            # Set up matplotlib figure and axes.
+            plt.close('all')
+            nrows, ncols = 3, 2
+            f = plt.figure(figsize=(16, 10))
+            gs = GridSpec(nrows, ncols) # 5 rows, 5 columns
+            # row 0: dtr timeseries
+            ax_dtr = f.add_subplot(gs[0,:])
+            # row 2: detrended & normalized
+            ax_w = f.add_subplot(gs[2,:], sharex=ax_dtr)
+            # row1, col0: PDM periodogram
+            ax_pg = f.add_subplot(gs[1,0])
+            # row1, col1: phase-folded dtr 
+            ax_pf = f.add_subplot(gs[1,1])
+            LOGINFO('Beginning iterwhiten plot. KEPID %s (%s)' % (
+                str(keplerid), ap))
+
+            # TIMESERIES
+            for axix, ax in enumerate([ax_dtr, ax_w]):
+                if axix == 0 and inum == 0:
+                    times = lcd[qnum]['dtr'][ap]['times']
+                    fluxs = lcd[qnum]['dtr'][ap]['fluxs_dtr_norm']
+                    errs =  lcd[qnum]['dtr'][ap]['errs_dtr_norm']
+                elif axix == 0 and inum > 0:
+                    times = lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['times']
+                    fluxs = lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['wfluxs']
+                    errs =  lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['errs']
+                elif axix == 1:
+                    times = lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['times']
+                    fluxs = lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['wfluxs']
+                    errs =  lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['errs']
+
+                meanflux = np.mean(fluxs)
+                rms_biased = float(np.sqrt(np.sum((fluxs-meanflux)**2) / len(fluxs)))
+
+                ax.plot(times, fluxs, linestyle='-', marker='o',
+                       markerfacecolor='black', markeredgecolor='black',
+                       ms=1, lw=0.2)
+                txt = 'RMS: %.4g' % (rms_biased)
+                ax.text(0.02, 0.02, txt, horizontalalignment='left',
+                    verticalalignment='bottom',
+                    transform=ax.transAxes)
+
+            ax_dtr.set(ylabel='redtr flux')
+            ax_pg.set(ylabel='PDM power')
+
+            # PERIODOGRAM
+            ax_pg.plot(lcd[qnum]['white'][inum][ap]['per']['periods'],
+                      lcd[qnum]['white'][inum][ap]['per']['lspvals'],
+                      'k-')
+
+            selperiod = lcd[qnum]['white'][inum][ap]['per']['selperiod']
+            inj_period = allq['inj_model']['params'].per
+            pwr_ylim = ax_pg.get_ylim()
+            ax_pg.vlines(selperiod, min(pwr_ylim), max(pwr_ylim), colors='r', linestyles='--', alpha=0.8,
+                         zorder=20, label='P sel')
+            ax_pg.vlines(kebc_period, min(pwr_ylim), max(pwr_ylim), colors='g', linestyles='--', alpha=0.8,
+                     zorder=20, label='P EB')
+            ax_pg.vlines(inj_period, min(pwr_ylim), max(pwr_ylim), colors='b', linestyles=':', alpha=0.8,
+                     zorder=20, label='P CBP')
+            ax_pg.legend(fontsize='xx-small', loc='lower right')
+            ax_pg.set_ylim(pwr_ylim)
+            ax_pg.set(xscale='log')
+
+            # PHASE-FOLD
+            pflux = lcd[qnum]['white'][inum][ap]['legdict']['magseries']['mags']
+            phase = lcd[qnum]['white'][inum][ap]['legdict']['magseries']['phase']
+            pfitflux = lcd[qnum]['white'][inum][ap]['legdict']['fitinfo']['fitmags']
+
+            thiscolor = 'blue'
+            ax_pf.plot(phase, pflux, c=thiscolor, linestyle='-',
+                    marker='o', markerfacecolor=thiscolor,
+                    markeredgecolor=thiscolor, ms=0.1, lw=0.1, zorder=0)
+            ax_pf.plot(phase, pfitflux, c='k', linestyle='-',
+                    lw=0.5, zorder=2)
+
+            selperiod = lcd[qnum]['white'][inum][ap]['fineper']['selperiod']
+
+            txt = 'q: %d' % (int(qnum))
+            ax_pf.text(0.98, 0.98, txt, horizontalalignment='right',
+                    verticalalignment='top',
+                    transform=ax_pf.transAxes)
+
+            pf_txt = 'P EB: %.7f day\nP sel: %.7f day' % (kebc_period, selperiod)
+            ax_pf.text(0.02, 0.02, pf_txt, horizontalalignment='left',
+                    verticalalignment='bottom', transform=ax_pf.transAxes)
+            ax_pf.set(ylabel='phased redtr flux')
+
+            f.tight_layout()
+            fname = '{:s}_qnum{:s}_inum{:s}_sap.png'.format(
+                    str(keplerid), str(int(qnum)), str(int(inum)))
+            savedir = '../results/eb_subtraction_diagnostics/iterwhiten/'
+
+            f.savefig(savedir+fname, dpi=300, bbox_inches='tight')
