@@ -1,0 +1,41 @@
+* use terra's GP regression for detrending, rather than legendre series sums.
+
+> not terra's imple,entatio, but the scikit learn implementation seems pretty
+> slow. This definitely could be a useful method though (just more complicated
+> than necessary)
+
+* make completeness maps (vs δ_inj, P_inj, P_EB, rms_biased)
+
+> Done. We need ~4x better noise RMS across all LCs.
+> Note (per discussion w/ Fei Dai) a better metric than RMS is CDPP over 6hrs.
+> This is like roughly "pass a 6 hour window over LC. for all the points in
+> each window, compute variance. Then compute the mean of the variances".
+
+* check normalization is being done thru *DIVISION* by mean (not subtraction),
+b/c division preservers relative fluxes..
+
+> Done
+
+* Possible to high/loss pass filter at ~<2x EB period? (Read Feigelson text & see)
+
+> Butterworth filters are the idea, and they ruin transits (smoothing is too
+> powerful, timescales too close -- the sinc(f) of a FT'd box function does not
+> play well with Butterworth).
+
+* Email Johan for his code -- more general fourier approach (more expensive
+  too).
+
+> Emailed. Tried implemented it too -- works shittily. But my implementation
+> may have bugs.
+
+* iteratively whiten via either:
+    1. if next bst period is a harmonic of original signal, subtract off new
+    legendre fit
+    2. scipy.signal: genereate filters based on Fourier representation of LC,
+    including all the harmonics, and pass them thru
+> barebones implementation done. 
+
+Consider:
+* Iteratively whiten out more frequencies. (Say ~few more) (Nb. this depends on
+  whether there are strong periodicities in current redtrended residuals, or
+  whether the spot-movement is "pseudo-periodic")

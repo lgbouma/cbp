@@ -1,28 +1,14 @@
 ######
 #TODO#
 ######
-'''
-* make completeness maps (vs δ_inj, P_inj, P_EB, rms_biased)
 
-* check normalization is being done thru *DIVISION* by mean (not subtraction),
-b/c division preservers relative fluxes...
+* complete tests/assessment of how well iterative whitening looks like it's 
+  working (see e.g., how far down you can push in the rms floor)
 
-* review doc/discussion from 170308. consider integrating QATS now.
+* integrate iterative whitening into a recovery pipeline framework. reassess 
+  completeness
 
-* use terra's GP regression for detrending, rather than legendre series sums.
-
-##########
-Possible improvements:
-
-* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
--> can do this in post-processing, or (likely better) add direct to
-astrobase. See FIXME below.
-
-* iteratively whiten via either:
-    1. if next bst period is a harmonic of original signal, subtract off new
-    legendre fit
-    2. scipy.signal: genereate filters based on Fourier representation of LC,
-    including all the harmonics, and pass them thru
+* clear out the TODOs and FIXMEs from the iterative whitening implementation.
 
 * In "redtrending": cut out data within "0.5d regions" of gaps (defined by
     >0.5day space btwn points)
@@ -37,6 +23,17 @@ astrobase. See FIXME below.
     for group in groups:
     ```
 
+##########
+Possible improvements:
+
+* review doc/discussion from 170308. consider integrating QATS (if we want 
+  long-period, ED rather than just EC and EA sensitivity)
+
+* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
+-> can do this in post-processing, or (likely better) add direct to
+astrobase. See FIXME below.
+
+
 * Similarly, fine-tune the sigma clipping based on the actual RMS across a
     quarter. **If (once detrended+whitened) it's very small, we must allow
     bigger dips (w/out clipping them).**
@@ -49,14 +46,7 @@ astrobase. See FIXME below.
 
 ----------
 
-Consider:
-* Iteratively whiten out more frequencies. (Say ~few more) (Nb. this depends on
-  whether there are strong periodicities in current redtrended residuals, or
-  whether the spot-movement is "pseudo-periodic")
-* Possible to high/loss pass filter at ~<2x EB period? (Read Feigelson text & see)
 * How to fit out spots: e.g., with `george` (GP regression)?
-* Email Johan for his code -- more general fourier approach (more expensive
-  too).
 
 Longer-term ideas:
 *Detrend+normalize:
@@ -76,7 +66,5 @@ astrokep.stitch_lightcurve_gaps
 astrokep.keplerflux_to_keplermag
 
 ALSO:
- PyKE is also worth assessing.
+ PyKE is also worth assessing: what detrending tricks does it use?
 '''
-
-
