@@ -64,10 +64,6 @@ def LOGEXCEPTION(message):
                 )
             )
 
-##############
-# UNIT TESTS #
-##############
-
 #############
 # INJECTION #
 #############
@@ -678,8 +674,8 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
             'ndet before = %s, ndet after = %s'
             % (nbefore, nafter))
 
-    #DETREND: fit a legendre series or polynomial, save it to the output
-    #dictionary.
+    # DETREND: fit a legendre series or polynomial, save it to the output
+    # dictionary.
     tfe = {'sap':(ssaptimes, ssapfluxs, ssaperrs),
            'pdc':(spdctimes, spdcfluxs, spdcerrs)}
     dtr = {}
@@ -828,8 +824,8 @@ def normalize_lightcurve(lcd, qnum, dt='dtr'):
         fitflux = lcd[dt][ap][dtrtype]
         fitflux_norm = fitflux / np.median(flux)
 
-        #NOTE: there is some abiguity about whether to divide by the fit
-        #(preserving relative variability) or to subtract. Trying divide.
+        # NOTE: there is some abiguity about whether to divide by the fit
+        # (preserving relative variability) or to subtract.
         flux_dtr_norm = flux_norm / fitflux_norm
 
         errs = lcd[dt][ap]['errs']
@@ -907,9 +903,7 @@ def run_fineperiodogram(dat, qnum, pertype='pdm', iter_n=0):
     for ap in ['sap', 'pdc']:
 
         times = dat[mk][ap][keyd[iter_n][mk][0]]
-        #FIXME: remove this.
-        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
-        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
         errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         if len(times) < 50 or len(fluxs) < 50:
@@ -1005,11 +999,9 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
 
     for ap in ['sap', 'pdc']:
 
-        period = dat['fineper'][ap]['selperiod']
         times = dat[mk][ap][keyd[iter_n][mk][0]]
-        #FIXME: remove this.
-        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
-        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        #fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
         errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         # Range of interesting periods (morph>0.7): 0.05days (1.2hr)-20days.
@@ -1036,7 +1028,6 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
                 periodepsilon=0.05, # 0.05 days
                 sigclip=None, # no sigma clipping
                 nworkers=None)
-
         elif pertype == 'bls':
             pgd = periodbase.bls_parallel_pfind(times,fluxs,errs,
                 startp=smallest_p,
@@ -1050,7 +1041,6 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
                 periodepsilon=0.1, # 0.1 days
                 nworkers=None,
                 sigclip=None)
-
         elif pertype == 'lsp':
             pgd = periodbase.pgen_lsp(times,fluxs,errs,
                 startp=smallest_p,
@@ -1061,7 +1051,6 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
                 stepsize=1.0e-4,
                 nworkers=None,
                 sigclip=None)
-
 
         if isinstance(pgd, dict):
             LOGINFO('KIC ID %s, computed periodogram (%s) quarter %s. (%s)'
@@ -1074,6 +1063,91 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
 
 
     return dat
+
+
+def _select_whiten_period(dat, rtol=5e-2, fine=False, inum=0, ap='sap',
+        want_eb_period=False):
+    '''
+    Related to select_eb_period, but different control flow.
+
+    Select the period at which to whiten for a given quarter, given the
+    periodogram information and the KEBC information.
+
+    Logic:
+    If want EB period:
+        If within rtol% of KEBC period, take the periodogram period.
+        Else, look for periods in the best 5 from the periodogram that are
+        within rtol% of the KEBC period. If there is only one, take that one
+        period.
+        Otherwise, use the KEBC period.
+    Else:
+        Take best period. Run fine periodogram over +/- rtol (e.g., if rtol is
+        5e-2, +5% and -5% of the best period).
+
+    Args:
+        dat: dictionary with specified qnum.
+
+        rtol (float): relative tolerance for accepting close periods from
+        periodogram
+
+        fine (bool): False if you have not run a "fine search" for the best
+        period. True if the fine periodogram search has been run, and thus the
+        results of that should be used in selecting the EB period.
+
+        want_eb_period (bool): whether you want periods in the data close to
+        the KEBC EB periods.
+
+    Returns:
+        dat['per'] (or dat['fineper']) with 'selperiod' and
+        'selforcedkebc' keys. These give the selected period (float) and a
+        string that takes values of either ('forcedkebc','switch','correct')
+        for cases when we were forced to take the period from the KEBC, where
+        given the KEBC value we switched to a different peak in the
+        periodogram, or when the periodogram got it right on the first try.
+    '''
+
+    pgkey = 'per' if not fine else 'fineper'
+    pgd = dat['white'][inum][ap][pgkey]
+
+    my_period = nparr(pgd['bestperiod'])
+    my_periods = nparr(pgd['nbestperiods'])
+
+    if fine:
+        my_period = nparr(pgd['bestperiod'])
+        my_periods = nparr(pgd['nbestperiods'])
+
+        pgd['selperiod'] = my_period
+        pgd['selforcedkebc'] = 'finebest'
+
+    elif not fine and want_eb_period:
+
+        kebc_period = nparr(float(dat['kebwg_info']['period']))
+        rightperiod = npabs(my_period - kebc_period)/npabs(kebc_period) <= rtol
+
+        if rightperiod:
+            pgd['selperiod'] = my_period
+            pgd['selforcedkebc'] = 'correct'
+
+        else:
+            sel = npabs(my_periods - kebc_period)/npabs(kebc_period) <= rtol
+
+            if not np.any(sel) or len(sel[sel==True]) > 1:
+                pgd['selperiod'] = kebc_period
+                pgd['selforcedkebc'] = 'forcedkebc'
+
+            else:
+                pgd['selperiod'] = float(my_periods[sel])
+                pgd['selforcedkebc'] = 'switch'
+
+    elif not fine and not want_eb_period:
+
+        pgd['selperiod'] = my_period
+        pgd['selforcedkebc'] = 'notwantebperiod'
+
+    dat['white'][inum][ap][pgkey] = pgd
+
+    return dat
+
 
 
 def select_eb_period(lcd, rtol=1e-1, fine=False):
@@ -1141,36 +1215,131 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
     return lcd
 
 
-def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], n_iter=5):
-    '''
-    Wrapper to iterative_whiten_lightcurve, to run for all quarters.
-    Saves iteratively whitened results to keys
-    `lcd[qnum]['white']['sap']['w_*']`, for * in (fluxs,errs,times,phases)
-    '''
-    #FIXME: this should make "whiten_lightcurve" redundant, by making it the
-    #n_iter=1 case of this function.
+def _get_legendre_deg(npts):
+    from scipy.interpolate import interp1d
 
+    degs = np.array([2,5,10,15])
+    pts = np.array([1e2,4.3e2,3e3,4e3])
+    fn = interp1d(pts, degs, kind='linear',
+                 bounds_error=False,
+                 fill_value=(2, 15))
+    legendredeg = int(np.floor(fn(npts)))
+
+    return legendredeg
+
+
+def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False):
+
+    # Initialize periodogram or fineperiodogram dictionaries.
+    pgkey = 'per' if not fine else 'fineper'
+    if not fine:
+        dat['white'][inum][ap] = {}
+
+    # Get times and fluxes.
+    if inum == 0:
+        times = dat['dtr'][ap]['times']
+        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+        errs =  dat['dtr'][ap]['errs_dtr_norm']
+    else:
+        times = dat['white'][inum-1][ap]['legdict']['whiteseries']['times']
+        fluxs = dat['white'][inum-1][ap]['legdict']['whiteseries']['wfluxs']
+        errs =  dat['white'][inum-1][ap]['legdict']['whiteseries']['errs']
+
+    if len(times) < 50 or len(fluxs) < 50:
+        LOGERROR('Got quarter with too few points. Continuing.')
+        dat['white'][inum][ap][pgkey] = np.nan
+    else:
+        if not fine:
+            # Range of interesting periods (morph>0.7): 0.05days(1.2hr)-20days.
+            # BLS can only search for periods < half the light curve observing 
+            # baseline. (Nb longer signals are almost always stellar rotation).
+            smallest_p = 0.05
+            biggest_p = min((times[-1] - times[0])/2.01, 20.)
+            periodepsilon = 0.01 # days
+            stepsize=42 # because it doesn't matter
+            autofreq=True
+        elif fine:
+            # Range of interesting periods, now that the selected period has 
+            # been chosen: +/- 1% above/below it.
+            selperiod = dat['white'][inum][ap]['per']['selperiod']
+            rdiff = 0.01
+            smallest_p = selperiod - rdiff*selperiod
+            biggest_p = selperiod + rdiff*selperiod
+            periodepsilon = rdiff*selperiod*0.1
+            stepsize=2e-6
+            autofreq=False
+
+        pgd = periodbase.stellingwerf_pdm(times,fluxs,errs,
+            autofreq=autofreq,
+            startp=smallest_p,
+            endp=biggest_p,
+            normalize=False,
+            stepsize=stepsize,
+            phasebinsize=0.05,
+            mindetperbin=9,
+            nbestpeaks=5,
+            periodepsilon=periodepsilon,
+            sigclip=None, # no sigma clipping
+            nworkers=None)
+
+        if isinstance(pgd, dict):
+            LOGINFO('KIC ID %s, computed periodogram (inum %s) quarter %s. (%s)'
+                % (str(dat['objectinfo']['keplerid']), str(inum), str(qnum), ap))
+        else:
+            LOGERROR('Error in KICID %s, periodogram %s, quarter %s (%s)'
+                % (str(dat['objectinfo']['keplerid']), str(inum), str(qnum), ap))
+
+        dat['white'][inum][ap][pgkey] = pgd
+
+    return dat
+
+
+def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], nwhiten_max=10,
+        nwhiten_min=2, rms_floor=0.1):
+    '''
+    Wrapper to iterative_whiten_lightcurve, to run for all quarters. NOTE that
+    this doesn't make whiten_allquarters redundant because the data structures
+    are all different (because I unsurprisingly didn't make the dictionaries
+    flexible enough to begin with).
+
+    Saves iteratively whitened results to keys
+    `lcd[qnum]['white']['legdict'][inum][ap]['w*']`, for * in (fluxs,errs,times,phases)
+    '''
     rd = {}
     for k in lcd.keys():
         rd[k] = iterative_whiten_lightcurve(lcd[k],
                 k,
                 σ_clip=σ_clip,
-                n_iter=n_iter)
+                nwhiten_max=nwhiten_max,
+                nwhiten_min=nwhiten_min,
+                rms_floor=rms_floor)
 
     return rd
 
 
-def iterative_whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
-        rescaletomedian=True, σ_clip=None, n_iter=1):
+def iterative_whiten_lightcurve(dat, qnum, method='legendre',
+        legendredeg='best', rescaletomedian=True, σ_clip=None, nwhiten_max=10,
+        nwhiten_min=2, rms_floor=0.001):
     '''
     Given the normalized, detrended fluxes, and the known period computed from
     the periodogram routines, iteratively fit for the eclipsing binary signal
-    in phase and subtract it out.
+    in phase and subtract it out. In pseudocode:
+
+    while (rms>rms_floor or nwhiten < nwhiten_min) and nwhiten < nwhiten_max:
+        * Stellingwerf PDM (coarse freq bins), get coarseperiod
+        * Repeat over narrow bins centered on peak signal, get selperiod
+        * Whiten at selperiod by phase-folding, and fitting a finite-order
+          Legendre series (order chosen to avoid overfitting & underfitting. It
+          should be low enough to gloss over transits. Methods for finding good
+          orders include cross validation and AIC/BIC, but we do something
+          entirely empirical, i.e. w/out rigorous statistical justification,
+          but it works).
+        * Subtract fit, compute new RMS.
 
     Args:
-        dat (dict): the dictionary returned by astrokep.read_kepler_fitslc,
-        after normalization, detrending, and selecting the appropriate EB
-        period.
+        dat (dict): the single-quarter dictionary returned by
+        astrokep.read_kepler_fitslc, post-normalization, detrending, and
+        selecting the appropriate EB period.
 
         detrend (str): method by which to whiten the LC. 'legendre' is
         currently the only one accepted (although astrobase.varbase has other
@@ -1180,88 +1349,144 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
         rescaletomedian (bool): rescales the whitened fluxes to their median
         value.
 
+        legendredeg: integer to be fixed, else (str) "best".
+
         σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries.
 
-        n_iter (int or "best"): number of iterations of whitenings. If "best",
-        this routine figure out how many to do.
+        rms_floor (float): unbiased RMS [%] at which iterative whitening can
+        stop. E.g., set to 0.1 to stop at 0.1%.
+
+        nwhiten_max (int): maximum number of times to iterate the whitening
+        process.
+
+        nwhiten_min (int): converse of nwhiten_max. Must be >=1.
 
     Returns:
         dat (dict): dat, with the phased times, fluxes and errors in a
         sub-dictionary, accessible as dat['white'], which gives the
         dictionary:
 
-        dat['white'] = {'sap':ldict, 'pdc':ldict}, where ldict contains:
+        dat['white'] is keyed by number of whitenings that have been applied
+        (1,2,3,...,nwhiten_max). Each one of these keys, `inum`, is keyed by
+        sap/pdc, and contains:
 
-        ldict.keys():
-            ['fitplotfile', 'fitchisq', 'fitredchisq', 'magseries',
-            'fitinfo', 'fittype', 'whiteseries']
+        dat['white'][inum]['sap'].keys():
+            ['magseries', 'whiteseries', 'fitinfo', 'data_rms', 'resid_rms',
+            'per', # the coarse periodogram for this iteation
+            'fineper', # the fine periodogram for this iteation
+            'fittype', 'fitplotfile', 'fitchisq', 'fitredchisq'].
 
-        ldict['whiteseries'].keys() # time-sorted, and sigma clipped.
-            ['mags', 'errs', 'times']
+        data_rms is the RMS of the data used in this iterationnumber (inum).
+        resid_rms is the RMS of the residual once the fit is subtracted.
 
-        legdict['magseries'].keys() # phase-sorted
+        The subkeys that lead to other dictionaries:
+        ...['whiteseries'].keys() # whitened, time-sorted, sigma clipped.
+            ['wfluxs', 'errs', 'times']
+            (so wfluxs is the *residual* of the inum^{th} iteration)
+
+        ...['magseries'].keys() # NOT whitened, but phase-sorted & sigclipped
             ['mags', 'errs', 'times', 'phase']
 
-        legdict['fitinfo'].keys()
+        ...['fitinfo'].keys()
             ['fitepoch', 'legendredeg', 'fitmags']
     '''
 
-    assert isinstance(n_iter, int) or \
-            (isinstance(n_iter, str) and n_iter=='best')
+    assert nwhiten_min >= 1
+    assert isinstance(legendredeg, int) or \
+            (isinstance(legendredeg, str) and legendredeg=='best')
+    assert method == 'legendre'
 
     dat['white'] = {}
 
-    #FIXME loop over number of iterations.
-    for ap in ['sap', 'pdc']:
+    sap_rms = 42 # placeholder RMS
+    nwhiten = 0 # number of whitenings that have been done
 
-        period = dat['fineper'][ap]['selperiod']
-        times = dat['dtr'][ap]['times']
-        fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
-        errs = dat['dtr'][ap]['errs_dtr_norm']
+    while (sap_rms>rms_floor or nwhiten<=nwhiten_min) and nwhiten<nwhiten_max:
 
-        try:
-            legdict = lcf.legendre_fit_magseries(
-                times,fluxs,errs,period,
-                legendredeg=legendredeg,
-                sigclip=σ_clip,
-                plotfit=False,
-                magsarefluxes=True)
-            LOGINFO('Whitened KICID %s, quarter %s, (%s) (Legendre).'
-                % (str(dat['objectinfo']['keplerid']), str(qnum), ap))
+        dat['white'][nwhiten] = {}
 
-        except:
-            LOGERROR('Legendre whitening error in KICID %s, quarter %s, (%s).'
-                % (str(dat['objectinfo']['keplerid']), str(qnum), ap))
+        for ap in ['sap', 'pdc']:
+            # Be sure to whiten at the EB period first.
+            whiten_at_eb_period = True if nwhiten == 0 else False
 
-        tms = legdict['magseries']
-        tfi = legdict['fitinfo']
+            # Run coarse periodogram and get initial period guess.
+            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=False)
+            dat = _select_whiten_period(dat, fine=False, inum=nwhiten, ap=ap,
+                    want_eb_period=whiten_at_eb_period)
+            # Run fine periodogram and get precise period at which to whiten.
+            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=True)
+            dat = _select_whiten_period(dat, fine=True, inum=nwhiten, ap=ap,
+                    want_eb_period=whiten_at_eb_period)
 
-        #everything in phase-sorted order:
-        phase = tms['phase']
-        ptimes = tms['times']
-        pfluxs = tms['mags']
-        perrs = tms['errs']
-        presiduals = tms['mags'] - tfi['fitmags']
+            # `period` is the period at which we will whiten.
+            # `times`, `fluxs`, `errs` are the things to be whitened.
+            period = dat['white'][nwhiten][ap]['fineper']['selperiod']
+            if nwhiten == 0:
+                times = dat['dtr'][ap]['times']
+                fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+                errs =  dat['dtr'][ap]['errs_dtr_norm']
+            else:
+                times = dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['times']
+                fluxs = dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['wfluxs']
+                errs =  dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['errs']
 
-        #get it all in time-sorted order:
-        wtimeorder = np.argsort(ptimes)
-        wtimes = ptimes[wtimeorder]
-        wphase = phase[wtimeorder]
-        wfluxes = presiduals[wtimeorder]
-        werrs = perrs[wtimeorder]
+            if legendredeg=='best':
+                npts = len(fluxs)
+                legdeg = _get_legendre_deg(npts)
+            try:
+                legdict = lcf.legendre_fit_magseries(
+                    times,fluxs,errs,period,
+                    legendredeg=legdeg,
+                    sigclip=σ_clip,
+                    plotfit=False,
+                    magsarefluxes=True)
+                LOGINFO('Whitened KICID %s, quarter %s, (%s, inum %s).'
+                    % (str(dat['objectinfo']['keplerid']), str(qnum), ap,
+                       str(nwhiten)))
+            except:
+                LOGERROR('Whitening error. KIC %s, qnum %s, (%s, inum %s).'
+                    % (str(dat['objectinfo']['keplerid']), str(qnum), ap,
+                       str(nwhiten)))
 
-        if rescaletomedian:
-            median_mag = np.median(wfluxes)
-            wfluxes = wfluxes + median_mag
+            # Now compute the residual.
+            tms, tfi = legdict['magseries'], legdict['fitinfo']
+            # This magseries (`tms`) is in phase-sorted order.
+            phase = tms['phase']
+            ptimes = tms['times']
+            pfluxs = tms['mags']
+            perrs = tms['errs']
+            presiduals = tms['mags'] - tfi['fitmags']
+            # Get times, residuals (whitened fluxs), errs in time-sorted order.
+            wtimeorder = np.argsort(ptimes)
+            wtimes = ptimes[wtimeorder]
+            wphase = phase[wtimeorder]
+            wfluxs = presiduals[wtimeorder]
+            werrs = perrs[wtimeorder]
 
-        whitedict = {'times':wtimes,
-                'phase': wphase,
-                'fluxes':wfluxes,
-                'errs':werrs}
+            if rescaletomedian:
+                wfluxs += np.median(wfluxs)
 
-        legdict['whiteseries'] = whitedict
+            # Compute inital and post-whitened RMS.
+            meanflux = np.mean(fluxs)
+            init_rms = np.sqrt(np.sum((fluxs-meanflux)**2)/float(len(fluxs))-1)
+            legdict['data_rms'] = init_rms
+            meanwflux = np.mean(wfluxs)
+            w_rms = np.sqrt(np.sum((wfluxs-meanwflux)**2)/float(len(wfluxs))-1)
+            legdict['resid_rms'] = w_rms
+            if ap == 'sap':
+                sap_rms = w_rms
 
-        dat['white'][ap] = legdict
+            # Save whitened times, fluxes, and errs to 'whiteseries' subdict.
+            whitedict = {'times':wtimes,
+                    'phase': wphase,
+                    'wfluxs':wfluxs,
+                    'errs':werrs}
+
+            legdict['whiteseries'] = whitedict
+
+            dat['white'][nwhiten][ap]['legdict'] = legdict
+
+        nwhiten += 1
 
     return dat
 
@@ -1340,9 +1565,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
         period = dat['fineper'][ap]['selperiod']
         times = dat[mk][ap][keyd[iter_n][mk][0]]
-        #FIXME: remove this.
-        fluxs = dat['redtr'][ap]['fluxs'] - dat['redtr'][ap]['fitfluxs_legendre']
-        #fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
+        fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
         errs =  dat[mk][ap][keyd[iter_n][mk][2]]
 
         try:
@@ -1637,9 +1860,12 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
     return kicid
 
 
-def load_lightcurve_data(kicid, stage=None):
+def load_lightcurve_data(kicid, stage=None, δ=None):
 
+    # `stage` includes the transit depth string
     pklname = str(kicid)+'_'+stage+'.p'
+    if δ == 'whatever':
+        pklname = str(kicid)+'_'+stage+'_0.00125.p'
 
     predir = ''
     if 'inj' in stage:
@@ -1659,9 +1885,11 @@ def load_lightcurve_data(kicid, stage=None):
     return dat
 
 
-def load_allq_data(kicid, stage=None):
+def load_allq_data(kicid, stage=None, δ=None):
 
     pklname = str(kicid)+'_allq_'+stage+'.p'
+    if δ == 'whatever':
+        pklname = str(kicid)+'_'+stage+'_0.00125.p'
 
     predir = ''
     if 'inj' in stage:

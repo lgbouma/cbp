@@ -7,7 +7,7 @@ import injrecovresult_analysis as irra
 def get_lcd(stage='redtr', inj=None, allq=None):
     '''
     Get the lightcurve dictionary from saved pickles for a given stage and
-    injection mode.
+    injection mode. (Random injected depth).
     '''
     datapath = '../data/injrecov_pkl/'
     if inj:
@@ -21,9 +21,9 @@ def get_lcd(stage='redtr', inj=None, allq=None):
     sind = np.random.randint(0, len(kicids))
     kicid = kicids[sind]
 
-    lcd = ir.load_lightcurve_data(kicid, stage=stage)
+    lcd = ir.load_lightcurve_data(kicid, stage=stage, δ='whatever')
     if 'dipsearch' in stage:
-        allq = ir.load_allq_data(kicid, stage=stage)
+        allq = ir.load_allq_data(kicid, stage=stage, δ='whatever')
 
     if isinstance(allq, dict):
         return lcd, allq
@@ -303,115 +303,76 @@ def injrecov_vary_depth(N,
 def test_EB_subraction(N,
         ors=False, whitened=True, ds=True,
         stage=None,
-        inj=None):
+        inj=None,
+        nwhiten_max=5,
+        nwhiten_min=2):
     '''
     Calls routines for testing and improving subtraction of the eclipsing
     binary signal.
 
-    Currently implemented:
+    Current subtraction method:
         Iterative whitening via PDM period-selection and polynomial fitting.
 
-    Call this with stage (str) set to 'eb_sbtr'. For rest of args / kwargs, see
-    docstrings to injrecov_vary_depth and/or injrecov_fixed_transit_depth.
+    Args:
+        stage (str): 'eb_sbtr'.
+        nwhiten_max (int): maximum number of iterative whitenings to do.
+        nwhiten_min (int): minimum number of iterative whitenings to do.
+
+    For other args / kwargs, see docstrings to injrecov_vary_depth and/or
+    injrecov_fixed_transit_depth.
     '''
 
     np.random.seed(N)
     seeds = np.random.randint(0, 99999999, size=N)
 
-    if inj:
-        stage += '_inj'
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
-
+    stage = stage+'_inj' if inj else stage
+    predir = 'inj/' if 'inj' in stage else 'no_inj/'
     origstage = stage
 
     for s in seeds:
         np.random.seed(s)
 
         lcd, lcflag = ir.retrieve_random_lc()
-        if lcflag:
-            continue
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 
-        #INJECT TRANSITS AND PROCESS LIGHTCURVES
-        δ = 1/8./100. # nominal 0.12% transit injection.
-
+        # Nominal 0.125% transit injection.
+        δ = 1/8./100.
+        # Control flow for injection & iterative whitening.
+        if lcflag:
+            continue
         stage = origstage + '_' + str(δ)
         pklmatch = [f for f in os.listdir('../data/eb_subtr_pkl') if
                 f.endswith('.p') and f.startswith(kicid) and stage in f]
         if len(pklmatch) > 0:
-            print('Found {:s}, {:f}, continue'.format(kicid, δ))
-            continue
-        lcd, allq = ir.inject_transit_known_depth(lcd, δ)
-        lcd = ir.detrend_allquarters(lcd,
-                σ_clip=30., legendredeg=20, inj=inj)
-        lcd = ir.normalize_allquarters(lcd, dt='dtr')
-        lcd = ir.run_periodograms_allquarters(lcd)
-        lcd = ir.select_eb_period(lcd, fine=False)
-        lcd = ir.run_fineperiodogram_allquarters(lcd)
-        lcd = ir.select_eb_period(lcd, fine=True)
-        #lcd = ir.whiten_allquarters(lcd, σ_clip=[30.,5.])
-        #FIXME: implement
-        lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], n_iter=5)
-        if 'pw' in stage:
-            kicid = ir.save_lightcurve_data(lcd, stage=stage)
-        lcd = ir.redetrend_allquarters(lcd, σ_clip=[30.,5.], legendredeg=20)
-        lcd = ir.normalize_allquarters(lcd, dt='redtr')
-        if 'redtr' in stage or 'eb_sbtr' in stage:
-            kicid = ir.save_lightcurve_data(lcd, stage=stage)
+            print('Found {:s}, {:f}, checking for plots'.format(kicid, δ))
+        else:
+            lcd, allq = ir.inject_transit_known_depth(lcd, δ)
+            lcd = ir.detrend_allquarters(lcd,
+                    σ_clip=30., legendredeg=20, inj=inj)
+            lcd = ir.normalize_allquarters(lcd, dt='dtr')
+            #FIXME: looks like iterations are buggy. unclear why.
+            lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
+                    nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
+                    rms_floor=0.0005)
+            if 'eb_sbtr' in stage:
+                kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
+            ##TODO: do i want to "redetrend" iteratively? Or just redetrend 
+            ## in time after the iterative PDM subtraction is done?
+            #lcd = ir.redetrend_allquarters(lcd, σ_clip=[30.,5.], legendredeg=20)
+            #lcd = ir.normalize_allquarters(lcd, dt='redtr')
+            #if 'redtr' in stage or 'eb_sbtr' in stage:
+            #    kicid = ir.save_lightcurve_data(lcd, stage=stage)
 
-        # LOADING AND PLOTTING
+        # Load whitening output for visualization.
         stage = origstage + '_' + str(δ)
         lcd = ir.load_lightcurve_data(kicid, stage=stage)
         if 'dipsearch' in stage or 'eb_sbtr' in stage:
             allq = ir.load_allq_data(kicid, stage=stage)
 
-        # Write results tables for injection&recovery.
-        if 'dipsearch' in stage:
-            if inj:
-                irra.write_injrecov_result(lcd, allq, stage=stage)
-
         # Make plots.
-        if ors:
-            irp.orosz_style_flux_vs_time(lcd, flux_to_use='sap', stage=stage)
-            irp.orosz_style_flux_vs_time(lcd, flux_to_use='pdc', stage=stage)
-
-        if ds:
-            doneplots = os.listdir('../results/dipsearchplot/'+predir)
-            plotmatches = [f for f in doneplots if f.startswith(kicid) and
-                    stage in f]
-            if len(plotmatches)>0:
-                print('\nFound dipsearchplot, continuing.\n')
-                continue
-            if 'dipsearch' in stage:
-                irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
-                irp.dipsearchplot(lcd, allq, ap='pdc', stage=stage, inj=inj)
-
-        if whitened:
-            doneplots = os.listdir(
-                    '../results/whitened_diagnostic/eb_subtraction')
-            plotmatches = [f for f in doneplots if f.startswith(kicid) and
-                    stage in f]
-            if len(plotmatches)>0:
-                print('\nFound whitened_diagnostic, continuing.\n')
-                continue
-            if 'pw' in stage:
-                irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
-                irp.whitenedplot_5row(lcd, ap='pdc', stage=stage)
-            elif 'redtr' in stage or 'dipsearch' in stage \
-                    or 'eb_sbtr' in stage:
-                irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
-                irp.whitenedplot_6row(lcd, ap='pdc', stage=stage, inj=inj)
-
-    if inj and 'eb_sbtr' not in stage:
-        irra.summarize_injrecov_result()
-
-
-
-
+        if 'iterwhiten' in stage or 'eb_sbtr' in stage:
+            irp.plot_iterwhiten_3row(lcd, allq)
+            continue
 
 
 if __name__ == '__main__':
@@ -430,5 +391,5 @@ if __name__ == '__main__':
     ## understand completeness vs various parameters (e.g., δ, P_CBP, RMS).
     #injrecov_vary_depth(1000, stage='dipsearch', inj=True)
 
-    ## Just test EB subtraction (transits are injected, but no recovery)
+    ## Test iterative whitening (injects transits; no recovery)
     test_EB_subraction(100, stage='eb_sbtr', inj=True, ds=False, whitened=True)
