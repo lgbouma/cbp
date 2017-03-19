@@ -566,7 +566,7 @@ def _polynomial_dtr(times, fluxs, errs, polydeg=2):
     return fitfluxs, fitchisq, fitredchisq
 
 
-def detrend_allquarters(lcd, σ_clip=None, legendredeg=10, inj=False):
+def detrend_allquarters(lcd, σ_clip=None, inj=False):
     '''
     Wrapper for detrend_lightcurve that detrends all the quarters of Kepler
     data passed in `lcd`, a dictionary of dictionaries, keyed by quarter
@@ -579,15 +579,14 @@ def detrend_allquarters(lcd, σ_clip=None, legendredeg=10, inj=False):
     rd = {}
     for k in lcd.keys():
         rd[k] = detrend_lightcurve(lcd[k], k, σ_clip=σ_clip,
-                legendredeg=legendredeg, inj=inj)
+                inj=inj)
         LOGINFO('KIC ID %s, detrended quarter %s.'
             % (str(lcd[k]['objectinfo']['keplerid']), str(k)))
 
     return rd
 
 
-def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
-        polydeg=2, σ_clip=None, inj=False):
+def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
     '''
     You are given a dictionary, for a *single quarter* of kepler data, returned
     by `astrokep.read_kepler_fitslc`. It has keys like
@@ -606,8 +605,8 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
         lcd (dict): the dictionary returned by astrokep.read_kepler_fitslc (as
         described above).
 
-        detrend (str): method by which to detrend the LC. 'legendre' and
-        'polynomial' are accepted.
+        detrend (str): method by which to detrend the LC. 'legendre' is the
+        only thing implemented.
 
         σ_clip (float or list): to pass to astrobase.lcmath.sigclip_magseries
 
@@ -636,7 +635,7 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
         kwarg.
     '''
 
-    assert detrend == 'legendre' or detrend == 'polynomial'
+    assert detrend == 'legendre'
 
     # Get finite, good-quality times, mags, and errs for both SAP and PDC.
     # Take data with non-zero saq_quality flags. Fraquelli & Thompson (2012),
@@ -759,12 +758,24 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
         times,fluxs,errs = tfe[k]
 
         if detrend == 'legendre':
-            fitfluxs, fitchisq, fitredchisq = _legendre_dtr(times,fluxs,errs,
-                    legendredeg=legendredeg)
+            mingap = 0.5 # days
+            ngroups, groups = lcmath.find_lc_timegroups(times, mingap=mingap)
+            tmpfluxslegfit, legdegs = [], []
+            for group in groups:
+                tgtimes = times[group]
+                tgfluxs = fluxs[group]
+                tgerrs  = errs[group]
 
-        elif detrend == 'polynomial':
-            fitfluxs, fitchisq, fitredchisq = _polynomial_dtr(times,fluxs,errs,
-                    polydeg=polydeg)
+                legdeg = _get_legendre_deg_time(len(tgtimes))
+                tgfluxslegfit, _, _ = _legendre_dtr(tgtimes,tgfluxs,tgerrs,
+                        legendredeg=legdeg)
+
+                tmpfluxslegfit.append(tgfluxslegfit)
+                legdegs.append(legdeg)
+
+            fitfluxs = nparr([])
+            for ix, _ in enumerate(tmpfluxslegfit):
+                fitfluxs = np.append(fitfluxs, tmpfluxslegfit[ix])
 
         dtr[k] = {'times':times,
                   'fluxs':fluxs,
@@ -777,9 +788,10 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
     return lcd
 
 
-
 def redetrend_allquarters(lcd, σ_clip=None, legendredeg=10):
     '''
+    WARNING: deprecated. Use iterative_whiten_lightcurve instead.
+
     Wrapper for redetrend_lightcurve, as with detrend_allquarters.
     '''
 
@@ -793,11 +805,12 @@ def redetrend_allquarters(lcd, σ_clip=None, legendredeg=10):
     return rd
 
 
-
 def redetrend_lightcurve(lcd,
         detrend='legendre', legendredeg=10, σ_clip=None):
 
     '''
+    WARNING: deprecated. Use iterative_whiten_lightcurve instead.
+
     Once you have whitened fluxes, re-detrend (and re sigma-clip). (Note that
     this deals implicitly with injected magnitudes if they're what you started
     with).
@@ -842,11 +855,6 @@ def redetrend_lightcurve(lcd,
         fluxes = lcd['white'][ap]['whiteseries']['fluxes']
         errs = lcd['white'][ap]['whiteseries']['errs']
 
-        #FIXME: could choose to cut out data within 0.5 days of time gaps here, per
-        #Armstrong+ (2014)'s approach
-        #FIXME: OR you could choose to fit the legendre series/polynomials TO EACH
-        #TIME GROUP. Then(automatically) "fine-tune" the order (degree) of the fit
-        #based on the duration of the  timegroup. 
         stimes, sfluxes, serrs = lcmath.sigclip_magseries(
                 times, fluxes, errs,
                 magsarefluxes=True, sigclip=σ_clip)
@@ -1289,14 +1297,27 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
     return lcd
 
 
-def _get_legendre_deg(npts):
+def _get_legendre_deg_time(npts):
     from scipy.interpolate import interp1d
 
-    degs = np.array([2,5,10,20,30])
+    degs = np.array([4,5,6,10,20,30])
+    pts = np.array([1e2,3e2,5e2,1e3,2e3,3e3])
+    fn = interp1d(pts, degs, kind='linear',
+                 bounds_error=False,
+                 fill_value=(4, 30))
+    legendredeg = int(np.floor(fn(npts)))
+
+    return legendredeg
+
+
+def _get_legendre_deg_phase(npts):
+    from scipy.interpolate import interp1d
+
+    degs = np.array([4,7,15,20,30])
     pts = np.array([1e2,5e2,1e3,2e3,3e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
-                 fill_value=(2, 30))
+                 fill_value=(4, 30))
     legendredeg = int(np.floor(fn(npts)))
 
     return legendredeg
@@ -1318,7 +1339,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
         errs =  dat['dtr'][ap]['errs_dtr_norm']
     else:
         times = dat['white'][inum-1][ap]['legdict']['whiteseries']['times']
-        fluxs = dat['white'][inum-1][ap]['legdict']['whiteseries']['wfluxs']
+        fluxs = dat['white'][inum-1][ap]['legdict']['whiteseries']['wfluxsresid']
         errs =  dat['white'][inum-1][ap]['legdict']['whiteseries']['errs']
 
     if len(times) < 50 or len(fluxs) < 50:
@@ -1343,7 +1364,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
             smallest_p = selperiod - rdiff*selperiod
             biggest_p = selperiod + rdiff*selperiod
             periodepsilon = rdiff*selperiod*0.1
-            stepsize=2e-6
+            stepsize=1e-5
             autofreq=False
 
         pgd = periodbase.stellingwerf_pdm(times,fluxs,errs,
@@ -1504,12 +1525,12 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
                 errs =  dat['dtr'][ap]['errs_dtr_norm']
             else:
                 times = dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['times']
-                fluxs = dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['wfluxs']
+                fluxs = dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['wfluxsresid']
                 errs =  dat['white'][nwhiten-1][ap]['legdict']['whiteseries']['errs']
 
             if legendredeg=='best':
                 npts = len(fluxs)
-                legdeg = _get_legendre_deg(npts)
+                legdeg = _get_legendre_deg_phase(npts)
             try:
                 legdict = lcf.legendre_fit_magseries(
                     times,fluxs,errs,period,
@@ -1555,10 +1576,43 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
             if ap == 'sap':
                 sap_rms = w_rms
 
+            # Fit a low-order polynomial (as always, in the form of a finite
+            # Legendre series) to each timegroup.
+            mingap = 0.5 # days
+            ngroups, groups = lcmath.find_lc_timegroups(wtimes, mingap=mingap)
+            tmpwfluxslegfit, legdegs = [], []
+            for group in groups:
+                tgtimes = wtimes[group]
+                tgfluxs = wfluxs[group]
+                tgerrs  = werrs[group]
+
+                legdeg = _get_legendre_deg_time(len(tgtimes))
+                tgwfluxslegfit, _, _ = _legendre_dtr(tgtimes,tgfluxs,tgerrs,
+                        legendredeg=legdeg)
+
+                tmpwfluxslegfit.append(tgwfluxslegfit)
+                legdegs.append(legdeg)
+
+            wfluxslegfit = nparr([])
+            for ix, _ in enumerate(tmpwfluxslegfit):
+                wfluxslegfit = np.append(wfluxslegfit, tmpwfluxslegfit[ix])
+
+            LOGINFO('Got n={:s} legendre fit, ({:s}, {:s}, inum {:s})'.format(
+                   ','.join(list(map(str,legdegs))),
+                   str(dat['objectinfo']['keplerid']),
+                   str(qnum),
+                   ap,
+                   str(nwhiten)))
+
+            wfluxshighpass = wfluxs - wfluxslegfit
+
             # Save whitened times, fluxes, and errs to 'whiteseries' subdict.
             whitedict = {'times':wtimes,
                     'phase': wphase,
-                    'wfluxs':wfluxs,
+                    'wfluxs':wfluxs, # the whitened fluxes
+                    'wfluxslegfit':wfluxslegfit, # a legendre fit to wfluxs
+                    'wfluxsresid':wfluxshighpass, # wfluxs-wfluxslegfit
+                    'legdegs':legdegs, # degrees for timegroups in legendre fit
                     'errs':werrs}
 
             legdict['whiteseries'] = whitedict
