@@ -1292,8 +1292,8 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
 def _get_legendre_deg(npts):
     from scipy.interpolate import interp1d
 
-    degs = np.array([2,10,20,30])
-    pts = np.array([1e2,4.3e2,3e3,4e3])
+    degs = np.array([2,5,10,20,30])
+    pts = np.array([1e2,5e2,1e3,2e3,3e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
                  fill_value=(2, 30))
@@ -1478,7 +1478,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
     sap_rms = 42 # placeholder RMS
     nwhiten = 0 # number of whitenings that have been done
 
-    while (sap_rms>rms_floor or nwhiten<=nwhiten_min) and nwhiten<nwhiten_max:
+    while (sap_rms>rms_floor or nwhiten<=nwhiten_min) and nwhiten<=nwhiten_max:
 
         dat['white'][nwhiten] = {}
 
@@ -1545,10 +1545,12 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
             # Compute inital and post-whitened RMS.
             meanflux = np.mean(fluxs)
-            init_rms = np.sqrt(np.sum((fluxs-meanflux)**2)/float(len(fluxs))-1)
+            init_rms = np.sqrt(np.sum((fluxs-meanflux)**2)/\
+                        (float(len(fluxs))-1))
             legdict['data_rms'] = init_rms
             meanwflux = np.mean(wfluxs)
-            w_rms = np.sqrt(np.sum((wfluxs-meanwflux)**2)/float(len(wfluxs))-1)
+            w_rms = np.sqrt(np.sum((wfluxs-meanwflux)**2)/\
+                        (float(len(wfluxs))-1))
             legdict['resid_rms'] = w_rms
             if ap == 'sap':
                 sap_rms = w_rms
@@ -1564,6 +1566,8 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
             dat['white'][nwhiten][ap]['legdict'] = legdict
 
         nwhiten += 1
+        LOGINFO('nwhiten (inum) {:d}, sap_rms {:.3g}, rms_floor {:.3g}'.format(
+            nwhiten, sap_rms, rms_floor))
 
     return dat
 
