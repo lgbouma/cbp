@@ -1302,9 +1302,11 @@ def _get_legendre_deg(npts):
     return legendredeg
 
 
-def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False):
+def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
+        dynamical_prefactor=5):
 
     # Initialize periodogram or fineperiodogram dictionaries.
+    kebc_period = nparr(float(dat['kebwg_info']['period']))
     pgkey = 'per' if not fine else 'fineper'
     if not fine:
         dat['white'][inum][ap] = {}
@@ -1328,7 +1330,8 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False):
             # BLS can only search for periods < half the light curve observing 
             # baseline. (Nb longer signals are almost always stellar rotation).
             smallest_p = 0.05
-            biggest_p = min((times[-1] - times[0])/2.01, 20.)
+            biggest_p = min((times[-1] - times[0])/2.01,
+                    kebc_period*dynamical_prefactor)
             periodepsilon = 0.01 # days
             stepsize=42 # because it doesn't matter
             autofreq=True

@@ -35,7 +35,18 @@ b/c division preservers relative fluxes..
     including all the harmonics, and pass them thru
 > barebones implementation done. 
 
-Consider:
 * Iteratively whiten out more frequencies. (Say ~few more) (Nb. this depends on
   whether there are strong periodicities in current redtrended residuals, or
   whether the spot-movement is "pseudo-periodic")
+
+* on iterwhiten plots: add ylabel including iternum (like what's already in fname)
+  also show npts & legendredeg on phased fit.
+
+* cut out data within "0.5d regions" of gaps (defined by
+    >0.5day space btwn points)
+  -> nb. lcmath.find_lc_timegroups(fsaptimes, mingap=mingap) is most relevant.
+  -> implement as trim_near_gaps. 
+  (nb. does not require "stitching" to get full LC... you can do just over 
+  quarters still)
+
+* revise period bounds of iterative whitening to [0.05day, 5xP_EB]
