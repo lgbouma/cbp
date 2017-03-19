@@ -50,3 +50,12 @@ b/c division preservers relative fluxes..
   quarters still)
 
 * revise period bounds of iterative whitening to [0.05day, 5xP_EB]
+
+* debug why inum never goes above 2
+  > bug: badly formed bracket -> a sqrt was trying to do a negative number and
+  nanning
+
+* during iterative whiten, add f(t) filter with mid-level legendre series fit
+  (to time-groups), then subsequent subtraction for >~10day trend removal. 
+
+* clear out the TODOs and FIXMEs from the iterative whitening implementation.

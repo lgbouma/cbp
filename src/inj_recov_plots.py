@@ -964,11 +964,12 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
                     errs =  lcd[qnum]['dtr'][ap]['errs_dtr_norm']
                 elif axix == 0 and inum > 0:
                     times = lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['times']
-                    fluxs = lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['wfluxs']
+                    fluxs = lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['wfluxsresid']
                     errs =  lcd[qnum]['white'][inum-1][ap]['legdict']['whiteseries']['errs']
                 elif axix == 1:
                     times = lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['times']
                     fluxs = lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['wfluxs']
+                    fitfluxs = lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['wfluxslegfit']
                     errs =  lcd[qnum]['white'][inum][ap]['legdict']['whiteseries']['errs']
 
                 meanflux = np.mean(fluxs)
@@ -976,7 +977,12 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
 
                 ax.plot(times, fluxs, linestyle='-', marker='o',
                        markerfacecolor='black', markeredgecolor='black',
-                       ms=1, lw=0.2)
+                       ms=1, lw=0.2, zorder=1)
+                if axix == 1:
+                    ax.plot(times, fitfluxs, linestyle='-', marker='o',
+                           markerfacecolor='black', markeredgecolor='black',
+                           ms=0, lw=1, color='red', zorder=2)
+
                 txt = 'RMS: %.4g' % (rms_biased)
                 ax.text(0.02, 0.02, txt, horizontalalignment='left',
                     verticalalignment='bottom',

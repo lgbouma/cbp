@@ -2,27 +2,18 @@
 #TODO#
 ######
 
-* debug why inum never goes above 2
-
-* revise period bounds of iterative whitening to [0.05day, 5xP_EB]
+* make ur interp1d calls smarter (if possible)
 
 * revise legendredeg(npts) function... maybe allow sharper even w/ fewer pts, as
   long as within "safe" period bounds (<5x P_EB).
-
-* during iterative whiten, add f(t) filter with mid-level
-  legseries filter, then subsequent subtraction for >~10day trend removal. 
-  
-
-
 
 * complete tests/assessment of how well iterative whitening looks like it's 
   working (see e.g., how far down you can push in the rms floor)
   (also note that many sharp features seem to fail)
 
 * integrate iterative whitening into a recovery pipeline framework. reassess 
-  completeness
-
-* clear out the TODOs and FIXMEs from the iterative whitening implementation.
+  completeness. i.e. write injrecov_vary_depth to test out ur fancy new EB
+  subtractor
 
 
 ##########
