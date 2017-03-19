@@ -571,11 +571,14 @@ def detrend_allquarters(lcd, σ_clip=None, legendredeg=10, inj=False):
     Wrapper for detrend_lightcurve that detrends all the quarters of Kepler
     data passed in `lcd`, a dictionary of dictionaries, keyed by quarter
     numbers.
+    "Detrend" means: select finite, sigma-clipped, not-near-gaps-in-timeseries
+    points, and fit each resulting time group with a variable-order finite
+    Legendre series.
     '''
 
     rd = {}
     for k in lcd.keys():
-        rd[k] = detrend_lightcurve(lcd[k], σ_clip=σ_clip,
+        rd[k] = detrend_lightcurve(lcd[k], k, σ_clip=σ_clip,
                 legendredeg=legendredeg, inj=inj)
         LOGINFO('KIC ID %s, detrended quarter %s.'
             % (str(lcd[k]['objectinfo']['keplerid']), str(k)))
@@ -583,8 +586,8 @@ def detrend_allquarters(lcd, σ_clip=None, legendredeg=10, inj=False):
     return rd
 
 
-def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
-        σ_clip=None, inj=False):
+def detrend_lightcurve(lcd, qnum, detrend='legendre', legendredeg=10,
+        polydeg=2, σ_clip=None, inj=False):
     '''
     You are given a dictionary, for a *single quarter* of kepler data, returned
     by `astrokep.read_kepler_fitslc`. It has keys like
@@ -635,7 +638,7 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
 
     assert detrend == 'legendre' or detrend == 'polynomial'
 
-    # GET finite, good-quality times, mags, and errs for both SAP and PDC.
+    # Get finite, good-quality times, mags, and errs for both SAP and PDC.
     # Take data with non-zero saq_quality flags. Fraquelli & Thompson (2012),
     # or perhaps newer papers, give the list of exclusions (following Armstrong
     # et al. 2014).
@@ -656,12 +659,53 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
     ssaptimes, ssapfluxs, ssaperrs = lcmath.sigclip_magseries(
             fsaptimes, fsapfluxs, fsaperrs,
             magsarefluxes=True, sigclip=σ_clip)
+    nqflag = ssaptimes.size
+
+    # Drop intra-quarter and interquarter gaps in the SAP lightcurves. These
+    # are the same limits set by Armstrong et al (2014): split each quarter's
+    # timegroups by whether points are within 0.5 day limits. Then drop points
+    # within 0.5 days of any boundary.
+    # Finally, since the interquarter burn-in time is more like 1 day, drop a
+    # further 0.5 days from the edges of each quarter.
+    # A nicer way to implement this would be with numpy masks, but this
+    # approach just constructs the full arrays for any given quarter.
+    mingap = 0.5 # days
+    ngroups, groups = lcmath.find_lc_timegroups(ssaptimes, mingap=mingap)
+    tmptimes, tmpfluxs, tmperrs = [], [], []
+    for group in groups:
+        tgtimes = ssaptimes[group]
+        tgfluxs = ssapfluxs[group]
+        tgerrs  = ssaperrs[group]
+        sel = (tgtimes > npmin(tgtimes)+mingap) & \
+                 (tgtimes < npmax(tgtimes)-mingap)
+        tmptimes.append(tgtimes[sel])
+        tmpfluxs.append(tgfluxs[sel])
+        tmperrs.append(tgerrs[sel])
+    ssaptimes,ssapfluxs,ssaperrs = nparr([]),nparr([]),nparr([])
+    # N.b.: works fine with empty arrays.
+    for ix, _ in enumerate(tmptimes):
+        ssaptimes = np.append(ssaptimes, tmptimes[ix])
+        ssapfluxs = np.append(ssapfluxs, tmpfluxs[ix])
+        ssaperrs =  np.append(ssaperrs, tmperrs[ix])
+        # Extra inter-quarter burn-in of 0.5 days.
+        ssapfluxs = ssapfluxs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                              (ssaptimes<(npmax(ssaptimes)-mingap))]
+        ssaperrs  = ssaperrs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                              (ssaptimes<(npmax(ssaptimes)-mingap))]
+        ssaptimes = ssaptimes[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                              (ssaptimes<(npmax(ssaptimes)-mingap))]
 
     nafter = ssaptimes.size
-    LOGINFO('for quality flag filter & sigclip (SAP), '+\
-            'ndet before = %s, ndet after = %s'
-            % (nbefore, nafter))
 
+    LOGINFO('CLIPPING (SAP), qnum: {:d}'.format(qnum)+\
+            '\nndet before qflag & sigclip: {:d} ({:.3g}),'.format(
+                nbefore, 1.)+\
+            '\nndet after qflag & finite & sigclip: {:d} ({:.3g})'.format(
+                nqflag, nqflag/float(nbefore))+\
+            '\nndet after dropping pts near gaps: {:d} ({:.3g})'.format(
+                nafter, nafter/float(nbefore)))
+
+    # Ensure PDC data is finite and sigclipped.
     pdcerrs = lcd['pdc']['pdcsap_flux_err'][lcd['sap_quality'] == 0]
     find = npisfinite(times) & npisfinite(pdcfluxs) & npisfinite(pdcerrs)
     fpdctimes, fpdcfluxs, fpdcerrs = times[find], pdcfluxs[find], pdcerrs[find]
@@ -669,10 +713,40 @@ def detrend_lightcurve(lcd, detrend='legendre', legendredeg=10, polydeg=2,
             fpdctimes, fpdcfluxs, fpdcerrs,
             magsarefluxes=True, sigclip=σ_clip)
 
-    nafter = fpdctimes.size
-    LOGINFO('for quality flag filter & sigclip (PDC), '+\
-            'ndet before = %s, ndet after = %s'
-            % (nbefore, nafter))
+    # Drop intra-quarter and interquarter gaps in the PDC lightcurves.
+    ngroups, groups = lcmath.find_lc_timegroups(spdctimes, mingap=mingap)
+    tmptimes, tmpfluxs, tmperrs = [], [], []
+    for group in groups:
+        tgtimes = spdctimes[group]
+        tgfluxs = spdcfluxs[group]
+        tgerrs  = spdcerrs[group]
+        sel = (tgtimes > npmin(tgtimes)+mingap) & \
+                 (tgtimes < npmax(tgtimes)-mingap)
+        tmptimes.append(tgtimes[sel])
+        tmpfluxs.append(tgfluxs[sel])
+        tmperrs.append(tgerrs[sel])
+    spdctimes,spdcfluxs,spdcerrs = nparr([]),nparr([]),nparr([])
+    for ix, _ in enumerate(tmptimes):
+        spdctimes = np.append(spdctimes, tmptimes[ix])
+        spdcfluxs = np.append(spdcfluxs, tmpfluxs[ix])
+        spdcerrs =  np.append(spdcerrs, tmperrs[ix])
+        # Extra inter-quarter burn-in of 0.5 days.
+        spdcfluxs = spdcfluxs[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                              (spdctimes<(npmax(spdctimes)-mingap))]
+        spdcerrs  = spdcerrs[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                              (spdctimes<(npmax(spdctimes)-mingap))]
+        spdctimes = spdctimes[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                              (spdctimes<(npmax(spdctimes)-mingap))]
+
+    nafter = spdctimes.size
+
+    LOGINFO('CLIPPING (PDC), qnum: {:d}'.format(qnum)+\
+            '\nndet before qflag & sigclip: {:d} ({:.3g}),'.format(
+                nbefore, 1.)+\
+            '\nndet after qflag & finite & sigclip: {:d} ({:.3g})'.format(
+                nqflag, nqflag/float(nbefore))+\
+            '\nndet after dropping pts near gaps: {:d} ({:.3g})'.format(
+                nafter, nafter/float(nbefore)))
 
     # DETREND: fit a legendre series or polynomial, save it to the output
     # dictionary.
@@ -1218,11 +1292,11 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
 def _get_legendre_deg(npts):
     from scipy.interpolate import interp1d
 
-    degs = np.array([2,5,10,15])
+    degs = np.array([2,10,20,30])
     pts = np.array([1e2,4.3e2,3e3,4e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
-                 fill_value=(2, 15))
+                 fill_value=(2, 30))
     legendredeg = int(np.floor(fn(npts)))
 
     return legendredeg
