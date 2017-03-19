@@ -982,7 +982,7 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
                     verticalalignment='bottom',
                     transform=ax.transAxes)
 
-            ax_dtr.set(ylabel='redtr flux')
+            ax_dtr.set(ylabel='dtr flux')
             ax_pg.set(ylabel='PDM power')
 
             # PERIODOGRAM
@@ -1007,6 +1007,7 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
             pflux = lcd[qnum]['white'][inum][ap]['legdict']['magseries']['mags']
             phase = lcd[qnum]['white'][inum][ap]['legdict']['magseries']['phase']
             pfitflux = lcd[qnum]['white'][inum][ap]['legdict']['fitinfo']['fitmags']
+            legdeg = lcd[qnum]['white'][inum][ap]['legdict']['fitinfo']['legendredeg']
 
             thiscolor = 'blue'
             ax_pf.plot(phase, pflux, c=thiscolor, linestyle='-',
@@ -1017,7 +1018,8 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
 
             selperiod = lcd[qnum]['white'][inum][ap]['fineper']['selperiod']
 
-            txt = 'q: %d' % (int(qnum))
+            txt = 'q: %d, inum: %d\nlegdeg: %d, npts: %d' % (
+                    int(qnum), int(inum), int(legdeg), len(pflux))
             ax_pf.text(0.98, 0.98, txt, horizontalalignment='right',
                     verticalalignment='top',
                     transform=ax_pf.transAxes)
@@ -1025,7 +1027,7 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
             pf_txt = 'P EB: %.7f day\nP sel: %.7f day' % (kebc_period, selperiod)
             ax_pf.text(0.02, 0.02, pf_txt, horizontalalignment='left',
                     verticalalignment='bottom', transform=ax_pf.transAxes)
-            ax_pf.set(ylabel='phased redtr flux')
+            ax_pf.set(ylabel='phased dtr flux')
 
             f.tight_layout()
             fname = '{:s}_qnum{:s}_inum{:s}_sap.png'.format(
