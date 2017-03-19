@@ -686,13 +686,13 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
         ssaptimes = np.append(ssaptimes, tmptimes[ix])
         ssapfluxs = np.append(ssapfluxs, tmpfluxs[ix])
         ssaperrs =  np.append(ssaperrs, tmperrs[ix])
-        # Extra inter-quarter burn-in of 0.5 days.
-        ssapfluxs = ssapfluxs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
-                              (ssaptimes<(npmax(ssaptimes)-mingap))]
-        ssaperrs  = ssaperrs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
-                              (ssaptimes<(npmax(ssaptimes)-mingap))]
-        ssaptimes = ssaptimes[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
-                              (ssaptimes<(npmax(ssaptimes)-mingap))]
+    # Extra inter-quarter burn-in of 0.5 days.
+    ssapfluxs = ssapfluxs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                          (ssaptimes<(npmax(ssaptimes)-mingap))]
+    ssaperrs  = ssaperrs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                          (ssaptimes<(npmax(ssaptimes)-mingap))]
+    ssaptimes = ssaptimes[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                          (ssaptimes<(npmax(ssaptimes)-mingap))]
 
     nafter = ssaptimes.size
 
@@ -729,13 +729,13 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
         spdctimes = np.append(spdctimes, tmptimes[ix])
         spdcfluxs = np.append(spdcfluxs, tmpfluxs[ix])
         spdcerrs =  np.append(spdcerrs, tmperrs[ix])
-        # Extra inter-quarter burn-in of 0.5 days.
-        spdcfluxs = spdcfluxs[(spdctimes>(npmin(spdctimes)+mingap)) & \
-                              (spdctimes<(npmax(spdctimes)-mingap))]
-        spdcerrs  = spdcerrs[(spdctimes>(npmin(spdctimes)+mingap)) & \
-                              (spdctimes<(npmax(spdctimes)-mingap))]
-        spdctimes = spdctimes[(spdctimes>(npmin(spdctimes)+mingap)) & \
-                              (spdctimes<(npmax(spdctimes)-mingap))]
+    # Extra inter-quarter burn-in of 0.5 days.
+    spdcfluxs = spdcfluxs[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                          (spdctimes<(npmax(spdctimes)-mingap))]
+    spdcerrs  = spdcerrs[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                          (spdctimes<(npmax(spdctimes)-mingap))]
+    spdctimes = spdctimes[(spdctimes>(npmin(spdctimes)+mingap)) & \
+                          (spdctimes<(npmax(spdctimes)-mingap))]
 
     nafter = spdctimes.size
 
@@ -1324,7 +1324,7 @@ def _get_legendre_deg_phase(npts):
 
 
 def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
-        dynamical_prefactor=5):
+        dynamical_prefactor=4):
 
     # Initialize periodogram or fineperiodogram dictionaries.
     kebc_period = nparr(float(dat['kebwg_info']['period']))
