@@ -1,0 +1,6 @@
+figure.dpi: 250
+axes.titlesize: 16 
+axes.labelsize: 16 
+xtick.labelsize: 14
+ytick.labelsize: 14
+text.usetex: False

@@ -267,9 +267,7 @@ def whitenedplot_5row(lcd, ap='sap'):
         xlim=[xmin,xmax],
         title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.7f} day.'.format(
         str(keplerid), ap, kebc_period) + ' (n=10 legendre series fit)')
-    fitphasedeg = lcd[list(lcd.keys())[0]]['white']['sap']['fitinfo']['legendredeg']
-    dtr_txt='Fit: n=%d legendre series to phase-folded by quarter.' \
-        % (fitphasedeg)
+    dtr_txt='Fit: n=%d legendre series to phase-folded by quarter.'
     ax_dtr.text(0.5,0.98, dtr_txt, horizontalalignment='center',
             verticalalignment='top', transform=ax_dtr.transAxes)
     ax_dtr.set(ylabel='normalized,\ndetrended flux')
@@ -386,6 +384,9 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
         ../results/whitened_diagnostic/
     '''
 
+    plt.style.use('lgb.mplstyle')
+
+    #TODO: fix ylabels to mean correct things
     assert ap == 'sap' or ap == 'pdc'
 
     keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
@@ -436,14 +437,16 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
                 fluxs = lc['fluxs_dtr_norm']
                 errs = lc['errs_dtr_norm']
             elif axix == 2:
-                lc = lcd[qnum]['white'][ap]['whiteseries']
+                min_inum = np.min(list(lcd[qnum]['white'].keys()))
+                lc = lcd[qnum]['white'][min_inum][ap]['legdict']['whiteseries']
                 times = lc['times']
-                fluxs = lc['fluxes']
+                fluxs = lc['wfluxs']
                 errs = lc['errs']
             elif axix == 3:
-                lc = lcd[qnum]['redtr'][ap]
+                max_inum = np.max(list(lcd[qnum]['white'].keys()))
+                lc = lcd[qnum]['white'][max_inum][ap]['legdict']['whiteseries']
                 times = lc['times']
-                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
+                fluxs = lc['wfluxsresid']
                 errs = lc['errs']
 
             thiscolor = colors[int(qnum)%len(colors)]
@@ -460,18 +463,19 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
                 fitfluxs = lc['fitfluxs_legendre']
                 ax.plot(times, fitfluxs, c='k', linestyle='-', lw=0.5)
             elif axix == 1:
-                pfitfluxs = lcd[qnum]['white'][ap]['fitinfo']['fitmags']
-                pfittimes = lcd[qnum]['white'][ap]['magseries']['times']
+                pass
+                #min_inum = np.min(list(lcd[qnum]['white'].keys()))
+                #lc = lcd[qnum]['white'][min_inum][ap]['legdict']['whiteseries']
+                #pfitfluxs = lc['wfluxslegfit']
+                #pfittimes = lc['times']
 
-                wtimeorder = np.argsort(pfittimes)
-                tfitfluxes = pfitfluxs[wtimeorder]
-                tfittimes = pfittimes[wtimeorder]
-
-                ax.plot(tfittimes, tfitfluxes, c='k', linestyle='-', lw=0.5,
-                        zorder=0)
+                #ax.plot(tfittimes, tfitfluxes, c='k', linestyle='-', lw=0.5,
+                #        zorder=0)
             elif axix == 2:
-                fitfluxs = lcd[qnum]['redtr'][ap]['fitfluxs_legendre']
-                fittimes = lcd[qnum]['redtr'][ap]['times']
+                min_inum = np.min(list(lcd[qnum]['white'].keys()))
+                lc = lcd[qnum]['white'][min_inum][ap]['legdict']['whiteseries']
+                fitfluxs = lc['wfluxslegfit']
+                fittimes = lc['times']
                 ax.plot(fittimes, fitfluxs, c='k', linestyle='-', lw=0.5,
                         zorder=10)
 
@@ -505,9 +509,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
         xlim=[xmin,xmax],
         title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.7f} day.'.format(
         str(keplerid), ap, kebc_period) + ' (n=20 legendre series fit)')
-    fitphasedeg = lcd[list(lcd.keys())[0]]['white']['sap']['fitinfo']['legendredeg']
-    dtr_txt='Fit: n=%d legendre series to phase-folded by quarter.' \
-        % (fitphasedeg)
+    dtr_txt='Fit: legendre series to phase-folded by quarter.'
     ax_dtr.text(0.5,0.98, dtr_txt, horizontalalignment='center',
             verticalalignment='top', transform=ax_dtr.transAxes)
     ax_dtr.set(ylabel='normalized,\ndetrended flux')
@@ -556,15 +558,17 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     for ix, ax in enumerate(axs_pg):
         qnum = qnums[ix]
 
-        ax.plot(lcd[qnum]['per'][ap]['periods'],
-                lcd[qnum]['per'][ap]['lspvals'],
+        pgd = lcd[qnum]['white'][0][ap]['per']
+
+        ax.plot(pgd['periods'],
+                pgd['lspvals'],
                 'k-')
 
         pwr_ylim = ax.get_ylim()
-        selperiod = lcd[qnum]['fineper'][ap]['selperiod']
+        selperiod = lcd[qnum]['white'][0][ap]['fineper']['selperiod']
         ax.vlines(selperiod, 0, 1.2, colors='r', linestyles=':', alpha=0.8, zorder=20)
 
-        selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
+        selforcedkebc = lcd[qnum]['white'][0][ap]['fineper']['selforcedkebc']
         txt = 'q: %d, %s' % (int(qnum), selforcedkebc)
         ax.text(0.96,0.9,txt,horizontalalignment='right',
                 verticalalignment='center',
@@ -581,9 +585,9 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     for ix, ax in enumerate(axs_pf):
 
         qnum = qnums[ix]
-        pflux = lcd[qnum]['white'][ap]['magseries']['mags']
-        phase = lcd[qnum]['white'][ap]['magseries']['phase']
-        pfitflux = lcd[qnum]['white'][ap]['fitinfo']['fitmags']
+        pflux = lcd[qnum]['white'][0][ap]['legdict']['magseries']['mags']
+        phase = lcd[qnum]['white'][0][ap]['legdict']['magseries']['phase']
+        pfitflux = lcd[qnum]['white'][0][ap]['legdict']['fitinfo']['fitmags']
 
         thiscolor = colors[int(qnum)%len(colors)]
 
@@ -593,8 +597,8 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
         ax.plot(phase, pfitflux, c='k', linestyle='-',
                 lw=0.5, zorder=2)
 
-        initperiod = lcd[qnum]['per'][ap]['selperiod']
-        selperiod = lcd[qnum]['fineper'][ap]['selperiod']
+        initperiod = lcd[qnum]['white'][0][ap]['per']['selperiod']
+        selperiod = lcd[qnum]['white'][0][ap]['fineper']['selperiod']
 
         txt = 'q: %d' % (int(qnum))
         ax.text(0.98, 0.98, txt, horizontalalignment='right',
@@ -687,6 +691,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         ../results/dipsearchplot/
     '''
 
+    plt.style.use('lgb.mplstyle')
     assert ap == 'sap' or ap == 'pdc'
 
     keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
@@ -899,7 +904,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
             linestyles='-', alpha=0.8, zorder=10)
 
-    selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
+    #lcd[qnum]['white'][inum][ap]['per']['periods']
+    #selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
     txt = 'P_inj: %.4f d\nP_rec: %.4f d\nt_0,inj: %.4f\nt_0,rec: %.4f' % \
           (injperiod, fbestperiod, inj_t0, best_t0)
     ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
@@ -925,7 +931,9 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
 
 
-def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
+def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False, δ=None):
+
+    plt.style.use('lgb.mplstyle')
 
     #lcd[qnum]['white'][inum][ap]['w*']`, for * in (fluxs,errs,times,phases)
 
@@ -934,13 +942,25 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
     kebc_period = nparr(float(lcd[list(lcd.keys())[0]]['kebwg_info']['period']))
 
     qnums = list(lcd.keys())
+    selind = np.random.randint(low=0, high=len(qnums))
+    selqnum = qnums[selind]
 
     for qnum in qnums:
+        thisqflag, thisiflag = 0, 0
+        if thisqflag > 0 :
+            continue
         inums = list(lcd[qnum]['white'].keys())
         for inum in inums:
-            if not (inum == min(inums) or inum == max(inums) or \
-                    inum == int((max(inums)-min(inums))/2.)):
+            if thisiflag > 0:
                 continue
+            if 'eb_sbtr' in stage:
+                if not (inum == min(inums) or inum == max(inums) or \
+                inum == int((max(inums)-min(inums))/2.)):
+                    continue
+            else:
+                if (not inum == int((max(inums)-min(inums))/2.)) and \
+                (not qnum == selqnum):
+                    continue
 
             ap = 'sap'
 
@@ -1042,8 +1062,21 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
             ax_pf.set(ylabel='phased dtr flux')
 
             f.tight_layout()
-            fname = '{:s}_qnum{:s}_inum{:s}_sap.png'.format(
-                    str(keplerid), str(int(qnum)), str(int(inum)))
-            savedir = '../results/eb_subtraction_diagnostics/iterwhiten/'
 
-            f.savefig(savedir+fname, dpi=300, bbox_inches='tight')
+            savedir = '../results/eb_subtraction_diagnostics/'
+            if 'inj' in stage:
+                savedir += 'inj/'
+            elif 'inj' not in stage:
+                savedir += 'iterwhiten/'
+
+            fname = '{:s}_qnum{:s}_inum{:s}_{:s}sap.png'.format(
+                    str(keplerid), str(int(qnum)), str(int(inum)),
+                    str(δ))
+
+            f.savefig(savedir+fname, dpi=200, bbox_inches='tight')
+
+            LOGINFO('Made & saved 3row whitened plot to {:s}'.format(
+                savedir+fname))
+            thisiflag += 1
+
+        thisqflag += 1

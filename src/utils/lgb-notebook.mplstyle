@@ -1,7 +1,0 @@
-figure.dpi: 300
-axes.titlesize: 22
-axes.labelsize: 22
-xtick.labelsize: 18
-ytick.labelsize: 18
-font.family: sarif
-text.usetex: True

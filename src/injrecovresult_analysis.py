@@ -144,7 +144,7 @@ def write_injrecov_result(lcd, allq, stage=None):
 
     csvdir = '../results/injrecovresult/'
 
-    for ap in ['sap','pdc']:
+    for ap in ['sap']:
         csv1name = 'irresult_'+ap+'_top1.csv'
         csv2name = 'irresult_'+ap+'_allN.csv'
 

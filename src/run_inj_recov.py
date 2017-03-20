@@ -304,7 +304,7 @@ def test_EB_subraction(N,
         stage=None,
         inj=None,
         nwhiten_max=8,
-        nwhiten_min=2):
+        nwhiten_min=1):
     '''
     Calls routines for testing and improving subtraction of the eclipsing
     binary signal.
@@ -368,7 +368,121 @@ def test_EB_subraction(N,
 
             # Make plots.
             if 'iterwhiten' in stage or 'eb_sbtr' in stage:
-                irp.plot_iterwhiten_3row(lcd, allq)
+                irp.plot_iterwhiten_3row(lcd, allq, stage=stage)
+
+
+def injrecov_test1(N,
+        whitened=True, ds=True,
+        stage=None,
+        inj=None,
+        nwhiten_max=8,
+        nwhiten_min=1):
+
+    '''
+    Inject transits and recover them on N entries from the Kepler Eclipsing
+    Binary Catalog. There are two important objects:
+    `lcd` organizes everything by quarter. `allq` stitches over all quarters.
+
+    Currently implemented:
+
+        inject a realistic transit signal at δ=(2,1,1/2,1/4,1/8,1/16,1/32)%
+            depth, anywhere from P_CBP=(4-80)x P_EB.
+        detrend (legendre and [30,30]σ sigclip)->
+        normalize (median by quarter)->
+        iterative whitening via PDM period-selection and legendre fitting->
+        find dips (BLS, over all the quarters)
+
+    Args:
+        stage (str): 'dipsearch'.
+        nwhiten_max (int): maximum number of iterative whitenings to do.
+        nwhiten_min (int): minimum number of iterative whitenings to do.
+
+    See other docstrings for more descriptions.
+    '''
+
+    np.random.seed(N)
+    seeds = np.random.randint(0, 99999999, size=N)
+
+    stage = stage+'_inj' if inj else stage
+    predir = 'inj/' if 'inj' in stage else 'no_inj/'
+    origstage = stage
+
+    for s in seeds:
+        np.random.seed(s)
+
+        lcd, lcflag = ir.retrieve_random_lc()
+        kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+        if lcflag:
+            continue
+
+        # Inject transits, whiten lightcurves, find dips.
+        δarr = np.array([1.,1/2.,1/4.,1/8.,1/16.,1/32.])/100.
+        for δ in δarr:
+            # Control flow for injection & iterative whitening.
+            stage = origstage + '_' + str(δ)
+            pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
+                    f.endswith('.p') and f.startswith(kicid) and stage in f]
+            if len(pklmatch) > 0:
+                print('Found {:s}, {:f}, continue'.format(kicid, δ))
+                continue
+            else:
+                lcd, allq = ir.inject_transit_known_depth(lcd, δ)
+                lcd = ir.detrend_allquarters(lcd, σ_clip=30., inj=inj)
+                lcd = ir.normalize_allquarters(lcd, dt='dtr')
+                lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
+                        nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
+                        rms_floor=0.0005)
+                if 'eb_sbtr' in stage:
+                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
+                allq = ir.find_dips(lcd, allq, method='bls')
+                if 'dipsearch' in stage:
+                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
+
+        # Write results and make plots.
+        for δ in δarr:
+            stage = origstage + '_' + str(δ)
+            lcd = ir.load_lightcurve_data(kicid, stage=stage)
+            if 'dipsearch' in stage:
+                allq = ir.load_allq_data(kicid, stage=stage)
+
+            # Write results tables.
+            if 'dipsearch' in stage:
+                if inj:
+                    irra.write_injrecov_result(lcd, allq, stage=stage)
+
+            # Make plots.
+            if ds:
+                doneplots = os.listdir('../results/dipsearchplot/'+predir)
+                plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                        stage in f]
+                if len(plotmatches)>0:
+                    print('\nFound dipsearchplot, continuing.\n')
+                    continue
+
+                if 'dipsearch' in stage:
+                    irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
+
+            if whitened:
+                doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
+                plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                        stage in f]
+                if len(plotmatches)>0:
+                    print('\nFound whitened_diagnostic, continuing.\n')
+                    continue
+
+                if 'pw' in stage:
+                    irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
+                elif 'redtr' in stage:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                elif 'dipsearch' in stage:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
+                            δ=δ)
+
+        # Summarize results tables in a text file!
+        if inj:
+            irra.summarize_injrecov_result()
+
 
 
 if __name__ == '__main__':
@@ -388,9 +502,10 @@ if __name__ == '__main__':
     #injrecov_vary_depth(1000, stage='dipsearch', inj=True)
 
     ## Test iterative whitening (injects transits; no recovery)
-    test_EB_subraction(100, stage='eb_sbtr', inj=True, ds=False, whitened=True)
+    #test_EB_subraction(100, stage='eb_sbtr', inj=True, ds=False, whitened=True)
 
-    #TODO:
-    #write injrecov_vary_depth to test out ur fancy new EB subtractor
+    ## Run a "bonafide test" of the injection/recovery routines, but now with
+    ## iterative whitening.
+    injrecov_test1(100, stage='dipsearch', inj=True, ds=True, whitened=True)
 
     pass
