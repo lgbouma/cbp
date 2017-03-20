@@ -938,8 +938,8 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
     for qnum in qnums:
         inums = list(lcd[qnum]['white'].keys())
         for inum in inums:
-            if inum != min(inums) or inum != max(inums) or \
-                    inum != int((max(inums)-min(inums))/2.):
+            if not (inum == min(inums) or inum == max(inums) or \
+                    inum == int((max(inums)-min(inums))/2.)):
                 continue
 
             ap = 'sap'
