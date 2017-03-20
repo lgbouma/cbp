@@ -1310,10 +1310,13 @@ def _get_legendre_deg_time(npts):
     return legendredeg
 
 
-def _get_legendre_deg_phase(npts):
+def _get_legendre_deg_phase(npts, norbs):
     from scipy.interpolate import interp1d
 
-    degs = np.array([4,7,15,20,30])
+    if norbs > 10:
+        degs = np.array([5,15,30,40,50])
+    else:
+        degs = np.array([4,7,15,20,30])
     pts = np.array([1e2,5e2,1e3,2e3,3e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
@@ -1530,7 +1533,9 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
             if legendredeg=='best':
                 npts = len(fluxs)
-                legdeg = _get_legendre_deg_phase(npts)
+                duty_cycle = 0.8 # as an estimate, 80% of the data are out
+                norbs = int(duty_cycle*(max(times)-min(times))/period)
+                legdeg = _get_legendre_deg_phase(npts, norbs)
             try:
                 legdict = lcf.legendre_fit_magseries(
                     times,fluxs,errs,period,

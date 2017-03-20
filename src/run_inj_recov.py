@@ -303,7 +303,7 @@ def test_EB_subraction(N,
         ors=False, whitened=True, ds=True,
         stage=None,
         inj=None,
-        nwhiten_max=5,
+        nwhiten_max=8,
         nwhiten_min=2):
     '''
     Calls routines for testing and improving subtraction of the eclipsing

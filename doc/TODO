@@ -2,6 +2,11 @@
 #TODO#
 ######
 
+* in phase, it does not make sense to limit by npts. It should be the the
+  number of phases being folded over! e.g., even w/ 1k points, at a 0.5 day fold
+  you have 40 phases. The number of phases should be the determining factor, not
+  the number of points (will help with Q0 and Q17)
+
 * make ur interp1d calls smarter (if possible)
 
 * revise legendredeg(npts) function... maybe allow sharper even w/ fewer pts, as

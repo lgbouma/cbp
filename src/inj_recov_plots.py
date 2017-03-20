@@ -938,6 +938,10 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
     for qnum in qnums:
         inums = list(lcd[qnum]['white'].keys())
         for inum in inums:
+            if inum != min(inums) or inum != max(inums) or \
+                    inum != int((max(inums)-min(inums))/2.):
+                continue
+
             ap = 'sap'
 
             # Set up matplotlib figure and axes.
@@ -1023,9 +1027,11 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False):
                     lw=0.5, zorder=2)
 
             selperiod = lcd[qnum]['white'][inum][ap]['fineper']['selperiod']
+            duty_cycle = 0.8 # as an estimate, 80% of the data are out
+            norbs = int(duty_cycle*(max(times)-min(times))/selperiod)
 
-            txt = 'q: %d, inum: %d\nlegdeg: %d, npts: %d' % (
-                    int(qnum), int(inum), int(legdeg), len(pflux))
+            txt = 'q: %d, inum: %d\nlegdeg: %d, npts: %d, norbs: %d' % (
+                    int(qnum), int(inum), int(legdeg), len(pflux), norbs)
             ax_pf.text(0.98, 0.98, txt, horizontalalignment='right',
                     verticalalignment='top',
                     transform=ax_pf.transAxes)
