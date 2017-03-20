@@ -134,7 +134,7 @@ def inject_transit_known_depth(lcd, δ):
     params.w = w
 
     period_eb = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
-    lowpref, highpref = 4, 40
+    lowpref, highpref = 4, 80
     ln_period_cbp = np.random.uniform(
             low=np.log(lowpref*period_eb),
             high=np.log(highpref*period_eb))
@@ -516,8 +516,11 @@ def get_kebwg_info(kicid):
 
 def _legendre_dtr(times, fluxs, errs, legendredeg=10):
 
-    p = Legendre.fit(times, fluxs, legendredeg)
-    fitfluxs = p(times)
+    try:
+        p = Legendre.fit(times, fluxs, legendredeg)
+        fitfluxs = p(times)
+    except:
+        fitfluxs = np.zeros_like(fluxs)
 
     fitchisq = npsum(
         ((fitfluxs - fluxs)*(fitfluxs - fluxs)) / (errs*errs)
@@ -847,7 +850,7 @@ def redetrend_lightcurve(lcd,
     assert detrend == 'legendre'
 
     lcd['redtr'] = {}
-    for ap in ['sap', 'pdc']:
+    for ap in ['sap']:
 
         times = lcd['white'][ap]['whiteseries']['times']
         nbefore = times.size
@@ -894,7 +897,7 @@ def normalize_lightcurve(lcd, qnum, dt='dtr'):
         redtrending. (`dt` for "detrending type").
     '''
 
-    for ap in ['sap','pdc']:
+    for ap in ['sap']:
 
         dtrtype = [k for k in list(lcd[dt][ap].keys()) if
             k.startswith('fitfluxs_')]
@@ -982,7 +985,7 @@ def run_fineperiodogram(dat, qnum, pertype='pdm', iter_n=0):
            }
     mk = list(keyd[iter_n].keys()).pop()
 
-    for ap in ['sap', 'pdc']:
+    for ap in ['sap']:
 
         times = dat[mk][ap][keyd[iter_n][mk][0]]
         fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
@@ -1079,7 +1082,7 @@ def run_periodogram(dat, qnum, pertype='pdm', iter_n=0):
            }
     mk = list(keyd[iter_n].keys()).pop()
 
-    for ap in ['sap', 'pdc']:
+    for ap in ['sap']:
 
         times = dat[mk][ap][keyd[iter_n][mk][0]]
         fluxs = dat[mk][ap][keyd[iter_n][mk][1]]
@@ -1264,7 +1267,7 @@ def select_eb_period(lcd, rtol=1e-1, fine=False):
     kebc_period = nparr(float(lcd[list(lcd.keys())[0]]['kebwg_info']['period']))
 
     for k in lcd.keys():
-        for ap in ['sap','pdc']:
+        for ap in ['sap']:
 
             my_period = nparr(lcd[k]['per'][ap]['bestperiod'])
             my_periods = nparr(lcd[k]['per'][ap]['nbestperiods'])
@@ -1327,7 +1330,7 @@ def _get_legendre_deg_phase(npts, norbs):
 
 
 def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
-        dynamical_prefactor=4):
+        dynamical_prefactor=3.5):
 
     # Initialize periodogram or fineperiodogram dictionaries.
     kebc_period = nparr(float(dat['kebwg_info']['period']))
@@ -1420,7 +1423,7 @@ def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], nwhiten_max=10,
 
 def iterative_whiten_lightcurve(dat, qnum, method='legendre',
         legendredeg='best', rescaletomedian=True, σ_clip=None, nwhiten_max=10,
-        nwhiten_min=2, rms_floor=0.001):
+        nwhiten_min=1, rms_floor=0.001):
     '''
     Given the normalized, detrended fluxes, and the known period computed from
     the periodogram routines, iteratively fit for the eclipsing binary signal
@@ -1473,12 +1476,14 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
         dat['white'][inum]['sap'].keys():
             ['magseries', 'whiteseries', 'fitinfo', 'data_rms', 'resid_rms',
-            'per', # the coarse periodogram for this iteation
+            'white_rms', 'per', # the coarse periodogram for this iteation
             'fineper', # the fine periodogram for this iteation
             'fittype', 'fitplotfile', 'fitchisq', 'fitredchisq'].
 
         data_rms is the RMS of the data used in this iterationnumber (inum).
-        resid_rms is the RMS of the residual once the fit is subtracted.
+        white_rms is the RMS of the residual once the phase-fit is subtracted.
+        resid_rms is the RMS of the residual once the phase & time-fits are
+            subtracted (in time, it's a "high pass filter").
 
         The subkeys that lead to other dictionaries:
         ...['whiteseries'].keys() # whitened, time-sorted, sigma clipped.
@@ -1502,11 +1507,11 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
     sap_rms = 42 # placeholder RMS
     nwhiten = 0 # number of whitenings that have been done
 
-    while (sap_rms>rms_floor or nwhiten<=nwhiten_min) and nwhiten<=nwhiten_max:
+    while (sap_rms>rms_floor or nwhiten<nwhiten_min) and nwhiten<=nwhiten_max:
 
         dat['white'][nwhiten] = {}
 
-        for ap in ['sap', 'pdc']:
+        for ap in ['sap']:
             # Be sure to whiten at the EB period first.
             whiten_at_eb_period = True if nwhiten == 0 else False
 
@@ -1577,9 +1582,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
             meanwflux = np.mean(wfluxs)
             w_rms = np.sqrt(np.sum((wfluxs-meanwflux)**2)/\
                         (float(len(wfluxs))-1))
-            legdict['resid_rms'] = w_rms
-            if ap == 'sap':
-                sap_rms = w_rms
+            legdict['white_rms'] = w_rms
 
             # Fit a low-order polynomial (as always, in the form of a finite
             # Legendre series) to each timegroup.
@@ -1610,6 +1613,12 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
                    str(nwhiten)))
 
             wfluxshighpass = wfluxs - wfluxslegfit
+            meanwfluxhp = np.mean(wfluxshighpass)
+            whp_rms = np.sqrt(np.sum((wfluxshighpass-meanwfluxhp)**2)/\
+                        (float(len(wfluxshighpass))-1))
+            if ap == 'sap':
+                sap_rms = whp_rms
+            legdict['resid_rms'] = w_rms
 
             # Save whitened times, fluxes, and errs to 'whiteseries' subdict.
             whitedict = {'times':wtimes,
@@ -1701,7 +1710,7 @@ def whiten_lightcurve(dat, qnum, method='legendre', legendredeg=80,
 
     mk = list(keyd[iter_n].keys()).pop()
 
-    for ap in ['sap', 'pdc']:
+    for ap in ['sap']:
 
         period = dat['fineper'][ap]['selperiod']
         times = dat[mk][ap][keyd[iter_n][mk][0]]
@@ -1779,17 +1788,18 @@ def find_dips(lcd, allq, method='bls'):
     #Concatenate all the quarters when running dip-finder.
     qnums = np.sort(list(lcd.keys()))
     tfe = {}
-    for ap in ['sap','pdc']:
+    for ap in ['sap']:
         for ix, qnum in enumerate(qnums):
-            lc = lcd[qnum]['redtr'][ap]
+            max_inum = np.max(list(lcd[qnum]['white'].keys()))
+            lc = lcd[qnum]['white'][max_inum][ap]['legdict']['whiteseries']
             if ix == 0:
                 times = lc['times']
-                fluxs = lc['fluxs'] - lc['fitfluxs_legendre']
+                fluxs = lc['wfluxsresid']
                 errs = lc['errs']
                 quarter = np.ones_like(times)*qnum
             else:
                 times = np.append(times, lc['times'])
-                fluxs = np.append(fluxs, lc['fluxs'] - lc['fitfluxs_legendre'])
+                fluxs = np.append(fluxs, lc['wfluxsresid'])
                 errs = np.append(errs, lc['errs'])
                 quarter = np.append(quarter, np.ones_like(lc['times'])*qnum)
         tfe[ap] = {'times':times,
@@ -1803,14 +1813,14 @@ def find_dips(lcd, allq, method='bls'):
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
-    smallfactor, bigfactor = 4., 40.
+    smallfactor, bigfactor = 4., 80.
     smallest_p = smallfactor * kebc_period
     biggest_p = bigfactor * kebc_period
     minTdur_φ = 0.005 # minimum transit length in phase
-    maxTdur_φ = 0.2 # maximum transit length in phase
+    maxTdur_φ = 0.25 # maximum transit length in phase
 
     df_dict = {}
-    for ap in ['sap','pdc']:
+    for ap in ['sap']:
 
         df_dict[ap] = {}
         df_dict[ap]['finebls'] = {}
