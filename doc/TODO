@@ -2,39 +2,37 @@
 #TODO#
 ######
 
-* in phase, it does not make sense to limit by npts. It should be the the
-  number of phases being folded over! e.g., even w/ 1k points, at a 0.5 day fold
-  you have 40 phases. The number of phases should be the determining factor, not
-  the number of points (will help with Q0 and Q17)
+
+* reassess completeness. 
 
 * make ur interp1d calls smarter (if possible)
 
-* revise legendredeg(npts) function... maybe allow sharper even w/ fewer pts, as
-  long as within "safe" period bounds (<5x P_EB).
-
-* complete tests/assessment of how well iterative whitening looks like it's 
-  working (see e.g., how far down you can push in the rms floor)
-  (also note that many sharp features seem to fail)
-
-* integrate iterative whitening into a recovery pipeline framework. reassess 
-  completeness. i.e. write injrecov_vary_depth to test out ur fancy new EB
-  subtractor
+* read WASP 33 Van Esse+ COROT paper. δ scuti w/ a transiting planet.
+  > spatially-resolved light from transiting planet. Can you get e.g.,
+  obliquity of star? (if you understand the pulsation dirns, you get a
+  preferred dirn). Can u understand the pulsations better by getting spatially-
+  resolved light?
 
 
 ##########
 Possible improvements:
 
+* which stars have known planet candidates already in our catalog (e.g., KIC
+  11013201 has real dips, and is also KOI 972. Possible delta Scuti 
+  oscillations, with the transiting planet. ?!?!. What does that mean about
+  evolutionary state?)
+
+* avoid fitting out subharmonics of planet transits!!
+Example cases: 8122124. See 8122124_qnum9_inum2_sap.png
+Possibilities: 
+- model comparison?
+- smart condition on really only searching for harmonics & subharmonics 
+  of EB signal (i.e. look over some frequency comb)
+- nb. this really should only be an issue w/ the shortest-period injected 
+  planets
+
 * review doc/discussion from 170308. consider integrating QATS (if we want 
   long-period, ED rather than just EC and EA sensitivity)
-
-* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
--> can do this in post-processing, or (likely better) add direct to
-astrobase. See FIXME below.
-
-
-* Similarly, fine-tune the sigma clipping based on the actual RMS across a
-    quarter. **If (once detrended+whitened) it's very small, we must allow
-    bigger dips (w/out clipping them).**
 
 * Understand how DFM+ peerless implemented model comparison once you have nice
     transits. Implement it.
@@ -55,10 +53,11 @@ Longer-term ideas:
 
 astrokep.find_lightcurve_gaps
 
- ALSO:
-lcmath.find_lc_timegroups -- basically an implementation of astrokep's
- find_lightcurve_gaps, already done.
+* add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
+-> can do this in post-processing, or (likely better) add direct to
+astrobase. See FIXME below.
 
+ ALSO:
 astrokep.stitch_lightcurve_gaps
 
 astrokep.keplerflux_to_keplermag

@@ -59,3 +59,28 @@ b/c division preservers relative fluxes..
   (to time-groups), then subsequent subtraction for >~10day trend removal. 
 
 * clear out the TODOs and FIXMEs from the iterative whitening implementation.
+
+* in phase, it does not make sense to limit by npts. It should be the the
+  number of phases being folded over! e.g., even w/ 1k points, at a 0.5 day fold
+  you have 40 phases. The number of phases should be the determining factor, not
+  the number of points (will help with Q0 and Q17)
+
+* revise legendredeg(npts) function... maybe allow sharper even w/ fewer pts, as
+  long as within "safe" period bounds (<5x P_EB).
+
+* Similarly, fine-tune the sigma clipping based on the actual RMS across a
+    quarter. **If (once detrended+whitened) it's very small, we must allow
+    bigger dips (w/out clipping them).**
+
+* lcmath.find_lc_timegroups -- basically an implementation of astrokep's
+ find_lightcurve_gaps, already done.
+
+- hard cut on escaping once RMS<0.05% threshold.
+
+* complete tests/assessment of how well iterative whitening looks like it's 
+  working (see e.g., how far down you can push in the rms floor)
+  (also note that many sharp features seem to fail)
+
+##########
+Mon 20 Mar 2017 02:55:24 PM EDT
+* add find_dip with iterative whitening 
