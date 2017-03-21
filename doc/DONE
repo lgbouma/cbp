@@ -81,6 +81,9 @@ b/c division preservers relative fluxes..
   working (see e.g., how far down you can push in the rms floor)
   (also note that many sharp features seem to fail)
 
-##########
-Mon 20 Mar 2017 02:55:24 PM EDT
 * add find_dip with iterative whitening 
+
+* in recovery, check correct periods, off by 1 orbit in time. (this is b/c 
+  min time gets cut. Implement a workaround at some stage, e.g., after
+  BLS!)
+
