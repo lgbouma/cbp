@@ -375,6 +375,7 @@ def injrecov_test1(N,
         whitened=True, ds=True,
         stage=None,
         inj=None,
+        iwplot=False,
         nwhiten_max=8,
         nwhiten_min=1):
 
@@ -445,7 +446,10 @@ def injrecov_test1(N,
             if 'dipsearch' in stage:
                 allq = ir.load_allq_data(kicid, stage=stage)
 
-            # Write results tables.
+            # Write results tables. (Control flow logic: this is automatically
+            # done for any run. So you'd need to delete the table before ANY
+            # run, and it'll reconstruct the table based on everything in the
+            # saved pickles.)
             if 'dipsearch' in stage:
                 if inj:
                     irra.write_injrecov_result(lcd, allq, stage=stage)
@@ -458,7 +462,6 @@ def injrecov_test1(N,
                 if len(plotmatches)>0:
                     print('\nFound dipsearchplot, continuing.\n')
                     continue
-
                 if 'dipsearch' in stage:
                     irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
 
@@ -469,13 +472,14 @@ def injrecov_test1(N,
                 if len(plotmatches)>0:
                     print('\nFound whitened_diagnostic, continuing.\n')
                     continue
-
                 if 'pw' in stage:
                     irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
                 elif 'redtr' in stage:
                     irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
                 elif 'dipsearch' in stage:
                     irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+
+            if iwplot:
                     irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                             δ=δ)
 
