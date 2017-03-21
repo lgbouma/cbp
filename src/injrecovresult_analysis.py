@@ -18,7 +18,7 @@ import pandas as pd, numpy as np, os
 import time, logging
 from datetime import datetime
 import matplotlib.pyplot as plt
-plt.style.use('utils/lgb-notebook.mplstyle')
+plt.style.use('utils/lgb.mplstyle')
 
 #############
 ## LOGGING ##
@@ -174,10 +174,13 @@ def write_injrecov_result(lcd, allq, stage=None):
             t0_rec = min_time + φ_0*ffoldperiod
             P_rec = ffoldperiod
 
-            # If the recovered epoch and period are within +/- 0.1 days of the
-            # injected epoch and period, we "recovered" the injected signal.
-            tol = 0.1
-            if (abs(P_inj - P_rec) < tol) and (abs(t0_inj - t0_rec) < tol):
+            # If the recovered period is within +/- 0.1 days of the injected
+            # period, and (recovered epoch modulo injected period) is within 
+            # +/-5% of of (injected epoch modulo recovered period).
+            atol = 0.1
+            rtol = 0.05
+            reldiff = abs((t0_rec % P_rec) - (t0_inj % P_inj)) / (t0_inj % P_inj)
+            if (abs(P_inj - P_rec) < atol) and (reldiff < rtol):
                 foundinj = True
             else:
                 foundinj = False
