@@ -87,3 +87,5 @@ b/c division preservers relative fluxes..
   min time gets cut. Implement a workaround at some stage, e.g., after
   BLS!)
 
+* reassess completeness (coarse level).
+  Result: it's complete enough for ~4Re, ~4-80P_EB period CBPs. (like 50%)

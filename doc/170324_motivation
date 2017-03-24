@@ -1,0 +1,67 @@
+##############################
+##############################
+
+On motiviating the reason to continue:
+
+You are sensitive to things at least as small as has been found around the
+Kepler stars (uh, except Kepler47b, Rp=3Re. Everything else is bigger, in the
+~4Re to 8Re range, except Kostov's 11Re planet).
+
+>>>
+Out of the 9 presently known circumbinary planet systems, all but one (Kepler
+1647) are known to have an innermost planet within a factor of 2 of the inner
+binary's critical semimajor axis.
+Yet, most circumbinary planet searches (Doyle, Welsh, Orosz, Armstrong, Kostov)
+have focused on a subset of Kepler-detected eclipsing binaries with P_EB>~1
+day. [Kostov's search may, ish, have been an exception].
+This has been justified on 1) theoretical and 2) practical grounds: 
+
+1) P_EB<~1 day eclipsing binaries are thought to have formed through Kozai
+Lidov cycles excited by a tertiary stellar companion, and subsequent tidal
+friction (e.g., Tokovinin+ 2008, Eggleton 2012). The migratory environment
+required to keep CBPs during such cycles may preclude, or at least complicate,
+the existence of CBPs about short-period binaries (Lai & Munoz, Martin et al,
+and the 3rd one, 2015). So why look, if one does not expect to find?
+
+2) P_EB<~1 day eclipsing binaries have different light curve signatures from
+longer period EBs. Subtracting out the EB signal and searching for CBP
+signatures requires different methods between these two different regimes.
+These differences, coupled with the above theoretical prior, led to an
+observational preference for longer period binaries, e.g., discussed by Welsh
+et al (2012) in the SI.
+
+There have been suggestions [Welsh's conf proceedings], and a 2σ result
+[Armstrong's paper] that "circumbinary planets are less common in coplanar
+orbits around binaries" with P_EB ~5-10days "than around binaries of longer
+period" ((NB: they write P_EB <~5-10 days. I think they MEAN P_EB~5-10 days,
+but it's not so clear. How sensitive are they to the shorter period EBs?  If
+just morph < 0.7, the debiased sample should be sensitive down to like ~1
+day)). The significance of this result increases when allowing for instrinsic
+distributions with greater mutual inclinations.
+
+It would be surprising if this trend were to reverse. Yet, to date there has
+been no test of whether P_EB<~5day ((or 1 day, if that's the Armstrong
+result...)) binaries can be empirically ruled to host circumbinary planets with
+lower rates of occurrence than better-separated binaries. This work performs
+the empirical test. We do two things:
+
+```
+1. Search for CBPs around P<1 day binaries. (More specifically, morph>0.6
+binaries from the KEBC). We find candidates X and Y.
+
+2. Determine the certainty with which we can claim that the occurrence rate of
+CBPs about P<1 day binaries decreases relative to longer period binaries. (A
+new result, in that it probes down to shorter-period binaries than have yet
+been investigated).
+```
+
+We find ((either:))
+A) we can strongly say they decrease/increase. This is interesting either way.
+B) we cannot strongly rule either way: i.e. the data are not constraining
+enough (perhaps the greater inclination dispersion of the inner binary matters
+more than was thought, or ). While frustrating, this would be interesting in
+that it would clarify that we don't actually have strong empirical evidence for
+the decrease in CBP occurrence rate in this regime. TESS would then provide it
+for the first time.
+
+

@@ -2,15 +2,87 @@
 #TODO#
 ######
 
-* reassess completeness. 
+* bugfix (in astrobase):
 
-* make ur interp1d calls smarter (if possible)
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
+  File "run_inj_recov.py", line 513, in <module>
+    injrecov_test1(100, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 435, in injrecov_test1
+    rms_floor=0.0005)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1419, in iterative_whiten_allquarters
+    rms_floor=rms_floor)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1523, in iterative_whiten_lightcurve
+    dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=True)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1387, in _iter_run_periodogram
+    nworkers=None)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astrobase-0.1.0-py3.5.egg/astrobase/periodbase/spdm.py", line 280, in stellingwerf_pdm
+    bestperiodind = npargmin(finlsp)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/core/fromnumeric.py", line 1034, in argmin
+    return argmin(axis, out)
+ValueError: attempt to get argmin of an empty sequence
+
+[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_1.txt
+
+* to identify highest significance dips in search:
+  * compute CDPP 6hr.
+  * get BLS depth
+  * divide the two. Whatever candidates are found, sort by that.
+
+* run on actual KEBC stars, now that completeness is high enough.
+  ->  _look through_ the ~1.5k search results, sorted per the above.
+
+* refactor (e.g., on a new git branch) to take out pieces of code that are not
+  and will not be used any more.
+
+* how big & how fine of an injection grid do we need/want to answer the
+  *statistical* questions (on occurrence rates)
+
+* why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
+  pipeline?). How many of these instances are there?
 
 * read WASP 33 Van Esse+ COROT paper. δ scuti w/ a transiting planet.
   > spatially-resolved light from transiting planet. Can you get e.g.,
   obliquity of star? (if you understand the pulsation dirns, you get a
   preferred dirn). Can u understand the pulsations better by getting spatially-
   resolved light?
+
+* bugfix:
+
+Traceback (most recent call last):
+  File "run_inj_recov.py", line 513, in <module>
+    injrecov_test1(101, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 480, in injrecov_test1
+    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov_plots.py", line 631, in whitenedplot_6row
+    f.savefig(savedir+plotname, dpi=300)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1565, in savefig
+    self.canvas.print_figure(*args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_qt5agg.py", line 196, in print_figure
+    FigureCanvasAgg.print_figure(self, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backend_bases.py", line 2232, in print_figure
+    **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 527, in print_png
+    FigureCanvasAgg.draw(self)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 474, in draw
+    self.figure.draw(self.renderer)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1159, in draw
+    func(*args)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/axes/_base.py", line 2324, in draw
+    a.draw(renderer)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/text.py", line 757, in draw
+    raise ValueError("posx and posy should be finite values")
+ValueError: posx and posy should be finite values
+
+[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_2.txt
+
+
+
 
 
 ##########
@@ -20,6 +92,8 @@ Possible improvements:
   11013201 has real dips, and is also KOI 972. Possible delta Scuti 
   oscillations, with the transiting planet. ?!?!. What does that mean about
   evolutionary state?)
+
+* make ur interp1d calls smarter (if possible)
 
 * avoid fitting out subharmonics of planet transits!!
 Example cases: 8122124. See 8122124_qnum9_inum2_sap.png
