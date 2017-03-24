@@ -2011,6 +2011,15 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
 
 
 def load_lightcurve_data(kicid, stage=None, δ=None):
+    '''
+    Args:
+        kicid (int): Kepler Input Catalog ID number
+        stage (str): e.g., "dipsearch_0.01". Read `src/run_inj_recov.py` to get
+        examples.
+
+    Returns:
+        the LC data, and a boolean flag for whether the load failed/succeeded.
+    '''
 
     # `stage` includes the transit depth string
     pklname = str(kicid)+'_'+stage+'.p'
@@ -2029,10 +2038,14 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
         #saved pickles somewhere else for EB subtraction tests.
         lpath = '../data/eb_subtr_pkl/'+pklname
 
-    dat = pickle.load(open(lpath, 'rb'))
-    LOGINFO('Loaded pickled data from %s' % lpath)
+    try:
+        dat = pickle.load(open(lpath, 'rb'))
+        LOGINFO('Loaded pickled data from %s' % lpath)
+        return dat, False
+    except:
+        LOGERROR('Trying to load from %s failed. Continue.' % lpath)
+        return np.nan, True
 
-    return dat
 
 
 def load_allq_data(kicid, stage=None, δ=None):
@@ -2053,10 +2066,13 @@ def load_allq_data(kicid, stage=None, δ=None):
         #saved pickles somewhere else for EB subtraction tests.
         lpath = '../data/eb_subtr_pkl/'+pklname
 
-    allq = pickle.load(open(lpath, 'rb'))
-    LOGINFO('Loaded allquarter pickled data from %s' % lpath)
-
-    return allq
+    try:
+        allq = pickle.load(open(lpath, 'rb'))
+        LOGINFO('Loaded allquarter pickled data from %s' % lpath)
+        return allq, False
+    except:
+        LOGERROR('Trying to load from %s failed. Continue.' % lpath)
+        return allq, True
 
 
 def drop_gaps_in_lightcurves(times, mags, errs):

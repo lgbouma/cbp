@@ -18,6 +18,7 @@ import pandas as pd, numpy as np, os
 import time, logging
 from datetime import datetime
 import matplotlib.pyplot as plt
+import pdb
 plt.style.use('utils/lgb.mplstyle')
 
 #############
@@ -83,7 +84,6 @@ def summarize_injrecov_result():
 
     outstrs = []
     for top1 in top1s:
-        #(iterate over apertures)
         df = pd.read_csv(top1)
 
         findrate = len(df[df['foundinj']==True])/len(df)
@@ -92,6 +92,18 @@ def summarize_injrecov_result():
             top1, findrate*100., len(df))
         print(outstr)
         outstrs.append(outstr)
+
+        # What % of ~4Re recovered? (depth of 1/16/100.)
+        findrate = len(df[(df['foundinj']==True)&\
+                          (np.isclose(df['depth'],1/16./100.,atol=1e-6))]
+                      ) / \
+                   float(len(df[np.isclose(df['depth'],1/16./100.,atol=1e-6)]))
+        outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
+            top1, findrate*100., len(df))
+        print(outstr)
+        outstrs.append(outstr)
+
+
 
     # Second: what if we allow the next-best 5 peaks?
     allNs = np.sort([csvdir+n for n in csvnames if 'allN' in n])
@@ -107,6 +119,20 @@ def summarize_injrecov_result():
             allN, findrate*100., int(len(df)/nbestpeaks))
         print(outstr)
         outstrs.append(outstr)
+
+        # What % of ~4Re recovered? (depth of 1/16/100.)
+        findrate = len(df[(df['foundinj']==True)&\
+                          (np.isclose(df['depth'],1/16./100.,atol=1e-6))]
+                      ) / \
+                   float(
+                   len(df[np.isclose(df['depth'],1/16./100.,atol=1e-6)])
+                   /nbestpeaks)
+
+        outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
+            top1, findrate*100., int(len(df)/nbestpeaks))
+        print(outstr)
+        outstrs.append(outstr)
+
 
     writestr = ''
     now = time.strftime('%c')

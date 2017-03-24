@@ -21,9 +21,9 @@ def get_lcd(stage='redtr', inj=None, allq=None):
     sind = np.random.randint(0, len(kicids))
     kicid = kicids[sind]
 
-    lcd = ir.load_lightcurve_data(kicid, stage=stage, δ='whatever')
+    lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage, δ='whatever')
     if 'dipsearch' in stage:
-        allq = ir.load_allq_data(kicid, stage=stage, δ='whatever')
+        allq, loadfailed = ir.load_allq_data(kicid, stage=stage, δ='whatever')
 
     if isinstance(allq, dict):
         return lcd, allq
@@ -113,9 +113,9 @@ def injrecov_fixed_transit_depth(N,
                 kicid = ir.save_lightcurve_data(lcd, allq=allq, stage=stage)
 
         #LOAD STUFF
-        lcd = ir.load_lightcurve_data(kicid, stage=stage)
+        lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
         if 'dipsearch' in stage:
-            allq = ir.load_allq_data(kicid, stage=stage)
+            allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
 
         #WRITE RESULTS TABLES
         if 'dipsearch' in stage:
@@ -251,9 +251,9 @@ def injrecov_vary_depth(N,
         for δ in δarr:
             stage = origstage + '_' + str(δ)
             #LOAD STUFF
-            lcd = ir.load_lightcurve_data(kicid, stage=stage)
+            lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
             if 'dipsearch' in stage:
-                allq = ir.load_allq_data(kicid, stage=stage)
+                allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
 
             #WRITE RESULTS TABLES
             if 'dipsearch' in stage:
@@ -362,9 +362,9 @@ def test_EB_subraction(N,
             print('Found {:s}, plot'.format(kicid, δ))
         else:
             stage = origstage + '_' + str(δ)
-            lcd = ir.load_lightcurve_data(kicid, stage=stage)
+            lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
             if 'dipsearch' in stage or 'eb_sbtr' in stage:
-                allq = ir.load_allq_data(kicid, stage=stage)
+                allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
 
             # Make plots.
             if 'iterwhiten' in stage or 'eb_sbtr' in stage:
@@ -442,9 +442,13 @@ def injrecov_test1(N,
         # Write results and make plots.
         for δ in δarr:
             stage = origstage + '_' + str(δ)
-            lcd = ir.load_lightcurve_data(kicid, stage=stage)
+            lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
+            if loadfailed:
+                continue
             if 'dipsearch' in stage:
-                allq = ir.load_allq_data(kicid, stage=stage)
+                allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
+                if loadfailed:
+                    continue
 
             # Write results tables. (Control flow logic: this is automatically
             # done for any run. So you'd need to delete the table before ANY
@@ -477,7 +481,12 @@ def injrecov_test1(N,
                 elif 'redtr' in stage:
                     irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
                 elif 'dipsearch' in stage:
-                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    try:
+                        irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    except:
+                        with open('LOGS/error.txt', 'a') as f:
+                            f.write('whitenedplot_6row passed exception')
+                        continue
 
             if iwplot:
                     irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
@@ -510,6 +519,6 @@ if __name__ == '__main__':
 
     ## Run a "bonafide test" of the injection/recovery routines, but now with
     ## iterative whitening.
-    injrecov_test1(100, stage='dipsearch', inj=True, ds=True, whitened=True)
+    injrecov_test1(102, stage='dipsearch', inj=True, ds=True, whitened=True)
 
     pass
