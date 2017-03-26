@@ -1,3 +1,20 @@
+'''
+>>> python run_the_machine.py --help
+usage: run_the_machine.py [-h] [-p] [-ir] [-q]
+
+This is a short period EB injection-recovery machine (injection is optional).
+
+optional arguments:
+  -h, --help           show this help message and exit
+  -ir, --injrecovtest  inject and recover periodic transits for a small number
+                       of trial stars
+  -p, --pkltocsv       process all the pkl files made by injrecovtest to csv
+                       results
+  -q, --quicklcd       if you need a quick `lcd` to play with, this option
+                       returns it (useful in IPython, to easily explore the
+                       data structures)
+'''
+
 import numpy as np, os
 import inj_recov as ir
 import inj_recov_plots as irp
@@ -205,20 +222,22 @@ def pkls_to_results_csvs(stage='dipsearch', inj=True):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-        description='short period EB injrection-recovery (injection optional)')
-    parser.add_argument('-p', '--pkltocsv', action='store_true',
-        help='process all the pkl files made by injrecov to csv results')
+        description='This is a short period EB injection-recovery machine '+\
+                    '(injection is optional).')
     parser.add_argument('-ir', '--injrecovtest', action='store_true',
-        help='run the inj&recov routines for a small number of trial stars')
+        help='inject and recover periodic transits for a small number of '+\
+             'trial stars')
+    parser.add_argument('-p', '--pkltocsv', action='store_true',
+        help='process all the pkl files made by injrecovtest to csv results')
     parser.add_argument('-q', '--quicklcd', action='store_true',
-        help='if you need a quick `lcd` to play with, this option returns it')
+        help='if you need a quick `lcd` to play with, this option returns it'+\
+             ' (useful in IPython, to easily explore the data structures)')
 
     args = parser.parse_args()
 
     if args.quicklcd:
         lcd = get_lcd(stage='dtr', inj=False)
         lcd, allq = get_lcd(stage='dipsearch', inj=True)
-        return lcd, allq
 
     if args.injrecovtest:
         injrecov_test1(103, stage='dipsearch', inj=True, ds=True, whitened=True)
