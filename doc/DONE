@@ -138,4 +138,25 @@ primary period gives such a negative depth (i.e. a brightening). But there the
 * does the 4th period get the correct recovered depth?
 > yes. nthbestperiod gets serialdict, which contains the depths.
 
+* in periodbase/kbls.py: add condition to ignore peaks that give BRIGHTENINGS
+(rather than dimmings), i.e. get nbestpeaks that are POSITIVE.
+> no, not in kbls.py. Reason: we need this to be happening in serial pfinder.
+Like, the nbestperiods can only be selected based off the full periodogram (not
+the depth info), because we don't know the depths for the nbestperiods (because
+`eebls` only gives us the depths across frequency chunks).
+
+This can be easily cut in post-processing -- just ignore anything with negative
+depth -- but the issue is that we then aren't getting the full nbestpeaks for
+each star (we'd be getting a few less -- like 15% less, since the problem is
+~70 out of 500).
+
+That's boarderline.
+
+So to solve:
+  * take e.g., 10 nbestperiods from parallel_pfind, and go thru them serially
+  discarding anything that gives negative depths. Lets you go deeper into the
+  periodogram
+
+> done.
+
 

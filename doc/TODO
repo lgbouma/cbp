@@ -5,26 +5,23 @@
 Identify highest significance dips in search:
 ##########
 
-* in periodbase/kbls.py: add condition to ignore peaks that give BRIGHTENINGS
-(rather than dimmings), i.e. get nbestpeaks that are POSITIVE.
-
-* Sort discovered candidates by depth/RMS.
-
 * after runs are complete, parse LOGS for LOGERRORs, e.g.,
       LOGERROR('ingbinind from eebls.f shorter than it should be.')
       LOGERROR('Hard-setting ingress and egress phases.')
   (that bug that I hard-coded a hacky-exception for, because I don't understand
   it)
 
+* refactor (e.g., on a new git branch) to take out pieces of code that are not
+  and will not be used any more.
 
-
-* make injection actually optional in main
+* make injection actually optional in main (so that you can just run whitening
+  and dipfinding search over all the KEBC stars)
 
 * run on actual KEBC stars, now that completeness is high enough.
   ->  _look through_ the ~1.5k search results, sorted per the above.
 
-* refactor (e.g., on a new git branch) to take out pieces of code that are not
-  and will not be used any more.
+* Sort discovered candidates by depth/RMS.
+
 
 * how big & how fine of an injection grid do we need/want to answer the
   *statistical* questions (on occurrence rates)
