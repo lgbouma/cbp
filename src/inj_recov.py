@@ -1843,7 +1843,7 @@ def find_dips(lcd, allq, method='bls'):
             mintransitduration=minTdur_φ,
             maxtransitduration=maxTdur_φ,
             autofreq=True, # auto-find frequencies and nphasebins
-            nbestpeaks=5,
+            nbestpeaks=20, # large number now, filter for positive dips after
             periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
             nworkers=None,
             sigclip=None)
@@ -1862,8 +1862,11 @@ def find_dips(lcd, allq, method='bls'):
         # returns the "best transit" from whatever frequency chunk was 
         # given to it. So we need to run SERIAL BLS around the nbestperiods
         # that we want epochs for, and wrangle the results of that to get 
-        # good epochs.
-        for nbestperiod in nbestperiods:
+        # good epochs. The same applies when we want to impose only positive
+        # dips (for dimmings of the star).
+        ntokeep, ix = 5, 0
+        while len(df_dict[ap]['finebls']) < ntokeep:
+            nbestperiod = nbestperiods[ix]
             # do ~10000 frequencies within +/- 0.5% of nbestperiod
             rdiff = 0.005
             startp = nbestperiod - rdiff*nbestperiod
@@ -1891,6 +1894,10 @@ def find_dips(lcd, allq, method='bls'):
                  periodepsilon=rdiff*nbestperiod/3.,
                  nbestpeaks=1,
                  sigclip=None)
+
+            # ensure that at the end of the day, we keep only positive dips.
+            if sd['blsresult']['transdepth'] < 0:
+                continue
 
             df_dict[ap]['finebls'][nbestperiod] = {}
             df_dict[ap]['finebls'][nbestperiod]['serialdict'] = sd
@@ -1953,6 +1960,8 @@ def find_dips(lcd, allq, method='bls'):
             df_dict[ap]['finebls'][nbestperiod]['φ_ing'] = φ_ing
             df_dict[ap]['finebls'][nbestperiod]['φ_egr'] = φ_egr
             df_dict[ap]['finebls'][nbestperiod]['φ_0'] = φ_0
+
+            ix += 1
 
         LOGINFO('KICID: {:s}. Finished finebls ({:s}) ap:{:s}'.format(
                 keplerid, method.upper(), ap.upper()))
