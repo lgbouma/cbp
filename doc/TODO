@@ -2,31 +2,19 @@
 #TODO#
 ######
 
-* bugfix (in astrobase):
+* Fix injrecovresult_analysis to open whatever pickles are there and use THOSE,
+rather than go thru whatever random number seeds are necessary.
 
-(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
-  File "run_inj_recov.py", line 513, in <module>
-    injrecov_test1(100, stage='dipsearch', inj=True, ds=True, whitened=True)
-  File "run_inj_recov.py", line 435, in injrecov_test1
-    rms_floor=0.0005)
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1419, in iterative_whiten_allquarters
-    rms_floor=rms_floor)
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1523, in iterative_whiten_lightcurve
-    dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=True)
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1387, in _iter_run_periodogram
-    nworkers=None)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astrobase-0.1.0-py3.5.egg/astrobase/periodbase/spdm.py", line 280, in stellingwerf_pdm
-    bestperiodind = npargmin(finlsp)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/core/fromnumeric.py", line 1034, in argmin
-    return argmin(axis, out)
-ValueError: attempt to get argmin of an empty sequence
+* Identify highest significance dips in search:
 
-[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_1.txt
+  X compute CDPP 6hr.
+  > after reading Christiansen's 2012 and Jenkins 2010 (CDPP) description...
+  this is not worth the effort. better idea is to just stick with the RMS. ->
+  plot to compare success0 and success1 (once success1 has correct injrecovresults)
 
-* to identify highest significance dips in search:
-  * compute CDPP 6hr.
-  * get BLS depth
-  * divide the two. Whatever candidates are found, sort by that.
+  * get BLS depth (to compute depth/RMS)
+
+  * Sort discovered candidates by depth/RMS.
 
 * run on actual KEBC stars, now that completeness is high enough.
   ->  _look through_ the ~1.5k search results, sorted per the above.
@@ -37,6 +25,9 @@ ValueError: attempt to get argmin of an empty sequence
 * how big & how fine of an injection grid do we need/want to answer the
   *statistical* questions (on occurrence rates)
 
+* Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from 
+e.g., BLS. Are they equivalent? Which is better?
+
 * why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
   pipeline?). How many of these instances are there?
 
@@ -45,6 +36,19 @@ ValueError: attempt to get argmin of an empty sequence
   obliquity of star? (if you understand the pulsation dirns, you get a
   preferred dirn). Can u understand the pulsations better by getting spatially-
   resolved light?
+
+* bugfix:
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
+  File "run_inj_recov.py", line 522, in <module>
+    injrecov_test1(103, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 438, in injrecov_test1
+    allq = ir.find_dips(lcd, allq, method='bls')
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1930, in find_dips
+    φ_egr = φ_bin[egrbinind]
+IndexError: index 393 is out of bounds for axis 0 with size 392
+
+[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_5.txt
+
 
 * bugfix:
 
@@ -80,6 +84,41 @@ Traceback (most recent call last):
 ValueError: posx and posy should be finite values
 
 [1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_2.txt
+
+* bugfix:
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ /home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/polynomial/legendre.py:1588: RankWarning: The fit may be poorly conditioned
+  warnings.warn(msg, pu.RankWarning)
+WARNING: File may have been truncated: actual file length (49152) is smaller than the expected size (440640) [astropy.io.fits.file]
+Traceback (most recent call last):
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 496, in __get__
+    return obj.__dict__[self._key]
+KeyError: 'data'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "run_inj_recov.py", line 522, in <module>
+    injrecov_test1(102, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 414, in injrecov_test1
+    lcd, lcflag = ir.retrieve_random_lc()
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 426, in retrieve_random_lc
+    rd = get_all_quarters_lc_data(kebc_kic_ids[ind])
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 482, in get_all_quarters_lc_data
+    lcd = astrokep.read_kepler_fitslc(fits_path)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astrobase-0.1.0-py3.5.egg/astrobase/astrokep.py", line 226, in read_kepler_fitslc
+    lchdr, lcdata = hdulist[1].header, hdulist[1].data
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 498, in __get__
+    val = self.fget(obj)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 404, in data
+    data = self._get_tbdata()
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 171, in _get_tbdata
+    self._data_offset)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/base.py", line 568, in _get_raw_data
+    return self._file.readarray(offset=offset, dtype=code, shape=shape)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/file.py", line 283, in readarray
+    buffer=self._mmap)
+TypeError: buffer is too small for requested array
+
 
 
 
