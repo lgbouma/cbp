@@ -72,6 +72,9 @@ def injrecov_test1(N,
         find dips (BLS, over all the quarters)
 
     Args:
+        N (int): the number of entries to inject/recover over. Also serves as
+        the RNG seed (for random selection of the targets).
+
         stage (str): one of stages:
             'pw' if post-whitening.
             'redtr' if post-redetrending.
@@ -118,7 +121,7 @@ def injrecov_test1(N,
                 lcd = ir.normalize_allquarters(lcd, dt='dtr')
                 lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
                         nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
-                        rms_floor=0.0005)
+                        rms_floor=5e-4)
                 if 'eb_sbtr' in stage:
                     kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
                 allq = ir.find_dips(lcd, allq, method='bls')

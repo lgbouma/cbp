@@ -95,9 +95,9 @@ def summarize_injrecov_result():
 
         # What % of ~4Re recovered? (depth of 1/16/100.)
         findrate = len(df[(df['foundinj']==True)&\
-                          (np.isclose(df['depth'],1/16./100.,atol=1e-6))]
+                          (np.isclose(df['depth_inj'],1/16./100.,atol=1e-6))]
                       ) / \
-                   float(len(df[np.isclose(df['depth'],1/16./100.,atol=1e-6)]))
+                   float(len(df[np.isclose(df['depth_inj'],1/16./100.,atol=1e-6)]))
         outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
             top1, findrate*100., len(df))
         print(outstr)
@@ -122,10 +122,10 @@ def summarize_injrecov_result():
 
         # What % of ~4Re recovered? (depth of 1/16/100.)
         findrate = len(df[(df['foundinj']==True)&\
-                          (np.isclose(df['depth'],1/16./100.,atol=1e-6))]
+                          (np.isclose(df['depth_inj'],1/16./100.,atol=1e-6))]
                       ) / \
                    float(
-                   len(df[np.isclose(df['depth'],1/16./100.,atol=1e-6)])
+                   len(df[np.isclose(df['depth_inj'],1/16./100.,atol=1e-6)])
                    /nbestpeaks)
 
         outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
@@ -174,14 +174,14 @@ def write_injrecov_result(lcd, allq, stage=None):
         csv1name = 'irresult_'+ap+'_top1.csv'
         csv2name = 'irresult_'+ap+'_allN.csv'
 
-        # Get minimum time for epoch zero-point
+        # Get minimum time for epoch zero-point.
         lc = allq['dipfind']['tfe'][ap]
         min_time = np.min(lc['times'])
         fluxs = lc['fluxs']
         meanflux = np.mean(fluxs)
         rms_biased = float(np.sqrt(np.sum((fluxs-meanflux)**2) / len(fluxs)))
 
-        # Recover best period
+        # Recover best period, and corresponding BLS depth.
         pgdc = allq['dipfind']['bls'][ap]['coarsebls']
         pgdf = allq['dipfind']['bls'][ap]['finebls']
         cnbestperiods = np.sort(pgdc['nbestperiods'])
@@ -190,6 +190,7 @@ def write_injrecov_result(lcd, allq, stage=None):
                 for cnbp in cnbestperiods])
         fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
         bestperiod = fbestperiod
+        fdepth = pgdf[cbestperiod]['serialdict']['blsresult']['transdepth']
 
         for ix, ffoldperiod in enumerate(fnbestperiods):
 
@@ -223,7 +224,8 @@ def write_injrecov_result(lcd, allq, stage=None):
                     't0_rec':t0_rec,
                     'foundinj':foundinj,
                     'rms_biased':rms_biased,
-                    'depth':δ
+                    'depth_inj':δ,
+                    'depth_rec':fdepth
                     }, index=['0'])
 
             # Write csv1 (appending if the csv file already exists)
