@@ -2,19 +2,23 @@
 #TODO#
 ######
 
-* Fix injrecovresult_analysis to open whatever pickles are there and use THOSE,
-rather than go thru whatever random number seeds are necessary.
+Identify highest significance dips in search:
+##########
 
-* Identify highest significance dips in search:
+* in periodbase/kbls.py: add condition to ignore peaks that give BRIGHTENINGS
+(rather than dimmings), i.e. get nbestpeaks that are POSITIVE.
 
-  X compute CDPP 6hr.
-  > after reading Christiansen's 2012 and Jenkins 2010 (CDPP) description...
-  this is not worth the effort. better idea is to just stick with the RMS. ->
-  plot to compare success0 and success1 (once success1 has correct injrecovresults)
+* Sort discovered candidates by depth/RMS.
 
-  * get BLS depth (to compute depth/RMS)
+* after runs are complete, parse LOGS for LOGERRORs, e.g.,
+      LOGERROR('ingbinind from eebls.f shorter than it should be.')
+      LOGERROR('Hard-setting ingress and egress phases.')
+  (that bug that I hard-coded a hacky-exception for, because I don't understand
+  it)
 
-  * Sort discovered candidates by depth/RMS.
+
+
+* make injection actually optional in main
 
 * run on actual KEBC stars, now that completeness is high enough.
   ->  _look through_ the ~1.5k search results, sorted per the above.

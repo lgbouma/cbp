@@ -89,3 +89,53 @@ b/c division preservers relative fluxes..
 
 * reassess completeness (coarse level).
   Result: it's complete enough for ~4Re, ~4-80P_EB period CBPs. (like 50%)
+
+Sun 26 Mar 2017 09:52:32 AM EDT
+
+* Fix injrecovresult_analysis to open whatever pickles are there and use THOSE,
+rather than go thru whatever random number seeds are necessary.
+
+> implemented. But now make it a cmd line arg with parser.
+> done. we're finally using argparse, and i got the chance to refactor
+  run_inj_recov to be wayyy clearer.
+
+Identify highest significance dips in search:
+########## 
+
+X compute CDPP 6hr.
+
+> after reading Christiansen's 2012 and Jenkins 2010 (CDPP) description...
+this is not worth the effort. They're using some kind of wavelet matched
+filter approach, and describe CDPP as a thing that only really can be computed
+*sticking to their exact pipeline approach*. better idea is to just stick with
+the RMS. 
+
+X make plot to compare success0 and success1 RMSs (once success1 has correct
+injrecovresults)
+
+> yes, iterative whitening did help (duh). previously (single iteration) ~20%
+of EBs had biased RMS less than 1e-3. with iterative withening, it's ~70%.
+
+* get BLS depth (to compute depth/RMS)
+
+* log recovered BLS depth in the csv files too
+
+* plot: (recovered depth / injected depth) vs RMS (or whatever quantity).
+
+* why do we have negative transit depths recovered?
+> because BLS can find them. In a smaller number of cases (~10 of the ~540),
+the whitening subtracts the planet signal (notably if it's very big). But the
+point is that BLS has no prior for wanting positive depth transits. So 75 of
+540 injection recovery tests wind up with NEGATIVE depths (mostly because of
+stellar variability producing some kind of coherent signal in the periodogram).
+It seems like it would be smarter to have some prior to avoid this.
+Like "if the BLS depth for this proposed period is negative... downweight the
+power of this period!!"
+(Note e.g., the case dipsearchplot/inj/10090246_sapdipsearch_inj_0.00125.png:
+primary period gives such a negative depth (i.e. a brightening). But there the
+4th period gives the correct dip)
+
+* does the 4th period get the correct recovered depth?
+> yes. nthbestperiod gets serialdict, which contains the depths.
+
+
