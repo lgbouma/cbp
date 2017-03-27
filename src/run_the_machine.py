@@ -77,7 +77,6 @@ def injrecov_test1(N,
 
         stage (str): one of stages:
             'pw' if post-whitening.
-            'redtr' if post-redetrending.
             'dipsearch' if doing injection recovery.
 
         nwhiten_max (int): maximum number of iterative whitenings to do.
@@ -167,8 +166,6 @@ def injrecov_test1(N,
                     continue
                 if 'pw' in stage:
                     irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
-                elif 'redtr' in stage:
-                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
                 elif 'dipsearch' in stage:
                     try:
                         irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
