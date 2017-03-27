@@ -19,6 +19,7 @@ import time, logging
 from datetime import datetime
 import matplotlib.pyplot as plt
 import pdb
+import subprocess
 plt.style.use('utils/lgb.mplstyle')
 
 #############
@@ -69,10 +70,31 @@ def LOGEXCEPTION(message):
 ##################
 # RESULT WRITING #
 ##################
-
-def summarize_injrecov_result():
+def run_script(script, stdin=None):
     '''
-    Write a summary text file to ../results/injrecovresult/summary.txt
+    Run a bash script specified by the `script` string.
+    Returns (stdout, stderr), raises error on non-zero return code. Spaces,
+    quotes, and newlines should not raise problems (subprocess.Popen parses
+    everything).
+    '''
+    proc = subprocess.Popen(['bash', '-c', script],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        stdin=subprocess.PIPE)
+    stdout, stderr = proc.communicate()
+    return stdout, stderr
+
+
+def summarize_injrecov_result(substr=None):
+    '''
+    Read csvs from write_injrecov_result, and write a summary text file to
+    ../results/injrecovresult/summary.txt
+
+    The file includes: total completeness %. Rp=4Re completeness %. And
+    whatever errors came up in the logs, under a particular substring key.
+
+    Args:
+        substr (str): the substring specific to src/LOGS that identifies
+        whichever set of logs you want to see errors & warnings from.
     '''
     csvdir = '../results/injrecovresult/'
     csvnames = os.listdir(csvdir)
@@ -90,7 +112,6 @@ def summarize_injrecov_result():
 
         outstr = '{:s}, find rate: {:.3g}%, N={:d}'.format(
             top1, findrate*100., len(df))
-        print(outstr)
         outstrs.append(outstr)
 
         # What % of ~4Re recovered? (depth of 1/16/100.)
@@ -100,7 +121,6 @@ def summarize_injrecov_result():
                    float(len(df[np.isclose(df['depth_inj'],1/16./100.,atol=1e-6)]))
         outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
             top1, findrate*100., len(df))
-        print(outstr)
         outstrs.append(outstr)
 
 
@@ -117,7 +137,6 @@ def summarize_injrecov_result():
 
         outstr = '{:s}, find rate: {:.3g}%, N={:d}'.format(
             allN, findrate*100., int(len(df)/nbestpeaks))
-        print(outstr)
         outstrs.append(outstr)
 
         # What % of ~4Re recovered? (depth of 1/16/100.)
@@ -130,16 +149,32 @@ def summarize_injrecov_result():
 
         outstr = '{:s}, find rate ~4Re: {:.3g}%, N={:d}'.format(
             top1, findrate*100., int(len(df)/nbestpeaks))
-        print(outstr)
         outstrs.append(outstr)
 
+    wrnout, wrnerr = run_script('cat LOGS/*'+substr+'* | grep WRN')
+    errout, errerr = run_script('cat LOGS/*'+substr+'* | grep ERR')
+    excout, excerr = run_script('cat LOGS/*'+substr+'* | grep EXC')
+    wrnerrexc = []
+    for out in [wrnout, errout, excout]:
+        lines = out.decode('utf-8').split('\n')[:-1]
+        wrnerrexc.append('\n')
+        for l in lines:
+            wrnerrexc.append(l)
 
     writestr = ''
     now = time.strftime('%c')
     writestr = writestr + now + '\n'
     for outstr in outstrs:
         writestr=writestr+outstr+'\n'
+    writestr = writestr + '\n{:d} warnings, {:d} errs, {:d} exceptn:\n'.format(
+            len(wrnout.decode('utf-8').split('\n')[:-1]),
+            len(errout.decode('utf-8').split('\n')[:-1]),
+            len(excout.decode('utf-8').split('\n')[:-1]))
 
+    for wee in wrnerrexc:
+        writestr=writestr+wee+'\n'
+
+    print(writestr)
     f.write(writestr)
     f.close()
 
@@ -267,10 +302,10 @@ def completeness_top1_plots():
     f, ax = plt.subplots()
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
-               df['depth'][df['foundinj']==True],
+               df['depth_inj'][df['foundinj']==True],
                c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
-               df['depth'][df['foundinj']==False],
+               df['depth_inj'][df['foundinj']==False],
                c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
@@ -287,10 +322,10 @@ def completeness_top1_plots():
     f, ax = plt.subplots()
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
-               df['depth'][df['foundinj']==True]/df['rms_biased'][df['foundinj']==True],
+               df['depth_inj'][df['foundinj']==True]/df['rms_biased'][df['foundinj']==True],
                c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
-               df['depth'][df['foundinj']==False]/df['rms_biased'][df['foundinj']==False],
+               df['depth_inj'][df['foundinj']==False]/df['rms_biased'][df['foundinj']==False],
                c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
@@ -307,10 +342,10 @@ def completeness_top1_plots():
     f, ax = plt.subplots()
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
-               np.sqrt(df['depth'][df['foundinj']==True]),
+               np.sqrt(df['depth_inj'][df['foundinj']==True]),
                c='green', lw=0, alpha=0.9)
     ax.scatter(df['P_inj'][df['foundinj']==False],
-               np.sqrt(df['depth'][df['foundinj']==False]),
+               np.sqrt(df['depth_inj'][df['foundinj']==False]),
                c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
@@ -329,8 +364,8 @@ def completeness_top1_plots():
 
     f, ax = plt.subplots()
 
-    δdet = np.array(np.sqrt(df['depth'][df['foundinj']==True]))*1.5*u.Rsun
-    δnotdet = np.array(np.sqrt(df['depth'][df['foundinj']==False]))*1.5*u.Rsun
+    δdet = np.array(np.sqrt(df['depth_inj'][df['foundinj']==True]))*1.5*u.Rsun
+    δnotdet = np.array(np.sqrt(df['depth_inj'][df['foundinj']==False]))*1.5*u.Rsun
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
                δdet.to(u.Rearth),
@@ -374,5 +409,5 @@ def completeness_top1_plots():
     plt.close('all')
 
 if __name__ == '__main__':
-    summarize_injrecov_result()
+    summarize_injrecov_result(substr='completeness_test')
     completeness_top1_plots()

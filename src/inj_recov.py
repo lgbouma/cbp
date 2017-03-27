@@ -1932,7 +1932,7 @@ def find_dips(lcd, allq, method='bls'):
 
             φ_bin = binphasedlc['binnedphases']
             flux_φ_bin = binphasedlc['binnedmags']
-            if ingbinind < len(φ_bin):
+            if ingbinind < len(φ_bin) and egrbinind < len(φ_bin):
                 φ_ing = φ_bin[ingbinind]
                 φ_egr = φ_bin[egrbinind]
             else:
