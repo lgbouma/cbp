@@ -229,21 +229,30 @@ if __name__ == '__main__':
                     '(injection is optional).')
     parser.add_argument('-ir', '--injrecovtest', action='store_true',
         help='inject and recover periodic transits for a small number of '+\
-             'trial stars')
+             'trial stars. must specify N.')
+    parser.add_argument('-N', '--Nstars', type=int, default=None,
+        help='int number of stars to inject/recov on (& RNG seed). '+\
+             'required if running injrecovtest')
     parser.add_argument('-p', '--pkltocsv', action='store_true',
         help='process all the pkl files made by injrecovtest to csv results')
     parser.add_argument('-q', '--quicklcd', action='store_true',
         help='if you need a quick `lcd` to play with, this option returns it'+\
              ' (useful in IPython, to easily explore the data structures)')
+    #TODO: add actual option of not injecting
 
     args = parser.parse_args()
 
+    if ('injrecovtest' in vars(args) and 'N' not in vars(args)):
+        parser.error('The --injrecovtest argument requires -N')
+
+    # main logic
     if args.quicklcd:
         lcd = get_lcd(stage='dtr', inj=False)
         lcd, allq = get_lcd(stage='dipsearch', inj=True)
 
     if args.injrecovtest:
-        injrecov_test1(103, stage='dipsearch', inj=True, ds=True, whitened=True)
+        injrecov_test1(args.Nstars, stage='dipsearch', inj=True, ds=True,
+                whitened=True)
 
     if args.pkltocsv:
         pkls_to_results_csvs()
