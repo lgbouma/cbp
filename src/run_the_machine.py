@@ -126,6 +126,13 @@ def recov(inj=False,
                 print('\nFound dipsearchplot, continuing.\n')
             elif 'realsearch' in stage:
                 irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
+        elif ds and fblserr:
+            #need to bash-touch an empty file for control flow to not pause
+            plotname = kicid+'_'+'sap'+stage+'.png'
+            path = '../results/dipsearchplot/'+predir+plotname
+            print('\nSince fblserr, touch {:s}.\n'.format(path))
+            with open(path, 'a'):
+                os.utime(path, None)
 
         if whitened:
             doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
