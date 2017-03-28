@@ -77,9 +77,10 @@ def recov(inj=False,
         if lcflag:
             if lcflag == 'finished':
                 print('finished searching!')
+                break
             elif lcflag == True:
-                print('broke out of realsearch early.')
-            break
+                print('caught some error, going to next LC.')
+                continue
 
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 

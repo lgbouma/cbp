@@ -801,7 +801,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
 
     best_t0 = min_time + bestφ_0*fbestperiod
-    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='g',
+    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
             linestyles='-', alpha=1, lw=1.5, zorder=-5)
     # Show 10 best coarse periods.
     ax_pg.vlines(pgdc['nbestperiods'][:10], min(pwr_ylim), max(pwr_ylim),

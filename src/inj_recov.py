@@ -421,7 +421,7 @@ def retrieve_random_lc():
     kebc_kic_ids = np.array(kebc['KIC'])
     ind = int(np.random.randint(0, len(kebc['KIC']), size=1))
 
-    rd = get_all_quarters_lc_data(kebc_kic_ids[ind])
+    rd, errflag = get_all_quarters_lc_data(kebc_kic_ids[ind])
     if len(rd) < 1:
         lcflag = True
         LOGERROR('Error getting LC data. KICID-{:s}'.format(
@@ -470,9 +470,10 @@ def retrieve_next_lc(stage=None, blacklist=None):
             break
 
     # Retrieve the LC data.
-    rd = get_all_quarters_lc_data(this_id)
-    if len(rd) < 1:
+    rd, errflag = get_all_quarters_lc_data(this_id)
+    if len(rd) < 1 or errflag:
         lcflag = True
+        blacklist.append(this_id)
         LOGERROR('Error getting LC data. KICID-{:s}'.format(
             str(this_id)))
     else:
@@ -530,10 +531,15 @@ def get_all_quarters_lc_data(kicid):
         quarter_number = np.unique(lcd['quarter'])
         assert len(quarter_number)==1, 'Expect each fits file to correspond '+\
             ' to a given quarter'
-        lcd['kebwg_info'] = get_kebwg_info(lcd['objectinfo']['keplerid'])
+        lcd['kebwg_info'], errflag = \
+            get_kebwg_info(lcd['objectinfo']['keplerid'])
+        if errflag:
+            LOGERROR('{:s} gave errflag for {:s}'.format(
+                str(lcd['objectinfo']['keplerid']), str(fits_path)))
+            break
         rd[int(quarter_number)] = lcd
 
-    return rd
+    return rd, errflag
 
 
 def get_kebwg_info(kicid):
@@ -546,7 +552,12 @@ def get_kebwg_info(kicid):
     f = open('../data/kepler_eb_catalog_v3.csv', 'r')
     ls = f.readlines()
     thisentry = [l for l in ls if l.startswith(str(kicid))]
-    assert len(thisentry) == 1
+    if len(thisentry) == 1:
+        errflag = False
+    else:
+        LOGERROR('{:s} gave too many (or not enough) entries'.format(
+            str(kicid)))
+        errflag = True
 
     cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
     cols = cols.split(',')
@@ -554,7 +565,7 @@ def get_kebwg_info(kicid):
 
     kebwg_info = dict(zip(cols, thesevals))
 
-    return kebwg_info
+    return kebwg_info, errflag
 
 
 #####################
