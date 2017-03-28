@@ -159,4 +159,32 @@ So to solve:
 
 > done.
 
+* bugfix:
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
+  File "run_inj_recov.py", line 522, in <module>
+    injrecov_test1(103, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 438, in injrecov_test1
+    allq = ir.find_dips(lcd, allq, method='bls')
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1930, in find_dips
+    φ_egr = φ_bin[egrbinind]
+IndexError: index 393 is out of bounds for axis 0 with size 392
+
+[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_5.txt
+
+Mon 27 Mar 2017 09:20:33 AM EDT
+
+* after runs are complete, parse LOGS for LOGERRORs, e.g.,
+      LOGERROR('ingbinind from eebls.f shorter than it should be.')
+      LOGERROR('Hard-setting ingress and egress phases.')
+  (that bug that I hard-coded a hacky-exception for, because I don't understand
+  it)
+  > put it to summary.txt (like: "there were X logerrors: (and list all of em)"
+
+* refactor (e.g., on a new git branch) to take out pieces of code that are not
+  and will not be used any more.
+  -> tag current version as v0.1
+
+* make injection actually optional in main (so that you can just run whitening
+  and dipfinding search over all the KEBC stars)
+
 

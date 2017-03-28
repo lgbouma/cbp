@@ -1,18 +1,23 @@
 '''
 >>> python run_the_machine.py --help
-usage: run_the_machine.py [-h] [-p] [-ir] [-q]
+usage: run_the_machine.py [-h] [-ir] [-N NSTARS] [-p] [-frd] [-q]
 
 This is a short period EB injection-recovery machine (injection is optional).
 
 optional arguments:
-  -h, --help           show this help message and exit
-  -ir, --injrecovtest  inject and recover periodic transits for a small number
-                       of trial stars
-  -p, --pkltocsv       process all the pkl files made by injrecovtest to csv
-                       results
-  -q, --quicklcd       if you need a quick `lcd` to play with, this option
-                       returns it (useful in IPython, to easily explore the
-                       data structures)
+  -h, --help            show this help message and exit
+  -ir, --injrecovtest   inject and recover periodic transits for a small
+                        number of trial stars. must specify N.
+  -N NSTARS, --Nstars NSTARS
+                        int number of stars to inject/recov on (& RNG seed).
+                        required if running injrecovtest
+  -p, --pkltocsv        process all the pkl files made by injrecovtest to csv
+                        results
+  -frd, --findrealdips  search real short period contact EBs for transiting
+                        planets
+  -q, --quicklcd        if you need a quick `lcd` to play with, this option
+                        returns it (useful in IPython, to easily explore the
+                        data structures)
 '''
 
 import numpy as np, os
@@ -48,22 +53,124 @@ def get_lcd(stage='redtr', inj=None, allq=None):
         return lcd
 
 
-def injrecov_test1(N,
-        whitened=True, ds=True,
+def recov(inj=False,
         stage=None,
-        inj=None,
+        nwhiten_max=10,
+        nwhiten_min=1,
+        rms_floor=5e-4,
         iwplot=False,
-        nwhiten_max=8,
-        nwhiten_min=1):
+        whitened=True,
+        ds=True
+        ):
     '''
-    Inject transits and recover them on N entries from the Kepler Eclipsing
-    Binary Catalog. There are two important objects:
-    `lcd` organizes everything by quarter. `allq` stitches over all quarters.
-    Results get written to '../results/injrecovresult'
+    See docstring for injrecov. This does identical recovery, but has different
+    enough control flow to merit a separate function.
+    '''
+    assert not inj
+    stage = stage+'_inj' if inj else stage+'_real'
+    predir = 'inj/' if 'inj' in stage else 'real/'
+
+    keepgoing, blacklist = True, []
+    while keepgoing:
+        lcd, lcflag, blacklist = ir.retrieve_next_lc(stage=stage,
+                blacklist=blacklist)
+        if lcflag:
+            if lcflag == 'finished':
+                print('finished searching!')
+            elif lcflag == True:
+                print('broke out of realsearch early.')
+            break
+
+        kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+
+        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
+                f.endswith('.p') and f.startswith(kicid) and stage in f]
+
+        if len(pklmatch) > 0:
+            print('Found {:s} pkl (skip processing)'.format(kicid))
+        else:
+            lcd = ir.detrend_allquarters(lcd, σ_clip=30., inj=inj)
+            lcd = ir.normalize_allquarters(lcd, dt='dtr')
+            lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
+                    nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
+                    rms_floor=rms_floor)
+            allq = {}
+            allq = ir.find_dips(lcd, allq, method='bls')
+            if 'realsearch' in stage:
+                kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
+
+        # Write results and make plots.
+        lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
+        if loadfailed:
+            print('broke out of realsearch at load_lightcurve_data.')
+            break
+        if 'realsearch' in stage:
+            allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
+            if loadfailed:
+                print('broke out of realsearch at load_allq_data.')
+                continue
+
+        # Append results to tables. If you want to rewrite (e.g., because
+        # you've multiple-append the same ones) run inj_recovresultanalysis.py
+        if 'realsearch' in stage:
+            irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+
+        # Make plots.
+        if ds:
+            doneplots = os.listdir('../results/dipsearchplot/'+predir)
+            plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                    stage in f]
+            if len(plotmatches)>0:
+                print('\nFound dipsearchplot, continuing.\n')
+            elif 'realsearch' in stage:
+                irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
+
+        if whitened:
+            doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
+            plotmatches = [f for f in doneplots if f.startswith(kicid) and
+                    stage in f]
+            if len(plotmatches)>0:
+                print('\nFound whitened_diagnostic, continuing.\n')
+            elif 'realsearch' in stage:
+                try:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                except:
+                    print('whitenedplot_6row gave exception (kic:{:s})'.format(
+                        str(keplerid)))
+
+        if iwplot:
+            irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
+                        δ=δ)
+
+        # Summarize results tables in a text file!
+        #FIXME write an analog of this that summarizes result from realsearch.
+        #irra.summarize_injrecov_result()
+
+
+def injrecov(inj=True,
+        N=None,
+        stage=None,
+        nwhiten_max=10,
+        nwhiten_min=1,
+        rms_floor=5e-4,
+        iwplot=False,
+        whitened=True,
+        ds=True
+        ):
+    '''
+    Inject transits, and find dips in short period binaries in the Kepler
+    Eclipsing Binary Catalog. There are two important objects: `lcd` organizes
+    everything by quarter. `allq` stitches over all quarters.
+
+    If doing injection & recovery, results get written to
+    '../results/injrecovresult'.
+
+    If doing a real search for dips, results get written to
+    '../results/real_search'.
 
     Currently implemented:
 
-        inject a realistic transit signal at δ=(2,1,1/2,1/4,1/8,1/16,1/32)%
+        inject a realistic transit signal at δ=(1,1/2,1/4,1/8,1/16,1/32)%
             depth, anywhere from P_CBP=(4-80)x P_EB.
         detrend (legendre and [30,30]σ sigclip)->
         normalize (median by quarter)->
@@ -71,29 +178,35 @@ def injrecov_test1(N,
             in phase, then in time) ->
         find dips (BLS, over all the quarters)
 
-    Args:
+    args/kwargs:
+
+        inj (bool): True if you're injecting (fixes names of things, and
+        what routines to call).
+
         N (int): the number of entries to inject/recover over. Also serves as
-        the RNG seed (for random selection of the targets).
+        the RNG seed (for random selection of the targets). Only needed if
+        inj==True.
 
         stage (str): one of stages:
             'pw' if post-whitening.
             'dipsearch' if doing injection recovery.
+            'realsearch' if you're searching for real dips.
 
         nwhiten_max (int): maximum number of iterative whitenings to do.
 
         nwhiten_min (int): minimum number of iterative whitenings to do.
 
-        inj (bool): True if you're injecting (fixes names of things).
-
-        whitened (bool), ds (bool): whether to create the whitened 6row and
-            dipsearch plots (both diagnostics), respectively.
+        iwplot, whitened, ds (all bools): whether to create the
+            eb_subtraction_diagnostic 3row whitened plot, the whitened 6row
+            plot, and dipsearch plots (all diagnostics), respectively.
     '''
 
+    assert inj
     np.random.seed(N)
     seeds = np.random.randint(0, 99999999, size=N)
 
-    stage = stage+'_inj' if inj else stage
-    predir = 'inj/' if 'inj' in stage else 'no_inj/'
+    stage = stage+'_inj' if inj else stage+'_real'
+    predir = 'inj/' if 'inj' in stage else 'real/'
     origstage = stage
 
     for s in seeds:
@@ -120,7 +233,7 @@ def injrecov_test1(N,
                 lcd = ir.normalize_allquarters(lcd, dt='dtr')
                 lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
                         nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
-                        rms_floor=5e-4)
+                        rms_floor=rms_floor)
                 if 'eb_sbtr' in stage:
                     kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
                 allq = ir.find_dips(lcd, allq, method='bls')
@@ -143,8 +256,7 @@ def injrecov_test1(N,
             # run, and it'll reconstruct the table based on everything in the
             # saved pickles.)
             if 'dipsearch' in stage:
-                if inj:
-                    irra.write_injrecov_result(lcd, allq, stage=stage)
+                irra.write_search_result(lcd, allq, inj=inj, stage=stage)
 
             # Make plots.
             if ds:
@@ -179,8 +291,7 @@ def injrecov_test1(N,
                             δ=δ)
 
         # Summarize results tables in a text file!
-        if inj:
-            irra.summarize_injrecov_result()
+        irra.summarize_injrecov_result()
 
 
 def pkls_to_results_csvs(stage='dipsearch', inj=True):
@@ -196,7 +307,7 @@ def pkls_to_results_csvs(stage='dipsearch', inj=True):
     origstage = stage
 
     # These files are all regenerated by this routine. Since this is done by
-    # appending in irra.write_injrecov_result, we need to delete them.
+    # appending in irra.write_search_result, we need to delete them.
     fs_to_rm = ['../results/injrecovresult/irresult_sap_top1.csv',
                 '../results/injrecovresult/irresult_sap_allN.csv',
                 '../results/injrecovresult/summary.txt']
@@ -214,7 +325,7 @@ def pkls_to_results_csvs(stage='dipsearch', inj=True):
         allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
         if loadfailed:
             continue
-        irra.write_injrecov_result(lcd, allq, stage=stage)
+        irra.write_search_result(lcd, allq, inj=inj, stage=stage)
 
     irra.summarize_injrecov_result()
 
@@ -232,24 +343,32 @@ if __name__ == '__main__':
              'required if running injrecovtest')
     parser.add_argument('-p', '--pkltocsv', action='store_true',
         help='process all the pkl files made by injrecovtest to csv results')
+    parser.add_argument('-frd', '--findrealdips', action='store_true',
+        help='search real short period contact EBs for transiting planets')
     parser.add_argument('-q', '--quicklcd', action='store_true',
         help='if you need a quick `lcd` to play with, this option returns it'+\
              ' (useful in IPython, to easily explore the data structures)')
-    #TODO: add actual option of not injecting
 
     args = parser.parse_args()
 
-    if ('injrecovtest' in vars(args) and 'N' not in vars(args)):
+    if (args.injrecovtest and args.findrealdips):
+        parser.error('Choose either (injection&recovery) XOR findrealdips')
+    if (args.quicklcd and (args.findrealdips or args.injrecovtest)):
+        parser.error('quicklcd must be run without any other options')
+    if (args.injrecovtest and not isinstance(N,int)):
         parser.error('The --injrecovtest argument requires -N')
 
-    # main logic
     if args.quicklcd:
         lcd = get_lcd(stage='dtr', inj=False)
         lcd, allq = get_lcd(stage='dipsearch', inj=True)
 
     if args.injrecovtest:
-        injrecov_test1(args.Nstars, stage='dipsearch', inj=True, ds=True,
-                whitened=True)
+        injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=True,
+                whitened=True, nwhiten_max=8, nwhiten_min=1, rms_floor=5e-4)
+
+    if args.findrealdips:
+        recov(inj=False, stage='realsearch', ds=True, whitened=True,
+                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4)
 
     if args.pkltocsv:
         pkls_to_results_csvs()

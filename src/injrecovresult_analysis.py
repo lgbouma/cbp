@@ -4,8 +4,10 @@ Routines for analyzing the results of the injection recovery experiments.
 >>> python inj_recovresultanalysis.py
 :: Runs summarize_injrecov_result and completeness_top1_plots.
 
-write_injrecov_result:
-    Parses success/failure & injected parameters into csv files.
+write_search_result:
+    Append the result of a search (i.e. what best dips did it find?
+    What are their parameters?) to csv files (if it's realsearch, writes nans
+    in appropriate places).
 
 summarize_injrecov_result:
     Summarizes csv files into a text file
@@ -179,14 +181,14 @@ def summarize_injrecov_result(substr=None):
     f.close()
 
 
-def write_injrecov_result(lcd, allq, stage=None):
+def write_search_result(lcd, allq, inj=None, stage=None):
     '''
-    Append the result of this injection-recovery experiment (i.e. whether it
-    was successful, what the basic parameters of the EB and the injected system
-    were, what the basic parameters of the LC were) to csv files.
+    Append the result of this search (i.e. what the best dips it found were,
+    and what their parameters are) to csv files.
 
-    A system is discovered if its "fine" (rather than coarse) best period and
-    best transit epoch agree with the injected ones to some precision.
+    If inj==True (i.e. it's an injection-recovery experiment) a system is
+    discovered if its "fine" (rather than coarse) best period and best transit
+    epoch agree with the injected ones to some precision.
 
     There are two files:
     csv1: rows are results with only best periodogram period for each system.
@@ -198,12 +200,12 @@ def write_injrecov_result(lcd, allq, stage=None):
     kicid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     morph = float(lcd[list(lcd.keys())[0]]['kebwg_info']['morph'])
-    im = allq['inj_model']
-    P_inj = im['params'].per
-    t0_inj = im['params'].t0
-    δ = (im['params'].rp)**2
+    im = allq['inj_model'] if inj else np.nan
+    P_inj = im['params'].per if inj else np.nan
+    t0_inj = im['params'].t0 if inj else np.nan
+    δ = (im['params'].rp)**2 if inj else np.nan
 
-    csvdir = '../results/injrecovresult/'
+    csvdir = '../results/injrecovresult/' if inj else '../results/real_search/'
 
     for ap in ['sap']:
         csv1name = 'irresult_'+ap+'_top1.csv'
@@ -219,17 +221,24 @@ def write_injrecov_result(lcd, allq, stage=None):
         # Recover best period, and corresponding BLS depth.
         pgdc = allq['dipfind']['bls'][ap]['coarsebls']
         pgdf = allq['dipfind']['bls'][ap]['finebls']
-        cnbestperiods = np.sort(pgdc['nbestperiods'])
-        cbestperiod = pgdc['bestperiod']
-        fnbestperiods = np.sort([pgdf[cnbp]['serialdict']['bestperiod']
-                for cnbp in cnbestperiods])
+        # Use keys because the full coarseperiod list includes wrong-sign
+        # transit depths. We want the nbestperiods that were selected here, in
+        # BLS-power sorted order. Start with an unsorted list of tuples:
+        periods_powers = [(k, max(pgdf[k]['serialdict']['lspvals'])) \
+                for k in list(pgdf.keys())]
+        cnbestperiods = [per for (per,power) in sorted(periods_powers,
+                key=lambda pair:pair[1], reverse=True)]
+        # The coarse nbestperiods are now sorted by BLS power.
+        cbestperiod = cnbestperiods[0]
+        fnbestperiods = [pgdf[cnbp]['serialdict']['bestperiod']
+                for cnbp in cnbestperiods]
         fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
         bestperiod = fbestperiod
-        fdepth = pgdf[cbestperiod]['serialdict']['blsresult']['transdepth']
 
         for ix, ffoldperiod in enumerate(fnbestperiods):
 
             cfoldperiod = cnbestperiods[ix]
+            fdepth = pgdf[cfoldperiod]['serialdict']['blsresult']['transdepth']
             fbls = allq['dipfind']['bls'][ap]['finebls'][cfoldperiod]
             φ_0 = fbls['φ_0']
 
@@ -239,13 +248,16 @@ def write_injrecov_result(lcd, allq, stage=None):
             # If the recovered period is within +/- 0.1 days of the injected
             # period, and (recovered epoch modulo injected period) is within 
             # +/-5% of of (injected epoch modulo recovered period).
-            atol = 0.1
-            rtol = 0.05
-            reldiff = abs((t0_rec % P_rec) - (t0_inj % P_inj)) / (t0_inj % P_inj)
-            if (abs(P_inj - P_rec) < atol) and (reldiff < rtol):
-                foundinj = True
+            if inj:
+                atol = 0.1
+                rtol = 0.05
+                reldiff = abs((t0_rec % P_rec) - (t0_inj % P_inj)) / (t0_inj % P_inj)
+                if (abs(P_inj - P_rec) < atol) and (reldiff < rtol):
+                    foundinj = True
+                else:
+                    foundinj = False
             else:
-                foundinj = False
+                foundinj = np.nan
 
             results = pd.DataFrame({
                     'kicid':kicid,

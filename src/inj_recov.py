@@ -413,7 +413,7 @@ def retrieve_random_lc():
     '''
     Retrieve the light curves for all quarters of a randomly selected entry
     of the KEBC.
-    Returns a dictionary with keys of quarter number.
+    Returns a dictionary with keys of quarter number and a flag if failed.
     '''
 
     kebc = get_kepler_ebs_info()
@@ -430,6 +430,55 @@ def retrieve_random_lc():
         lcflag = False
 
     return rd, lcflag
+
+
+def retrieve_next_lc(stage=None, blacklist=None):
+    '''
+    Get the next LC from the KEBWG list of morph>0.6 EBs.
+    Returns a dictionary with keys of quarter number and a flag if failed.
+    '''
+
+    kebc = get_kepler_ebs_info()
+    kebc = kebc[kebc['morph']>0.6]
+    kebc_kic_ids = np.sort(np.array(kebc['KIC']))
+
+    ind = 0
+    # Find the next KIC ID to search (requires dipsearchplot, pkl, and whitened
+    # diagnostic to proceed).
+    while True:
+        if ind == len(kebc_kic_ids):
+            return np.nan, 'finished', np.nan
+        this_id = kebc_kic_ids[ind]
+        if this_id in blacklist:
+            ind += 1
+            continue
+
+        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/real/') if
+                f.endswith('.p') and f.startswith(str(this_id)) and stage in f]
+        dspmatch = [f for f in os.listdir('../results/dipsearchplot/real/') if
+                f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
+        wdmatch = [f for f in os.listdir('../results/whitened_diagnostic/real/') if
+                f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
+
+        if len(pklmatch)>0 and len(dspmatch)>0 and len(wdmatch)>0:
+            LOGINFO('Found {:s} pkl, dipsearchplt, whitened_diagnostic'.format(
+                str(this_id)))
+            blacklist.append(this_id)
+            ind += 1
+            continue
+        else:
+            break
+
+    # Retrieve the LC data.
+    rd = get_all_quarters_lc_data(this_id)
+    if len(rd) < 1:
+        lcflag = True
+        LOGERROR('Error getting LC data. KICID-{:s}'.format(
+            str(this_id)))
+    else:
+        lcflag = False
+
+    return rd, lcflag, blacklist
 
 
 def get_kepler_ebs_info():
@@ -578,6 +627,9 @@ def detrend_allquarters(lcd, σ_clip=None, inj=False):
     '''
 
     rd = {}
+    keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+    LOGINFO('Beginning detrend. KIC {:s}'.format(str(keplerid)))
+
     for k in lcd.keys():
         rd[k] = detrend_lightcurve(lcd[k], k, σ_clip=σ_clip,
                 inj=inj)
@@ -1350,7 +1402,7 @@ def find_dips(lcd, allq, method='bls'):
             mintransitduration=minTdur_φ,
             maxtransitduration=maxTdur_φ,
             autofreq=True, # auto-find frequencies and nphasebins
-            nbestpeaks=20, # large number now, filter for positive dips after
+            nbestpeaks=30, # large number now, filter for positive dips after
             periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
             nworkers=None,
             sigclip=None)
@@ -1370,9 +1422,12 @@ def find_dips(lcd, allq, method='bls'):
         # given to it. So we need to run SERIAL BLS around the nbestperiods
         # that we want epochs for, and wrangle the results of that to get 
         # good epochs. The same applies when we want to impose only positive
-        # dips (for dimmings of the star).
+        # dips (for dimmings of the star) or want to get depths of nbestperiods
         ntokeep, ix = 5, 0
         while len(df_dict[ap]['finebls']) < ntokeep:
+            if ix == len(nbestperiods):
+                LOGERROR('Could not find enough positive dips. Breaking out.')
+                break
             nbestperiod = nbestperiods[ix]
             # do ~10000 frequencies within +/- 0.5% of nbestperiod
             rdiff = 0.005
@@ -1386,8 +1441,10 @@ def find_dips(lcd, allq, method='bls'):
             nphasebins = int(np.ceil(2.0/minTdur_φ))
 
             LOGINFO('Narrow serial BLS: {:d} freqs, '.format(nfreq)+\
-                    'start {:.6g} d, end {:.6g} d. {:d} phasebins.'.format(
-                    startp, endp, nphasebins))
+                    '\nstart {:.6g} d, end {:.6g} d. {:d} phasebins.'.format(
+                    startp, endp, nphasebins)+\
+                    '\ncurrent len df_dict: {:d}, ix: {:d}'.format(
+                        len(df_dict[ap]['finebls']), ix))
 
             sd = periodbase.bls_serial_pfind(times, fluxs, errs,
                  magsarefluxes=True,
@@ -1404,6 +1461,9 @@ def find_dips(lcd, allq, method='bls'):
 
             # ensure that at the end of the day, we keep only positive dips.
             if sd['blsresult']['transdepth'] < 0:
+                LOGINFO('Skip P={:.4g} (transdepth<0). ix={:d}'.format(
+                            nbestperiod, ix))
+                ix += 1
                 continue
 
             df_dict[ap]['finebls'][nbestperiod] = {}
@@ -1505,10 +1565,10 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
         pklname = kicid+'.p'
 
     predir = ''
-    if 'no_inj' not in stage:
+    if 'inj' in stage:
         predir += 'inj/'
-    elif 'no_inj' in stage:
-        predir += 'no_inj/'
+    else:
+        predir += 'real/'
     spath = '../data/injrecov_pkl/'+predir+pklname
     sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
 
@@ -1545,8 +1605,8 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
     predir = ''
     if 'inj' in stage:
         predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
+    else:
+        predir += 'real/'
 
     lpath = '../data/injrecov_pkl/'+predir+pklname
 
@@ -1572,8 +1632,8 @@ def load_allq_data(kicid, stage=None, δ=None):
     predir = ''
     if 'inj' in stage:
         predir += 'inj/'
-    elif 'inj' not in stage:
-        predir += 'no_inj/'
+    else:
+        predir += 'real/'
 
     lpath = '../data/injrecov_pkl/'+predir+pklname
 

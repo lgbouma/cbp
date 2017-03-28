@@ -426,7 +426,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     ax_raw.set(xlabel='', ylabel=ap+' flux\n[counts/s]',
         xlim=[xmin,xmax],
         title='KICID:{:s}, {:s}, q_flag>0, KEBC_period: {:.7f} day.'.format(
-        str(keplerid), ap, kebc_period) + ' (n=20 legendre series fit)')
+        str(keplerid), ap, kebc_period) + ' (n=?? legendre series fit)')
     dtr_txt='Fit: legendre series to phase-folded by quarter.'
     ax_dtr.text(0.5,0.98, dtr_txt, horizontalalignment='center',
             verticalalignment='top', transform=ax_dtr.transAxes)
@@ -436,7 +436,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
             linestyles='--',
             zorder=-20)
 
-    w_txt='fit: n=20 legendre series.'
+    w_txt='fit: n=?? legendre series.'
     ax_w.text(0.5,0.98, w_txt, horizontalalignment='center',
             verticalalignment='top', transform=ax_w.transAxes)
 
@@ -537,10 +537,10 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
 
     # Figure out names and write.
     savedir = '../results/whitened_diagnostic/'
-    if 'inj' in stage:
+    if inj:
         savedir += 'inj/'
-    elif 'inj' not in stage:
-        savedir += 'no_inj/'
+    else:
+        savedir += 'real/'
     plotname = str(keplerid)+'_'+ap+stage+'.png'
     if 'eb_sbtr' in stage:
         # override for EB subtraction tests
@@ -600,9 +600,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         if after redtrending and injecting transits.
 
     varepoch (str or None): if 'bls', goes by the ingress/egress computed in
-        binned-phase from BLS. If 'splfit', tries to find a good epoch by
-        spline fitting to the binned phase-folded LC (formerly implemented, now
-        broken).
+        binned-phase from BLS.
 
     Returns: nothing, but saves the plot with a smart name to
         ../results/dipsearchplot/
@@ -612,6 +610,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     assert ap == 'sap' or ap == 'pdc'
 
     keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+    LOGINFO('beginning dipsearch plot, KIC {:s}'.format(
+        str(keplerid)))
 
     colors = ['r', 'g', 'b', 'gray']
 
@@ -680,8 +680,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     # label axes, set xlimits for entire time series.
     timelen = max_time - min_time
-    p = allq['inj_model']
-    injdepth = (p['params'].rp)**2
+    p = allq['inj_model'] if inj else np.nan
+    injdepth = (p['params'].rp)**2 if inj else np.nan
 
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     ax_raw.get_xaxis().set_ticks([])
@@ -692,8 +692,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ax_raw.set_title(
         'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f}. '.format(
         str(keplerid), ap.upper(), kebc_period)+\
-        'day, inj, dtr, whitened, redtr (n=20 legendre series fit). '+\
-        'Depth_inj: {:.4f}'.format(injdepth),
+        'day, inj={:s}, dtr, iter whitened. '.format(str(inj))+\
+        'Depth_inj: {:.4g}'.format(injdepth),
         fontsize='xx-small')
     ax_raw.hlines([0.005,-0.005], xmin, xmax,
             colors='k',
@@ -703,36 +703,15 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ############################
     # PHASE-FOLDED LIGHTCURVES #
     ############################
-    pgd = allq['dipfind']['bls'][ap]['coarsebls']
-    nbestperiods = pgd['nbestperiods']
+    pgdf = allq['dipfind']['bls'][ap]['finebls']
+    periods_powers = [(k, max(pgdf[k]['serialdict']['lspvals'])) \
+            for k in list(pgdf.keys())]
+    nbestperiods = [per for (per,power) in sorted(periods_powers,
+            key=lambda pair:pair[1], reverse=True)]
+
     for ix, ax in enumerate(axs_φ):
 
         foldperiod = nbestperiods[ix]
-
-        if isinstance(varepoch,str) and varepoch == 'splfit':
-            try:
-                assert 0
-                lc = allq['dipfind']['tfe'][ap]
-                ftimes = lc['times']
-                ffluxs = lc['fluxs']
-                ferrs = lc['errs']
-                spfit = spline_fit_magseries(ftimes,
-                                             ffluxs,
-                                             ferrs,
-                                             foldperiod,
-                                             magsarefluxes=True,
-                                             sigclip=None)
-                varepoch = spfit['fitinfo']['fitepoch']
-                if len(varepoch) != 1:
-                    varepoch = varepoch[0]
-
-                LOGINFO('KEPID %s (%s) making phased LC. P: %.6f, t_0: %.5f' %
-                        (str(keplerid), ap, foldperiod, varepoch))
-
-            except Exception as e:
-                LOGEXCEPTION(
-                'option not yet implemented (call lcmath.phase_magseries)'
-                )
 
         # Recover quantities to plot, defined on φ=[0,1]
         fbls = allq['dipfind']['bls'][ap]['finebls'][foldperiod]
@@ -765,12 +744,13 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
             ax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10,color='blue')
 
         if inset:
-            subpos = [0.03,0.79,0.25,0.2]
+            subpos = [0.03,0.03,0.25,0.2]
             iax = _add_inset_axes(ax,f,subpos)
 
-            iax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=2*0.3,color='gray')
+            iax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=2*0.1,color='gray')
             if phasebin:
-                iax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10*0.3,color='blue')
+                iax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10*0.2,
+                        color='blue', zorder=20)
             iaxylim = iax.get_ylim()
 
             iax.set(ylabel='', xlim=[-0.7,0.7])
@@ -785,14 +765,18 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
                 transform=ax.transAxes, fontsize='x-small')
 
         ax.set(ylabel='', xlim=[-0.1,0.1])
+        ymin = np.mean(plotfluxs) - 3*np.std(plotfluxs)
+        ymax = np.mean(plotfluxs) + 1.5*np.std(plotfluxs)
+        ax.set_ylim([ymin, ymax])
         axylim = ax.get_ylim()
         ax.vlines([0.], min(axylim), max(axylim), colors='red',
                 linestyles='-', alpha=0.9, zorder=-1)
+        ax.set_ylim([ymin, ymax])
         if inset:
             iax.vlines([-0.5,0.5], min(iaxylim), max(iaxylim), colors='black',
                     linestyles='-', alpha=0.7, zorder=30)
             iax.vlines([0.], min(iaxylim), max(iaxylim), colors='red',
-                    linestyles='-', alpha=0.9, zorder=30)
+                    linestyles='-', alpha=0.9, zorder=-1)
 
 
     ################
@@ -801,30 +785,42 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     pgdc = allq['dipfind']['bls'][ap]['coarsebls']
     pgdf = allq['dipfind']['bls'][ap]['finebls']
 
-    ax_pg.plot(pgdc['periods'], pgdc['lspvals'], 'k-')
+    ax_pg.plot(pgdc['periods'], pgdc['lspvals'], 'k-', zorder=10)
 
     pwr_ylim = ax_pg.get_ylim()
-    nbestperiods = pgdc['nbestperiods']
-    cbestperiod = pgd['bestperiod']
+
+    pgdf = allq['dipfind']['bls'][ap]['finebls']
+    periods_powers = [(k, max(pgdf[k]['serialdict']['lspvals'])) \
+            for k in list(pgdf.keys())]
+    nbestperiods = [per for (per,power) in sorted(periods_powers,
+            key=lambda pair:pair[1], reverse=True)]
+    cbestperiod = nbestperiods[0]
 
     # We want the FINE best period, not the coarse one (although the frequency
     # grid might actually be small enough that this doesn't improve much!)
     fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
 
     best_t0 = min_time + bestφ_0*fbestperiod
-    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
-            linestyles=':', alpha=0.8, zorder=20)
+    ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='g',
+            linestyles='-', alpha=1, lw=1.5, zorder=-5)
+    # Show 10 best coarse periods.
+    ax_pg.vlines(pgdc['nbestperiods'][:10], min(pwr_ylim), max(pwr_ylim),
+            colors='gray', linestyles='--', lw=1, alpha=0.7, zorder=-10)
 
-    p = allq['inj_model']
-    injperiod = p['params'].per
-    inj_t0 = p['params'].t0
-    ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
-            linestyles='-', alpha=0.8, zorder=10)
+    p = allq['inj_model'] if inj else np.nan
+    injperiod = p['params'].per if inj else np.nan
+    inj_t0 = p['params'].t0 if inj else np.nan
+    if inj:
+        ax_pg.vlines(injperiod, min(pwr_ylim), max(pwr_ylim), colors='g',
+                linestyles='-', alpha=0.8, zorder=10)
 
-    #lcd[qnum]['white'][inum][ap]['per']['periods']
-    #selforcedkebc = lcd[qnum]['per'][ap]['selforcedkebc']
-    txt = 'P_inj: %.4f d\nP_rec: %.4f d\nt_0,inj: %.4f\nt_0,rec: %.4f' % \
-          (injperiod, fbestperiod, inj_t0, best_t0)
+    if inj:
+        txt = 'P_inj: %.4f d\nP_rec: %.4f d\nt_0,inj: %.4f\nt_0,rec: %.4f' % \
+              (injperiod, fbestperiod, inj_t0, best_t0)
+    else:
+        txt = 'P_rec: %.4f d\nt_0,rec: %.4f' % \
+              (fbestperiod, best_t0)
+
     ax_pg.text(0.96,0.96,txt,horizontalalignment='right',
             verticalalignment='top',
             transform=ax_pg.transAxes)
@@ -832,7 +828,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ax_pg.set(xlabel='period [d]', xscale='log')
     ax_pg.get_yaxis().set_ticks([])
     ax_pg.set(ylabel='BLS power')
-
+    ax_pg.set(ylim=[min(pwr_ylim),max(pwr_ylim)])
 
 
     # Figure out names and write.
@@ -840,12 +836,12 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     if 'inj' in stage:
         savedir += 'inj/'
     elif 'inj' not in stage:
-        savedir += 'no_inj/'
+        savedir += 'real/'
     plotname = str(keplerid)+'_'+ap+stage+'.png'
 
     f.savefig(savedir+plotname, dpi=300, bbox_inches='tight')
 
-    LOGINFO('Made & saved whitened plot to {:s}'.format(savedir+plotname))
+    LOGINFO('Made & saved dipsearch plot to {:s}'.format(savedir+plotname))
 
 
 def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False, δ=None):
@@ -938,14 +934,17 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False, δ=None):
                       'k-')
 
             selperiod = lcd[qnum]['white'][inum][ap]['per']['selperiod']
-            inj_period = allq['inj_model']['params'].per
+            if inj:
+                inj_period = allq['inj_model']['params'].per
             pwr_ylim = ax_pg.get_ylim()
-            ax_pg.vlines(selperiod, min(pwr_ylim), max(pwr_ylim), colors='r', linestyles='--', alpha=0.8,
-                         zorder=20, label='P sel')
-            ax_pg.vlines(kebc_period, min(pwr_ylim), max(pwr_ylim), colors='g', linestyles='--', alpha=0.8,
-                     zorder=20, label='P EB')
-            ax_pg.vlines(inj_period, min(pwr_ylim), max(pwr_ylim), colors='b', linestyles=':', alpha=0.8,
-                     zorder=20, label='P CBP')
+            ax_pg.vlines(selperiod, min(pwr_ylim), max(pwr_ylim), colors='r',
+                    linestyles='--', alpha=0.8, zorder=20, label='P sel')
+            ax_pg.vlines(kebc_period, min(pwr_ylim), max(pwr_ylim), colors='g',
+                    linestyles='--', alpha=0.8, zorder=20, label='P EB')
+            if inj:
+                ax_pg.vlines(inj_period, min(pwr_ylim), max(pwr_ylim),
+                        colors='b', linestyles=':', alpha=0.8, zorder=20,
+                        label='P CBP')
             ax_pg.legend(fontsize='xx-small', loc='lower right')
             ax_pg.set_ylim(pwr_ylim)
             ax_pg.set(xscale='log')
@@ -981,14 +980,18 @@ def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False, δ=None):
             f.tight_layout()
 
             savedir = '../results/eb_subtraction_diagnostics/'
-            if 'inj' in stage:
+            if inj:
                 savedir += 'inj/'
-            elif 'inj' not in stage:
-                savedir += 'iterwhiten/'
+            else:
+                savedir += 'real/'
 
-            fname = '{:s}_qnum{:s}_inum{:s}_{:s}sap.png'.format(
-                    str(keplerid), str(int(qnum)), str(int(inum)),
-                    str(δ))
+            if inj:
+                fname = '{:s}_qnum{:s}_inum{:s}_{:s}sap.png'.format(
+                        str(keplerid), str(int(qnum)), str(int(inum)),
+                        str(δ))
+            else:
+                fname = '{:s}_qnum{:s}_inum{:s}_sap.png'.format(
+                        str(keplerid), str(int(qnum)), str(int(inum)))
 
             f.savefig(savedir+fname, dpi=200, bbox_inches='tight')
 

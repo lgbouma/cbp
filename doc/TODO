@@ -5,29 +5,27 @@
 Identify highest significance dips in search:
 ##########
 
-* after runs are complete, parse LOGS for LOGERRORs, e.g.,
-      LOGERROR('ingbinind from eebls.f shorter than it should be.')
-      LOGERROR('Hard-setting ingress and egress phases.')
-  (that bug that I hard-coded a hacky-exception for, because I don't understand
-  it)
+*  fix retrieve_next_lc logic for repeats to work (in the style of: you have
+the pickles, now you want the plots that you messed up earlier) 
+        lcd, lcflag = ir.retrieve_next_lc()
 
-* refactor (e.g., on a new git branch) to take out pieces of code that are not
-  and will not be used any more.
+* fix the order of dips in dipsearchplot to be correct...
+  also fix the ylims
+  also fix the dashed red lines shown on periodogram
 
-* make injection actually optional in main (so that you can just run whitening
-  and dipfinding search over all the KEBC stars)
+*  write an analog of this that summarizes result from realsearch. (in
+  run_the_machine) irra.summarize_injrecov_result()
 
 * run on actual KEBC stars, now that completeness is high enough.
   ->  _look through_ the ~1.5k search results, sorted per the above.
 
 * Sort discovered candidates by depth/RMS.
 
-
 * how big & how fine of an injection grid do we need/want to answer the
   *statistical* questions (on occurrence rates)
 
 * Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from 
-e.g., BLS. Are they equivalent? Which is better?
+  e.g., BLS. Are they equivalent? Which is better?
 
 * why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
   pipeline?). How many of these instances are there?
@@ -37,19 +35,6 @@ e.g., BLS. Are they equivalent? Which is better?
   obliquity of star? (if you understand the pulsation dirns, you get a
   preferred dirn). Can u understand the pulsations better by getting spatially-
   resolved light?
-
-* bugfix:
-(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
-  File "run_inj_recov.py", line 522, in <module>
-    injrecov_test1(103, stage='dipsearch', inj=True, ds=True, whitened=True)
-  File "run_inj_recov.py", line 438, in injrecov_test1
-    allq = ir.find_dips(lcd, allq, method='bls')
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 1930, in find_dips
-    φ_egr = φ_bin[egrbinind]
-IndexError: index 393 is out of bounds for axis 0 with size 392
-
-[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_5.txt
-
 
 * bugfix:
 
