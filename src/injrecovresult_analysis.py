@@ -221,6 +221,9 @@ def write_search_result(lcd, allq, inj=None, stage=None):
         # Recover best period, and corresponding BLS depth.
         pgdc = allq['dipfind']['bls'][ap]['coarsebls']
         pgdf = allq['dipfind']['bls'][ap]['finebls']
+        fblserr = True if len(pgdf)==0 else False
+        if fblserr:
+            break
         # Use keys because the full coarseperiod list includes wrong-sign
         # transit depths. We want the nbestperiods that were selected here, in
         # BLS-power sorted order. Start with an unsorted list of tuples:
@@ -300,6 +303,8 @@ def write_search_result(lcd, allq, inj=None, stage=None):
 
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
                 kicid,csvdir,ap))
+
+    return fblserr
 
 
 #########

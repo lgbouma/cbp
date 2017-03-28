@@ -113,10 +113,12 @@ def recov(inj=False,
         # Append results to tables. If you want to rewrite (e.g., because
         # you've multiple-append the same ones) run inj_recovresultanalysis.py
         if 'realsearch' in stage:
-            irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+            fblserr = irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+            if fblserr:
+                print('error in finebls -> got 0 len pgdf. forced continue')
 
         # Make plots.
-        if ds:
+        if ds and not fblserr:
             doneplots = os.listdir('../results/dipsearchplot/'+predir)
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
