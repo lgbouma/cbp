@@ -711,6 +711,8 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     for ix, ax in enumerate(axs_φ):
 
+        if ix == len(nbestperiods):
+            break
         foldperiod = nbestperiods[ix]
 
         # Recover quantities to plot, defined on φ=[0,1]
