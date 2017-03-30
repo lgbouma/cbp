@@ -5,36 +5,83 @@
 Identify highest significance dips in search:
 ##########
 
-*  fix retrieve_next_lc logic for repeats to work (in the style of: you have
-the pickles, now you want the plots that you messed up earlier) 
-        lcd, lcflag = ir.retrieve_next_lc()
+* debug:
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
+File "run_the_machine.py", line 146, in recov irp.whitenedplot_6row(lcd,
+ap='sap', stage=stage, inj=inj) File
+"/home/luke/Dropbox/proj/cbp/src/inj_recov_plots.py", line 549, in
+whitenedplot_6row f.savefig(savedir+plotname, dpi=300) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py",
+line 1565, in savefig self.canvas.print_figure(*args, **kwargs) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_qt5agg.py",
+line 196, in print_figure FigureCanvasAgg.print_figure(self, *args, **kwargs)
+File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backend_bases.py",
+line 2232, in print_figure **kwargs) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py",
+line 527, in print_png FigureCanvasAgg.draw(self) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py",
+line 474, in draw self.figure.draw(self.renderer) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
+line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py",
+line 1159, in draw func(*args) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
+line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/axes/_base.py",
+line 2324, in draw a.draw(renderer) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
+line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
+"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/text.py",
+line 757, in draw raise ValueError("posx and posy should be finite values")
+ValueError: posx and posy should be finite values
 
-* fix the order of dips in dipsearchplot to be correct...
-  also fix the ylims
-  also fix the dashed red lines shown on periodogram
+During handling of the above exception, another exception occurred:
 
-*  write an analog of this that summarizes result from realsearch. (in
-  run_the_machine) irra.summarize_injrecov_result()
+Traceback (most recent call last): File "run_the_machine.py", line 404, in
+<module> nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4) File
+"run_the_machine.py", line 149, in recov str(keplerid))) NameError: name
+'keplerid' is not defined
 
-* run on actual KEBC stars, now that completeness is high enough.
-  ->  _look through_ the ~1.5k search results, sorted per the above.
 
-* Sort discovered candidates by depth/RMS.
+* check why output depths are still negative (even post-correction... this is
+likely something in the postprocessing? (else it's that I actually do need to
+redo all my injection/recovery runs)
+
+* Make sure injrecov works with the recov-only update
+
+* write an analog of this that summarizes result from realsearch. (in
+run_the_machine) irra.summarize_injrecov_result()
+
+* make easiest speed improvements (e.g., profile with python -m cProfiler)
+(currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
+dataset. It gives >1 month to run the injection recovery sims, which is
+untenable.).
+
+* move to adroit for full injrecov simulations, and full search.
+
+* production run on actual KEBC stars, now that completeness is high enough.
+->  _look through_ the ~1.5k search results, sorted per the above.
+
 
 * how big & how fine of an injection grid do we need/want to answer the
-  *statistical* questions (on occurrence rates)
+_statistical_ questions (on occurrence rates) --> see
+../../peerless/peerless/occurrence.py for an example of the actual calculation
+that's required
 
-* Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from 
-  e.g., BLS. Are they equivalent? Which is better?
+* Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from
+e.g., BLS. Are they equivalent? Which is better?
 
 * why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
-  pipeline?). How many of these instances are there?
+pipeline?). How many of these instances are there?
 
-* read WASP 33 Van Esse+ COROT paper. δ scuti w/ a transiting planet.
-  > spatially-resolved light from transiting planet. Can you get e.g.,
-  obliquity of star? (if you understand the pulsation dirns, you get a
-  preferred dirn). Can u understand the pulsations better by getting spatially-
-  resolved light?
+* read WASP 33 Van Esse+ COROT paper. δ scuti w/ a transiting planet.  >
+spatially-resolved light from transiting planet. Can you get e.g., obliquity of
+star? (if you understand the pulsation dirns, you get a preferred dirn). Can u
+understand the pulsations better by getting spatially- resolved light?
+
+* look at DFM's new O(N) GP models. Can they be used for *discovery*, as is the
+idea here?
 
 * bugfix:
 

@@ -187,4 +187,28 @@ Mon 27 Mar 2017 09:20:33 AM EDT
 * make injection actually optional in main (so that you can just run whitening
   and dipfinding search over all the KEBC stars)
 
+*  fix retrieve_next_lc logic for repeats to work (in the style of: you have
+the pickles, now you want the plots that you messed up earlier) 
+        lcd, lcflag = ir.retrieve_next_lc()
+
+* fix the order of dips in dipsearchplot to be correct...
+  also fix the ylims
+  also fix the dashed red lines shown on periodogram
+
+Thu 30 Mar 2017 11:06:36 AM EDT
+
+* turn ur existing completeness map data into a "heatmap" (like shade in where
+  you can detect things, and where you can't). then show ur candidates on that
+  map.
+
+* add baseline, SNR_inj_pf, SNR_rec_pf to result csvs
+
+* Write something that lets you regenerate, from pkls:
+  X injrecov summary csv files
+  > LOL i already did this. that's the `-p` option.
+  X recov summary csv files
+  > added option for this
+
+* Sort discovered candidates by depth/RMS * sqrt(obs baseline)... or something else?
+  * Make plots to see how clean this is (scatter, then completeness maps)
 
