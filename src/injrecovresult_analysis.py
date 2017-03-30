@@ -1,8 +1,10 @@
 '''
 Routines for analyzing the results of the injection recovery experiments.
+(Where injection is optional).
 
 >>> python inj_recovresultanalysis.py
-:: Runs summarize_injrecov_result and completeness_top1_plots.
+:: Runs summarize_injrecov_result, completeness_top1_scatterplots, and
+   completeness_top1_heatmap.
 
 write_search_result:
     Append the result of a search (i.e. what best dips did it find?
@@ -10,11 +12,18 @@ write_search_result:
     in appropriate places).
 
 summarize_injrecov_result:
-    Summarizes csv files into a text file
+    Summarizes csv files from injection/recovery into a text file
 
-completeness_top1_plots:
-    Turns csv files into pdf plots (stored in ../results/injrecovresult/plots)
+summarize_realsearch_result:
+    Summarizes csv files from search for dips into a candidate list
 
+completeness_top1_scatterplots:
+    Turns csv files into pdf plots (stored in ../results/injrecovresult/plots).
+    The points on these plots are individual inj/recov expts.
+
+completeness_top1_heatmap:
+    csv files -> plots (stored in ../results/real_search/plots if approriate
+    arg is passed, else in ../results/injrecovresult/plots).
 '''
 import pandas as pd, numpy as np, os
 import time, logging
@@ -22,6 +31,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import pdb
 import subprocess
+from itertools import product
 plt.style.use('utils/lgb.mplstyle')
 
 #############
@@ -153,31 +163,68 @@ def summarize_injrecov_result(substr=None):
             top1, findrate*100., int(len(df)/nbestpeaks))
         outstrs.append(outstr)
 
-    wrnout, wrnerr = run_script('cat LOGS/*'+substr+'* | grep WRN')
-    errout, errerr = run_script('cat LOGS/*'+substr+'* | grep ERR')
-    excout, excerr = run_script('cat LOGS/*'+substr+'* | grep EXC')
+    # Get warnings
     wrnerrexc = []
-    for out in [wrnout, errout, excout]:
-        lines = out.decode('utf-8').split('\n')[:-1]
-        wrnerrexc.append('\n')
-        for l in lines:
-            wrnerrexc.append(l)
+    if isinstance(substr,str):
+        wrnout, wrnerr = run_script('cat LOGS/*'+substr+'* | grep WRN')
+        errout, errerr = run_script('cat LOGS/*'+substr+'* | grep ERR')
+        excout, excerr = run_script('cat LOGS/*'+substr+'* | grep EXC')
+        for out in [wrnout, errout, excout]:
+            lines = out.decode('utf-8').split('\n')[:-1]
+            wrnerrexc.append('\n')
+            for l in lines:
+                wrnerrexc.append(l)
+    else:
+        wrnerrexc.append(['WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!'])
+
 
     writestr = ''
     now = time.strftime('%c')
     writestr = writestr + now + '\n'
     for outstr in outstrs:
         writestr=writestr+outstr+'\n'
-    writestr = writestr + '\n{:d} warnings, {:d} errs, {:d} exceptn:\n'.format(
-            len(wrnout.decode('utf-8').split('\n')[:-1]),
-            len(errout.decode('utf-8').split('\n')[:-1]),
-            len(excout.decode('utf-8').split('\n')[:-1]))
 
+    # Write warnings
+    if isinstance(substr,str):
+        writestr = writestr + '\n{:d} warnings, {:d} errs, {:d} exceptn:\n'.\
+                format(
+                len(wrnout.decode('utf-8').split('\n')[:-1]),
+                len(errout.decode('utf-8').split('\n')[:-1]),
+                len(excout.decode('utf-8').split('\n')[:-1]))
     for wee in wrnerrexc:
         writestr=writestr+wee+'\n'
 
     print(writestr)
     f.write(writestr)
+    f.close()
+
+
+def summarize_realsearch_result(substr=None):
+    '''
+    Summarizes csv files from search for dips into a candidate list.  Also
+    write errors that came up in the logs to a text file.
+
+    Args:
+        substr (str): the substring specific to src/LOGS that identifies
+        whichever set of logs you want to see errors & warnings from.
+        E.g., "findrealdips", or "170327",
+    '''
+    csvdir = '../results/real_search/'
+    csvnames = [f for f in os.listdir(csvdir) if 'irresult_sap' in f]
+    summpath = '../results/real_search/summary.txt'
+    f = open(summpath, 'w')
+    outstrs = []
+
+    # First: we want SNR (per transit) sorted candidate lists.
+    top1s = np.sort([csvdir+n for n in csvnames if 'top1' in n])
+
+    #FIXME: ACTUALLY FINISH THIS FUNCTION
+
+
+    # Parse logs for problems.
+    #print(writestr)
+    #f.write(writestr)
+
     f.close()
 
 
@@ -212,8 +259,10 @@ def write_search_result(lcd, allq, inj=None, stage=None):
         csv2name = 'irresult_'+ap+'_allN.csv'
 
         # Get minimum time for epoch zero-point.
+        times = allq['dipfind']['tfe'][ap]['times']
+        baseline = np.max(times) - np.min(times)
         lc = allq['dipfind']['tfe'][ap]
-        min_time = np.min(lc['times'])
+        min_time = np.min(times)
         fluxs = lc['fluxs']
         meanflux = np.mean(fluxs)
         rms_biased = float(np.sqrt(np.sum((fluxs-meanflux)**2) / len(fluxs)))
@@ -262,6 +311,9 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             else:
                 foundinj = np.nan
 
+            # Give or take.
+            Ntra = baseline/P_rec
+
             results = pd.DataFrame({
                     'kicid':kicid,
                     'kebc_period':kebc_period,
@@ -275,7 +327,11 @@ def write_search_result(lcd, allq, inj=None, stage=None):
                     'foundinj':foundinj,
                     'rms_biased':rms_biased,
                     'depth_inj':δ,
-                    'depth_rec':fdepth
+                    'SNR_inj_pf':δ/rms_biased*np.sqrt(Ntra),
+                    'depth_rec':fdepth,
+                    'SNR_rec_pf':fdepth/rms_biased*np.sqrt(Ntra),
+                    'baseline':baseline,
+                    'Ntra':Ntra
                     }, index=['0'])
 
             # Write csv1 (appending if the csv file already exists)
@@ -311,7 +367,224 @@ def write_search_result(lcd, allq, inj=None, stage=None):
 # PLOTS #
 #########
 
-def completeness_top1_plots():
+def completeness_top1_heatmap(realsearch=None):
+    '''
+    csv files -> plots (stored in ../results/real_search/plots if approriate
+    arg is passed, else in ../results/injrecovresult/plots).
+
+    args:
+        realsearch (bool): whether you want "real search" points overplotted
+        (as scatter).
+    '''
+    plt.style.use('utils/fancy.mplstyle')
+    assert realsearch == True or realsearch == False
+
+    fpath = '../results/injrecovresult/irresult_sap_top1.csv'
+    df = pd.read_csv(fpath)
+
+    ##############################
+    # SNR (per transit) vs P_CBP #
+    ##############################
+    # get ones and zeros for found/not found.
+    df['found'] = list(map(int, df['foundinj']))
+    df['SNR'] = df['depth_inj']/df['rms_biased']
+    # for half-log bins:
+    #Pgrid = np.logspace(-1,3,9)
+    #SNRgrid = np.logspace(-1,2,7)
+    # for third-log bins:
+    Pgrid = np.logspace(-1,3,13)
+    SNRgrid = np.logspace(-1,2,10)
+    Pbins = [(float(Pgrid[i]), float(Pgrid[i+1])) \
+                    for i in range(len(Pgrid)-1)]
+    SNRbins = [(float(SNRgrid[i]), float(SNRgrid[i+1])) \
+                    for i in range(len(SNRgrid)-1)]
+
+    P = np.array(df['P_inj'])
+    SNR = np.array(df['SNR'])
+    found = np.array(df['found'])
+    results = []
+
+    for (Pmin, Pmax), (SNRmin, SNRmax) in product(Pbins, SNRbins):
+            # get inj/recov expts in this bin
+            sel = (P > Pmin) & (P < Pmax)
+            sel &= (SNR > SNRmin) & (SNR < SNRmax)
+
+            thisP, thisSNR, thisFound = P[sel], SNR[sel], found[sel]
+            thisDenom = len(found[sel])
+            thisNum = len(thisFound[thisFound==1])
+
+            if thisDenom > 0:
+                thisFrac = thisNum/thisDenom
+            else:
+                thisFrac = 0.
+
+            results.append(thisFrac)
+
+    results = np.reshape(results, (len(Pbins),len(SNRbins)))
+
+    plt.close('all')
+    f, ax = plt.subplots()
+    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='Blues')
+
+    if realsearch:
+        fpath = '../results/real_search/irresult_sap_top1.csv'
+        rs = pd.read_csv(fpath)
+        rs['SNR_rec'] = rs['depth_rec']/rs['rms_biased']
+        ax.scatter(rs['P_rec'], rs['SNR_rec'], c='red', lw=0, marker='o',
+                label='$\mathrm{real\ search\ data}$', s=5, alpha=0.6)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylabel('$\delta/\mathrm{RMS}\ (\mathrm{per\ transit})$')
+    ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
+    ax.set_xlim([1e-1, 1e3])
+    ax.set_ylim([1e-1, 1e2])
+    cb = f.colorbar(im, orientation='vertical')
+    cb.set_label('$\mathrm{percent\ recovered}$')
+    if realsearch:
+        lg = ax.legend(loc='best', scatterpoints=1)
+        lg.get_frame().set_facecolor('none')
+        lg.get_frame().set_linewidth(0.)
+    f.tight_layout()
+    plotdir = '../results/injrecovresult/plots/' if not realsearch else \
+              '../results/real_search/plots/'
+    plotname = 'completeness_heatmap_top1_SNR_vs_periodcbp.pdf'
+    f.savefig(plotdir+plotname)
+
+    ###############################
+    # SNR (phase-folded) vs P_CBP #
+    ###############################
+    Pgrid = np.logspace(-1,3,13)
+    SNRgrid = np.logspace(0,3,13)
+    Pbins = [(float(Pgrid[i]), float(Pgrid[i+1])) \
+                    for i in range(len(Pgrid)-1)]
+    SNRbins = [(float(SNRgrid[i]), float(SNRgrid[i+1])) \
+                    for i in range(len(SNRgrid)-1)]
+
+    P = np.array(df['P_inj'])
+    SNR = np.array(df['SNR_rec_pf'])
+    found = np.array(df['found'])
+    results = []
+
+    for (Pmin, Pmax), (SNRmin, SNRmax) in product(Pbins, SNRbins):
+            # get inj/recov expts in this bin
+            sel = (P > Pmin) & (P < Pmax)
+            sel &= (SNR > SNRmin) & (SNR < SNRmax)
+
+            thisP, thisSNR, thisFound = P[sel], SNR[sel], found[sel]
+            thisDenom = len(found[sel])
+            thisNum = len(thisFound[thisFound==1])
+
+            if thisDenom > 0:
+                thisFrac = thisNum/thisDenom
+            else:
+                thisFrac = 0.
+
+            results.append(thisFrac)
+
+    results = np.reshape(results, (len(Pbins),len(SNRbins)))
+
+    plt.close('all')
+    f, ax = plt.subplots()
+    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='Blues')
+
+    if realsearch:
+        fpath = '../results/real_search/irresult_sap_top1.csv'
+        rs = pd.read_csv(fpath)
+        ax.scatter(rs['P_rec'], rs['SNR_rec_pf'], c='red', lw=0, marker='o',
+                label='$\mathrm{real\ search\ data}$', s=5, alpha=0.6)
+
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_ylabel(r'$\delta/\mathrm{RMS}\times\sqrt{N_\mathrm{tra}}$')
+    ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
+    ax.set_xlim([10**(-0.5), 1e3])
+    ax.set_ylim([1e0, 10**(2.5)])
+    cb = f.colorbar(im, orientation='vertical')
+    cb.set_label('$\mathrm{percent\ of\ injections\ recovered}$')
+    if realsearch:
+        lg = ax.legend(loc='best', scatterpoints=1)
+        lg.get_frame().set_facecolor('none')
+        lg.get_frame().set_linewidth(0.)
+    f.tight_layout()
+    plotdir = '../results/injrecovresult/plots/' if not realsearch else \
+              '../results/real_search/plots/'
+    plotname = 'completeness_heatmap_top1_pfSNR_vs_periodcbp.pdf'
+    f.savefig(plotdir+plotname)
+
+    ##############
+    # δ vs P_CBP #
+    ##############
+    # for third-log bins:
+    Pgrid = np.logspace(-1,3,13)
+    Rgrid = np.logspace(0,2,15)
+    Pbins = [(float(Pgrid[i]), float(Pgrid[i+1])) \
+                    for i in range(len(Pgrid)-1)]
+    Rbins = [(float(Rgrid[i]), float(Rgrid[i+1])) \
+                    for i in range(len(Rgrid)-1)]
+
+    # compute radius
+    import astropy.units as u
+    import astropy.constants as c
+
+    P = np.array(df['P_inj'])
+    found = np.array(df['found'])
+    R = (np.array(np.sqrt(df['depth_inj']))*1.5*u.Rsun).to(u.Rearth).value
+    results = []
+
+    for (Pmin, Pmax), (Rmin, Rmax) in product(Pbins, Rbins):
+            # get inj/recov expts in this bin
+            sel = (P > Pmin) & (P < Pmax)
+            sel &= (R > Rmin) & (R < Rmax)
+
+            thisP, thisR, thisFound = P[sel], R[sel], found[sel]
+            thisDenom = len(found[sel])
+            thisNum = len(thisFound[thisFound==1])
+
+            if thisDenom > 0:
+                thisFrac = thisNum/thisDenom
+            else:
+                thisFrac = 0.
+
+            results.append(thisFrac)
+
+    results = np.reshape(results, (len(Pbins),len(Rbins)))
+
+    plt.close('all')
+    f, ax = plt.subplots()
+    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='Blues')
+
+    if realsearch:
+        fpath = '../results/real_search/irresult_sap_top1.csv'
+        rs = pd.read_csv(fpath)
+        rs['R_rec'] = (np.array(np.sqrt(rs['depth_rec']))*1.5*u.Rsun\
+                  ).to(u.Rearth).value
+        ax.scatter(rs['P_rec'], rs['R_rec'], c='red', lw=0, marker='o',
+                label='$\mathrm{real\ search\ data}', s=5, alpha=0.6)
+
+    cb = f.colorbar(im, orientation='vertical')
+    cb.set_label('$\mathrm{percent\ of\ injections\ recovered}$')
+    if realsearch:
+        lg = ax.legend(loc='best', scatterpoints=1)
+        lg.get_frame().set_facecolor('none')
+        lg.get_frame().set_linewidth(0.)
+
+    ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
+    ax.set_ylabel('$R_p\ [R_\oplus]$')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_title('$\mathrm{Assume}\ R_\star = 1.5R_\odot$')
+    ax.set_xlim([1e-1, 1e3])
+    ax.set_ylim([1e0, 1e2])
+
+    f.tight_layout()
+    plotdir = '../results/injrecovresult/plots/' if not realsearch else \
+              '../results/real_search/plots/'
+    plotname = 'completeness_heatmap_top1_Rp_vs_periodcbp.pdf'
+    f.savefig(plotdir+plotname)
+
+
+def completeness_top1_scatterplots():
     fpath = '../results/injrecovresult/irresult_sap_top1.csv'
     df = pd.read_csv(fpath)
 
@@ -335,7 +608,7 @@ def completeness_top1_plots():
             bbox_inches='tight')
     plt.close('all')
 
-    # SNR vs P_CBP
+    # SNR per tra vs P_CBP
     f, ax = plt.subplots()
 
     ax.scatter(df['P_inj'][df['foundinj']==True],
@@ -346,12 +619,32 @@ def completeness_top1_plots():
                c='red', lw=0, alpha=0.9)
 
     ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
-           ylabel='$\delta/\mathrm{RMS\ (per\ transit)}$',
+           ylabel='$\delta_\mathrm{inj}/\mathrm{RMS\ (per\ transit)}$',
            xscale='log',
            yscale='log')
 
     f.tight_layout()
     f.savefig('../results/injrecovresult/plots/completeness_top1_SNR_vs_periodcbp.pdf',
+            bbox_inches='tight')
+    plt.close('all')
+
+    # SNR phase-folded (ish) vs P_CBP
+    f, ax = plt.subplots()
+
+    ax.scatter(df['P_inj'][df['foundinj']==True],
+               df['SNR_inj_pf'][df['foundinj']==True],
+               c='green', lw=0, alpha=0.9)
+    ax.scatter(df['P_inj'][df['foundinj']==False],
+               df['SNR_inj_pf'][df['foundinj']==False],
+               c='red', lw=0, alpha=0.9)
+
+    ax.set(xlabel='$P_\mathrm{CBP}\ [\mathrm{days}]$',
+           ylabel=r'$\delta_\mathrm{inj}/\mathrm{RMS}\times\sqrt{N_\mathrm{tra}}$',
+           xscale='log',
+           yscale='log')
+
+    f.tight_layout()
+    f.savefig('../results/injrecovresult/plots/completeness_top1_pfSNR_vs_periodcbp.pdf',
             bbox_inches='tight')
     plt.close('all')
 
@@ -427,4 +720,6 @@ def completeness_top1_plots():
 
 if __name__ == '__main__':
     summarize_injrecov_result(substr='completeness_test')
-    completeness_top1_plots()
+    completeness_top1_scatterplots()
+    completeness_top1_heatmap(realsearch=False)
+    completeness_top1_heatmap(realsearch=True)
