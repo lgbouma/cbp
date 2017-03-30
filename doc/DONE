@@ -250,4 +250,24 @@ Traceback (most recent call last): File "run_the_machine.py", line 404, in
 "run_the_machine.py", line 149, in recov str(keplerid))) NameError: name
 'keplerid' is not defined
 
+* check why output depths are still negative (even post-correction... this is
+likely something in the postprocessing? (else it's that I actually do need to
+redo all my injection/recovery runs)
+  > ya, it's fine for real_search. Just the output from injection/recovery is
+  before I made this change.
+
+* bugfix control flow when whitened 6row plot err
+
+* write an analog of this that summarizes result from realsearch. (in
+run_the_machine) irra.summarize_realsearch_result(). (Now using pf_SNR)
+
+* Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from
+e.g., BLS. Are they equivalent? Which is better?  
+
+>  Ya, it is. Chelsea Huang nominally ran a comparison back in 2012 (see Xu
+Huang et al ApJ with the HAT group). The result is that BLS is a bit more
+complete at short periods, for medium sized things. But the Kepler pipeline
+does better at longer periods with smaller things. This means it might be a
+good idea to look closely at the Kepler pipeline's methods, at least when
+processing Kepler data!
 

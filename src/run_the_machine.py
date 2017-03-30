@@ -147,14 +147,17 @@ def recov(inj=False,
                 except:
                     print('ERR: whitenedplot_6row gave exception (kic:{:s})'.\
                         format(str(kicid)))
+                    #need to bash-touch an empty file for control flow
+                    plotname = kicid+'_'+'sap'+stage+'.png'
+                    path = '../results/whitened_diagnostic/'+predir+plotname
+                    print('\nSince 6row ERR, touch {:s}.\n'.format(path))
+                    with open(path, 'a'):
+                        os.utime(path, None)
 
         if iwplot:
             irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                         δ=δ)
 
-        # Summarize results tables in a text file!
-        #FIXME write an analog of this that summarizes result from realsearch.
-        #irra.summarize_injrecov_result()
 
 
 def injrecov(inj=True,

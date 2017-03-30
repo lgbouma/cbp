@@ -210,21 +210,54 @@ def summarize_realsearch_result(substr=None):
         E.g., "findrealdips", or "170327",
     '''
     csvdir = '../results/real_search/'
-    csvnames = [f for f in os.listdir(csvdir) if 'irresult_sap' in f]
-    summpath = '../results/real_search/summary.txt'
-    f = open(summpath, 'w')
+    errpath = '../results/real_search/errors.txt'
+    f = open(errpath, 'w')
     outstrs = []
 
-    # First: we want SNR (per transit) sorted candidate lists.
-    top1s = np.sort([csvdir+n for n in csvnames if 'top1' in n])
+    # Sort candidate list by phase-folded SNR. 
+    top1_path = '../results/real_search/irresult_sap_top1.csv'
+    df = pd.read_csv(top1_path)
 
-    #FIXME: ACTUALLY FINISH THIS FUNCTION
+    out = df.sort_values('SNR_rec_pf', ascending=False)
+    out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
+    #write this
+    wo = out[out['SNR_rec_pf']>3]\
+            [['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
+    writedir = '../results/real_search/'
+    wo.to_csv(writedir+'candidates_sort.csv', index=False)
 
+    # Get warnings.
+    wrnerrexc = []
+    if isinstance(substr,str):
+        wrnout, wrnerr = run_script('cat LOGS/*'+substr+'* | grep WRN')
+        errout, errerr = run_script('cat LOGS/*'+substr+'* | grep ERR')
+        excout, excerr = run_script('cat LOGS/*'+substr+'* | grep EXC')
+        for out in [wrnout, errout, excout]:
+            lines = out.decode('utf-8').split('\n')[:-1]
+            wrnerrexc.append('\n')
+            for l in lines:
+                wrnerrexc.append(l)
+    else:
+        wrnerrexc.append(['WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!'])
 
-    # Parse logs for problems.
-    #print(writestr)
-    #f.write(writestr)
+    writestr = ''
+    now = time.strftime('%c')
+    writestr = writestr + now + '\n'
+    for outstr in outstrs:
+        writestr=writestr+outstr+'\n'
 
+    # Write warnings.
+    if isinstance(substr,str):
+        writestr = writestr + '\n{:d} warnings, {:d} errs, {:d} exceptn:\n'.\
+                format(
+                len(wrnout.decode('utf-8').split('\n')[:-1]),
+                len(errout.decode('utf-8').split('\n')[:-1]),
+                len(excout.decode('utf-8').split('\n')[:-1]))
+    for wee in wrnerrexc:
+        writestr=writestr+wee+'\n'
+
+    print(writestr)
+    f.write(writestr)
     f.close()
 
 
@@ -720,6 +753,8 @@ def completeness_top1_scatterplots():
 
 if __name__ == '__main__':
     summarize_injrecov_result(substr='completeness_test')
+    summarize_realsearch_result(substr='findrealdips_170327')
     completeness_top1_scatterplots()
     completeness_top1_heatmap(realsearch=False)
     completeness_top1_heatmap(realsearch=True)
+

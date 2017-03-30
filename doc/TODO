@@ -2,37 +2,30 @@
 #TODO#
 ######
 
-Identify highest significance dips in search:
-##########
-
-
-* check why output depths are still negative (even post-correction... this is
-likely something in the postprocessing? (else it's that I actually do need to
-redo all my injection/recovery runs)
+* Filter by isclose to multiples of P_rec_by_P_EB
 
 * Make sure injrecov works with the recov-only update
-
-* write an analog of this that summarizes result from realsearch. (in
-run_the_machine) irra.summarize_injrecov_result()
 
 * make easiest speed improvements (e.g., profile with python -m cProfiler)
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
 dataset. It gives >1 month to run the injection recovery sims, which is
 untenable.).
 
-* move to adroit for full injrecov simulations, and full search.
+* move to adroit for full injrecov simulations, and full search. current OOM: a
+full month to run everything, which is not OK.
 
-* production run on actual KEBC stars, now that completeness is high enough.
-->  _look through_ the ~1.5k search results, sorted per the above.
+* production run on actual KEBC stars, now that completeness is high enough,
+and everything works fast enough.  ->  _look through_ the ~1.5k search results,
+sorted per the above.
 
+* read the papers mentioned by Ondrej Pejcha
 
 * how big & how fine of an injection grid do we need/want to answer the
 _statistical_ questions (on occurrence rates) --> see
 ../../peerless/peerless/occurrence.py for an example of the actual calculation
 that's required
 
-* Um. The Jenkins matched-filter approach is VERY DIFFERENT on the surface from
-e.g., BLS. Are they equivalent? Which is better?
+> yes, it must be a big grid.
 
 * why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
 pipeline?). How many of these instances are there?
@@ -44,6 +37,9 @@ understand the pulsations better by getting spatially- resolved light?
 
 * look at DFM's new O(N) GP models. Can they be used for *discovery*, as is the
 idea here?
+
+* make sure restricting to SNR_rec_pf > 3 doesn't change things (it should
+not-- can put this into the completeness evaluation)
 
 * bugfix:
 
