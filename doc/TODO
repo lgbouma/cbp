@@ -5,44 +5,6 @@
 Identify highest significance dips in search:
 ##########
 
-* debug:
-(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
-File "run_the_machine.py", line 146, in recov irp.whitenedplot_6row(lcd,
-ap='sap', stage=stage, inj=inj) File
-"/home/luke/Dropbox/proj/cbp/src/inj_recov_plots.py", line 549, in
-whitenedplot_6row f.savefig(savedir+plotname, dpi=300) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py",
-line 1565, in savefig self.canvas.print_figure(*args, **kwargs) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_qt5agg.py",
-line 196, in print_figure FigureCanvasAgg.print_figure(self, *args, **kwargs)
-File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backend_bases.py",
-line 2232, in print_figure **kwargs) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py",
-line 527, in print_png FigureCanvasAgg.draw(self) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py",
-line 474, in draw self.figure.draw(self.renderer) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
-line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py",
-line 1159, in draw func(*args) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
-line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/axes/_base.py",
-line 2324, in draw a.draw(renderer) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py",
-line 61, in draw_wrapper draw(artist, renderer, *args, **kwargs) File
-"/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/text.py",
-line 757, in draw raise ValueError("posx and posy should be finite values")
-ValueError: posx and posy should be finite values
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last): File "run_the_machine.py", line 404, in
-<module> nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4) File
-"run_the_machine.py", line 149, in recov str(keplerid))) NameError: name
-'keplerid' is not defined
-
 
 * check why output depths are still negative (even post-correction... this is
 likely something in the postprocessing? (else it's that I actually do need to

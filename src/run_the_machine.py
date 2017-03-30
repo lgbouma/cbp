@@ -145,8 +145,8 @@ def recov(inj=False,
                 try:
                     irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
                 except:
-                    print('whitenedplot_6row gave exception (kic:{:s})'.format(
-                        str(keplerid)))
+                    print('ERR: whitenedplot_6row gave exception (kic:{:s})'.\
+                        format(str(kicid)))
 
         if iwplot:
             irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
