@@ -220,9 +220,16 @@ def summarize_realsearch_result(substr=None):
 
     out = df.sort_values('SNR_rec_pf', ascending=False)
     out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
-    #write this
-    wo = out[out['SNR_rec_pf']>3]\
-            [['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
+
+    # Look through things w/ phase-folded SNR of at least 3, and with recovered
+    # periods not within 0.001 of a multiple of the EB period.
+    outind = out['SNR_rec_pf']>3
+    # First term: P_rec was slightly above a multiple of P_EB. Second term:
+    # P_rec was slightly below a multiple of P_EB.
+    outind &= ~(((out['P_rec_by_P_EB']%1) < 1e-3) | \
+                ((1-(out['P_rec_by_P_EB']%1)) < 1e-3))
+
+    wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
     writedir = '../results/real_search/'
     wo.to_csv(writedir+'candidates_sort.csv', index=False)
 
