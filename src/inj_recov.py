@@ -527,7 +527,12 @@ def get_all_quarters_lc_data(kicid):
 
     rd = {}
     for fits_path in fs:
-        lcd = astrokep.read_kepler_fitslc(fits_path)
+        try:
+            lcd = astrokep.read_kepler_fitslc(fits_path)
+        except:
+            LOGERROR('{:s} failed in read_kepler_fitslc, {:s}. Escaping.'\
+                .format(str(lcd['objectinfo']['keplerid']), str(fits_path)))
+            break
         quarter_number = np.unique(lcd['quarter'])
         assert len(quarter_number)==1, 'Expect each fits file to correspond '+\
             ' to a given quarter'
