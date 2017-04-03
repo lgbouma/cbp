@@ -53,15 +53,8 @@ def get_lcd(stage='redtr', inj=None, allq=None):
         return lcd
 
 
-def recov(inj=False,
-        stage=None,
-        nwhiten_max=10,
-        nwhiten_min=1,
-        rms_floor=5e-4,
-        iwplot=False,
-        whitened=True,
-        ds=True
-        ):
+def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
+        iwplot=False, whitened=True, ds=True):
     '''
     See docstring for injrecov. This does identical recovery, but has different
     enough control flow to merit a separate function.
@@ -160,16 +153,8 @@ def recov(inj=False,
 
 
 
-def injrecov(inj=True,
-        N=None,
-        stage=None,
-        nwhiten_max=10,
-        nwhiten_min=1,
-        rms_floor=5e-4,
-        iwplot=False,
-        whitened=True,
-        ds=True
-        ):
+def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
+        rms_floor=5e-4, iwplot=False, whitened=True, ds=True):
     '''
     Inject transits, and find dips in short period binaries in the Kepler
     Eclipsing Binary Catalog. There are two important objects: `lcd` organizes

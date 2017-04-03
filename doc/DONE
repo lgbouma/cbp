@@ -271,3 +271,95 @@ does better at longer periods with smaller things. This means it might be a
 good idea to look closely at the Kepler pipeline's methods, at least when
 processing Kepler data!
 
+Fri 31 Mar 2017 08:45:28 AM EDT
+
+* Filter sorted results by isclose to multiples of P_rec_by_P_EB
+
+* debug:
+
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ WARNING: File may have been truncated: actual file length (49152) is smaller than the expected size (440640) [astropy.io.fits.file]
+Traceback (most recent call last):
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 496, in __get__
+    return obj.__dict__[self._key]
+KeyError: 'data'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "run_the_machine.py", line 407, in <module>
+    nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4)
+  File "run_the_machine.py", line 76, in recov
+    blacklist=blacklist)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 473, in retrieve_next_lc
+    rd, errflag = get_all_quarters_lc_data(this_id)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 530, in get_all_quarters_lc_data
+    lcd = astrokep.read_kepler_fitslc(fits_path)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astrobase-0.1.0-py3.5.egg/astrobase/astrokep.py", line 226, in read_kepler_fitslc
+    lchdr, lcdata = hdulist[1].header, hdulist[1].data
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 498, in __get__
+    val = self.fget(obj)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 404, in data
+    data = self._get_tbdata()
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 171, in _get_tbdata
+    self._data_offset)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/base.py", line 568, in _get_raw_data
+    return self._file.readarray(offset=offset, dtype=code, shape=shape)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/file.py", line 283, in readarray
+    buffer=self._mmap)
+TypeError: buffer is too small for requested array
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ 
+[1]+  Exit 1                  python run_the_machine.py -frd > LOGS/findrealdips_170327_6.txt
+
+
+* Discuss difference btwn things doing things the right way vs hacks with APW.
+The basic take-away is that you need to do things in line with your goals.
+E.g., if you just want to discover things, with statistical precision on the
+back-burner, yes, something like sigmaclipping is OK.  But if you want to do
+population inference on CBP occurrence rate about short-period binaries, you
+need (at the very minimum) to understand your completeness. However doing so is
+tricky -- you need to know that your injected signals are truly what you would
+see. You might also need to debias your sample in other ways -- that was a
+major idea in Armstrong's approach. (It is also why reading his THESIS, which
+is presumably more verbose than the paper, could be worthwhile)
+
+* Read Armstrong's _thesis_, b/c it might have more info than the paper (e.g.,
+about sample selection, and short period binaries, and reasons for specific
+methods, and whether he thinks he was complete for short-period binaries)
+
+Sat 01 Apr 2017 05:50:47 PM EDT
+
+Targetted reading:
+
+* What parameters of the contact EBs must be known to make an inference about a
+putative population of CBPs about them? 
+(read DFM's code & the long period planet paper math)
+> notes are written out; 170401_detection_efficiency_OOM.pdf
+
+* Redefined motivation: if 10% of stars in short-period EB sample had Rp>4Re,
+P_CPB=1-200d planets, we'd detect (Q_geom=0.1,Q_completeness=0.5)
+1500*0.1*0.1*0.5 = 7.5 of em. If the Q_geom and Q_completeness estimates are
+good, detecting <1 of them would mean an occurrence ~<3%(?) per star in the
+short-period EB sample (in Rp=4-10Re vol, P_CBP=1-200d). (N.b. the (?) is
+because Poisson statistics are the relevant thing there.) In other words, also
+significantly lower than the standard star rate.  This result is an empirical
+extension of Armstrong et al (2014)'s work on semi-detached and detached
+binaries, into the contact binary regime. It is not surprising (if indeed the
+search gives a null result): the majority (e.g., Tokovinin+ 2008) of contact
+binaries have tertiary companions, and the very fact of being a contact binary
+may preclude stability of CBPs during migration, at least in regimes observable
+by transit surveys (the 3 recent theory papers, + Wenrui Xu's evection
+resonance stuff).
+
+* What parameters are actually known?  
+(read Armstrong 2013 catalog paper; see how much he trusts the contact binary
+parameters, and why) 
+(read Ch 6 of Hilditch (emph on Ch6.4))
+> notes are in lib/summarized_papers.txt
+
+* What parameters can be estimated? (read the Rucinski papers, most notably
+2006 Luminosity function, 2001 amplitude and mass ratio distributions, and
+~2012 DDO Close Binary Spectroscopic Program)
+> notes are in lib/summarized_papers.txt
+
+
+

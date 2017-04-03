@@ -2,9 +2,16 @@
 #TODO#
 ######
 
-* Filter by isclose to multiples of P_rec_by_P_EB
+* IGNORE your output for the toy run of 500 LCs, until you are ready to look at
+it carefully, and in a way that allows u to update human-input (e.g.,
+y/n/maybe), one-time-thru. This human-input is only necessary once the
+processing has been completed across everything, which means it's more
+important to do the below things:
 
-* Make sure injrecov works with the recov-only update
+* make easiest disk space improvements. are we massively copying big things?
+does each pkl need ~30Mb?
+  * e.g., drop the intermediate periodograms (the ones that i never look at)
+  (although this may risk backwards incompatibility w/ the 3row diagnostic)
 
 * make easiest speed improvements (e.g., profile with python -m cProfiler)
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
@@ -14,11 +21,34 @@ untenable.).
 * move to adroit for full injrecov simulations, and full search. current OOM: a
 full month to run everything, which is not OK.
 
+
+----------
+
+* Make sure injrecov works with the recov-only update (i.e. test it & break it)
+
+* in find_dips, check if Q0 exists, and if its RMS is much higher than
+everything else. If so, throw it out. (b/c this means that substraction failed)
+
+* Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
+into the PDC LC"
+
+* push injections (& search) out to longer periods(?).
+(E.g., apply something like DFM's single transit search algorithm/inspired by
+it)
+
+* debug completeness map weirdness:
+completeness_heatmap_top1_pfSNR_vs_periodcbp is not showing boxes in the
+right place, if you compare with the scatter plot (e.g., should be more low
+period, higher pf-SNR objects).
+
 * production run on actual KEBC stars, now that completeness is high enough,
 and everything works fast enough.  ->  _look through_ the ~1.5k search results,
 sorted per the above.
+(my toy run of ~500 LCs on the desktop is not sustainable)
 
-* read the papers mentioned by Ondrej Pejcha
+* read Mowlavi et al recent Gaia EB gaussian fitting discussion. Could apply to
+HAT data. What did they learn?  http://arxiv.org/abs/1703.10597
+(also, read his other papers)
 
 * how big & how fine of an injection grid do we need/want to answer the
 _statistical_ questions (on occurrence rates) --> see
@@ -38,8 +68,21 @@ understand the pulsations better by getting spatially- resolved light?
 * look at DFM's new O(N) GP models. Can they be used for *discovery*, as is the
 idea here?
 
-* make sure restricting to SNR_rec_pf > 3 doesn't change things (it should
-not-- can put this into the completeness evaluation)
+* make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
+evaluating completenss.  It shouldn't change things.
+
+[total aside question]:
+* What aspects of stellar formation (or post-formation physical evolution) can
+be inferred from contact EBs? Do they trace any particular physical processes?
+
+* Rucinski 2004: how do you confirm that a variable star is a contact EB, not a
+delta scuti or gamma doradus? 
+
+?? Why should a M_V(logP) calibration EXIST / work? 
+Discussed in any of: Rucisnki 1994, Rucisnki & Duerbeck 1997, Rucinski 2004
+
+
+
 
 * bugfix:
 
@@ -75,43 +118,6 @@ Traceback (most recent call last):
 ValueError: posx and posy should be finite values
 
 [1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_2.txt
-
-* bugfix:
-(sci) luke@crispy:~/Dropbox/proj/cbp/src$ /home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/polynomial/legendre.py:1588: RankWarning: The fit may be poorly conditioned
-  warnings.warn(msg, pu.RankWarning)
-WARNING: File may have been truncated: actual file length (49152) is smaller than the expected size (440640) [astropy.io.fits.file]
-Traceback (most recent call last):
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 496, in __get__
-    return obj.__dict__[self._key]
-KeyError: 'data'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "run_inj_recov.py", line 522, in <module>
-    injrecov_test1(102, stage='dipsearch', inj=True, ds=True, whitened=True)
-  File "run_inj_recov.py", line 414, in injrecov_test1
-    lcd, lcflag = ir.retrieve_random_lc()
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 426, in retrieve_random_lc
-    rd = get_all_quarters_lc_data(kebc_kic_ids[ind])
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 482, in get_all_quarters_lc_data
-    lcd = astrokep.read_kepler_fitslc(fits_path)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astrobase-0.1.0-py3.5.egg/astrobase/astrokep.py", line 226, in read_kepler_fitslc
-    lchdr, lcdata = hdulist[1].header, hdulist[1].data
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/utils/decorators.py", line 498, in __get__
-    val = self.fget(obj)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 404, in data
-    data = self._get_tbdata()
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/table.py", line 171, in _get_tbdata
-    self._data_offset)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/hdu/base.py", line 568, in _get_raw_data
-    return self._file.readarray(offset=offset, dtype=code, shape=shape)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/astropy/io/fits/file.py", line 283, in readarray
-    buffer=self._mmap)
-TypeError: buffer is too small for requested array
-
-
-
 
 
 
