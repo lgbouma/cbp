@@ -199,7 +199,7 @@ def summarize_injrecov_result(substr=None):
     f.close()
 
 
-def summarize_realsearch_result(substr=None):
+def summarize_realsearch_result(substr=None, N=None):
     '''
     Summarizes csv files from search for dips into a candidate list.  Also
     write errors that came up in the logs to a text file.
@@ -208,6 +208,7 @@ def summarize_realsearch_result(substr=None):
         substr (str): the substring specific to src/LOGS that identifies
         whichever set of logs you want to see errors & warnings from.
         E.g., "findrealdips", or "170327",
+        N (int): number of dipsearchplot symlinks to make
     '''
     csvdir = '../results/real_search/'
     errpath = '../results/real_search/errors.txt'
@@ -232,6 +233,17 @@ def summarize_realsearch_result(substr=None):
     wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
     writedir = '../results/real_search/'
     wo.to_csv(writedir+'candidates_sort.csv', index=False)
+
+    # Make symlinks to the best 20 dipsearch plots.
+    if isinstance(N, int):
+        kicids = np.array(wo.head(n=N)['kicid'])
+        for kicid in kicids:
+            srcpath = '/home/luke/Dropbox/proj/cbp/results/dipsearchplot/real/'+\
+                    str(kicid)+'_saprealsearch_real.png'
+            dstpath = '/home/luke/Dropbox/proj/cbp/results/real_search/'+\
+                    'best_dipsearch_symlinks/'+str(kicid)+'.png'
+            os.symlink(srcpath, dstpath)
+        print('\nSymlinked top {:d} dipsearchplots!'.format(N))
 
     # Get warnings.
     wrnerrexc = []
@@ -760,7 +772,7 @@ def completeness_top1_scatterplots():
 
 if __name__ == '__main__':
     summarize_injrecov_result(substr='completeness_test')
-    summarize_realsearch_result(substr='findrealdips_170327')
+    summarize_realsearch_result(substr='findrealdips_170327', N=20)
     completeness_top1_scatterplots()
     completeness_top1_heatmap(realsearch=False)
     completeness_top1_heatmap(realsearch=True)
