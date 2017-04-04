@@ -390,4 +390,10 @@ about, we just cannot store the full periodograms, and similarly there is not
 much point in holding onto the full LC. (Obv different for the real search).
 
 
+Tue 04 Apr 2017 05:17:19 PM EDT
+
+Easiest speed improvements:
+* do not make diagnostic plots until after pf-SNR is computed. If it's <3, we
+  will not look at the LC, so do not make the plots.
+
 

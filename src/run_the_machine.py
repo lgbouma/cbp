@@ -54,10 +54,16 @@ def get_lcd(stage='redtr', inj=None, allq=None):
 
 
 def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
-        iwplot=False, whitened=True, ds=True):
+        iwplot=False, whitened=True, ds=True, min_pf_SNR=3.):
     '''
     See docstring for injrecov. This does identical recovery, but has different
     enough control flow to merit a separate function.
+
+    kwargs:
+        min_pf_SNR (float): minimum phase-folded SNR with which to actually
+        make plots (otherwise, do not make them to save compute time).
+
+        Other kwargs are described in injrecov docstring.
     '''
     assert not inj
     stage = stage+'_inj' if inj else stage+'_real'
@@ -108,13 +114,13 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
         # Append results to tables. If you want to rewrite (e.g., because
         # you've multiple-append the same ones) run inj_recovresultanalysis.py
         if 'realsearch' in stage:
-            fblserr, _ = irra.write_search_result(lcd, allq, inj=inj,
+            fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                     stage=stage)
             if fblserr:
                 print('error in finebls -> got 0 len pgdf. forced continue')
 
         # Make plots.
-        if ds and not fblserr:
+        if ds and not fblserr and results['SNR_rec_pf']>min_pf_SNR:
             doneplots = os.listdir('../results/dipsearchplot/'+predir)
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
@@ -130,7 +136,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
             with open(path, 'a'):
                 os.utime(path, None)
 
-        if whitened:
+        if whitened and results['SNR_rec_pf']>min_pf_SNR:
             doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
@@ -149,7 +155,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
                     with open(path, 'a'):
                         os.utime(path, None)
 
-        if iwplot:
+        if iwplot and results['SNR_rec_pf']>min_pf_SNR:
             irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                         δ=δ)
 
@@ -413,7 +419,7 @@ if __name__ == '__main__':
 
     if args.findrealdips:
         recov(inj=False, stage='realsearch', ds=True, whitened=True,
-                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4)
+                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.)
 
     if args.pkltocsv:
         pkls_to_results_csvs(inj=args.inj)

@@ -2,11 +2,14 @@
 #TODO#
 ######
 
-* IGNORE your output for the toy run of 500 LCs, until you are ready to look at
-it carefully, and in a way that allows u to update human-input (e.g.,
-y/n/maybe), one-time-thru. This human-input is only necessary once the
+1. Be efficient with how you allocate your coding time.
+
+Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
+to look at it carefully, and in a way that allows u to update human-input
+(e.g., y/n/maybe), one-time-thru. This human-input is only necessary once the
 processing has been completed across everything, which means it's more
 important to do the below things:
+
 
 BEFORE PRODUCTION-LEVEL REAL SEARCH
 
@@ -14,6 +17,15 @@ BEFORE PRODUCTION-LEVEL REAL SEARCH
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
 dataset. It gives >1 month to run the injection recovery sims, which is
 untenable.).
+
+These include:
+* enable "multithread" over stars (this is the point of running on adroit).
+  adroit has 160 cores, over 8 nodes (20 per node). my computer has 16.
+  
+  If we give each star e.g., 5 cores, (or even, say, 2), and can have >20 nodes
+  running at a time, we are net winning. (Nb. we can easily get more cores by
+  asking Jim, and quickly moving to a different cluster once we're on adroit)
+
 
 * move to adroit for full injrecov simulations, and full search. current OOM: a
 full month to run everything, which is not OK.
@@ -27,6 +39,16 @@ BEFORE PRODUCTION-LEVEL INJ/RECOV:
 * store whatever stellar parameters you will need (e.g. peerless eqs 4-6. Need
 stellar parameters, with better estimates than just asserting Rstar=1.5Rsun,
 duty cycle estimate from time groups, eccentricity of orbit, etc. )
+
+* to understand those parameters, consider the eventual inference you will be
+making. it will be an (upper bound on an) occurrence rate over a volume, Γ_V vs
+κ, a Fischer distribution parameter (since these two things are very
+degenerate). 
+
+
+* make sure SNR>3 cut makes it in.
+
+* make sure exactly the same post-find_dips work is being on the injected LCs
 
 ----------
 
