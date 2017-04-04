@@ -412,7 +412,7 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
                 kicid,csvdir,ap))
 
-    return fblserr
+    return fblserr, results
 
 
 #########

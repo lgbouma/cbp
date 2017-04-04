@@ -8,10 +8,7 @@ y/n/maybe), one-time-thru. This human-input is only necessary once the
 processing has been completed across everything, which means it's more
 important to do the below things:
 
-* make easiest disk space improvements. are we massively copying big things?
-does each pkl need ~30Mb?
-  * e.g., drop the intermediate periodograms (the ones that i never look at)
-  (although this may risk backwards incompatibility w/ the 3row diagnostic)
+BEFORE PRODUCTION-LEVEL REAL SEARCH
 
 * make easiest speed improvements (e.g., profile with python -m cProfiler)
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
@@ -21,6 +18,15 @@ untenable.).
 * move to adroit for full injrecov simulations, and full search. current OOM: a
 full month to run everything, which is not OK.
 
+
+
+
+
+BEFORE PRODUCTION-LEVEL INJ/RECOV:
+
+* store whatever stellar parameters you will need (e.g. peerless eqs 4-6. Need
+stellar parameters, with better estimates than just asserting Rstar=1.5Rsun,
+duty cycle estimate from time groups, eccentricity of orbit, etc. )
 
 ----------
 

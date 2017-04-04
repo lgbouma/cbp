@@ -362,4 +362,32 @@ parameters, and why)
 > notes are in lib/summarized_papers.txt
 
 
+##############################
+##############################
+
+Mon 03 Apr 2017 09:53:00 PM EDT
+
+* make easiest disk space improvements. are we massively copying big things?
+does each pkl need ~30Mb?
+> Well, those with many iterations had ~100Mb. I implemented something to
+drop the intermediate periodograms (the ones that i never look at) (although
+this means backwards incompatibility w/ the 3row diagnostic)
+
+> At 30Mb/ea, ~1600 LCs means main run produces 48Gb of data.
+That's FINE. (Even at ~60Mb/ea, accounting for allq, 100Gb is ok).
+
+> For injection recovery, we actually need far less data for production level
+runs. Namely, we just need the planet and stars params and whether the injected
+dip was found. So we can do ~20k inj/recovs, and keep maybe the first ~50
+pickles or something like that. (As sanity checks). We could also only produce
+plots for those 50. After that, proceed by just keeping track of some waaaay
+lighter-weight thing.
+
+This is OFC risky b/c if there's a mistake in the information that is saved
+(like "oh hey, I actually wanted all those inj/recov periodograms!") then it
+all needs to be recomputed. However for the number of inj/recovs we're talking
+about, we just cannot store the full periodograms, and similarly there is not
+much point in holding onto the full LC. (Obv different for the real search).
+
+
 

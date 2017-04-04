@@ -108,7 +108,8 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
         # Append results to tables. If you want to rewrite (e.g., because
         # you've multiple-append the same ones) run inj_recovresultanalysis.py
         if 'realsearch' in stage:
-            fblserr = irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+            fblserr, _ = irra.write_search_result(lcd, allq, inj=inj,
+                    stage=stage)
             if fblserr:
                 print('error in finebls -> got 0 len pgdf. forced continue')
 
@@ -208,6 +209,9 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
     predir = 'inj/' if 'inj' in stage else 'real/'
     origstage = stage
 
+    # To save disk space (since in production this is run for a large number of
+    # lightcurves), impose a maximum number of pickle files to save.
+    nsavedpkls, maxnpkls = 0, 50
     for s in seeds:
         np.random.seed(s)
 
@@ -237,6 +241,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 if 'dipsearch' in stage:
                     kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
                             tossiterintermed=True)
+                    nsavedpkls += 1
 
         # Write results and make plots.
         for δ in δarr:
@@ -254,9 +259,28 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # run, and it'll reconstruct the table based on everything in the
             # saved pickles.)
             if 'dipsearch' in stage:
-                fblserr = irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+                fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
+                        stage=stage)
                 if fblserr:
-                    print('error in finebls -> got 0 len pgdf. forced continue')
+                    print('error in finebls ->got 0 len pgdf. forced continue')
+
+            # Save disk space by saving less junk data. In this case, only save
+            # core results as a csv file, then remove the bulky pickle and do
+            # not write diagnostic plots. Note that "stage" has δ in it, which
+            # prevents name degeneracy.
+            if nsavedpkls > maxnpkls:
+                savedir = '../data/injrecov_summ/'
+                csvname = str(kicid)+'_'+stage+'.csv'
+                results.to_csv(savedir+csvname, index=False, header=False)
+                injrecovdir = '../data/injrecov_pkl/inj/'
+                pklname = str(kicid)+'_'+stage+'.pkl'
+                allqpklname = str(kicid)+'_allq_'+stage+'.p'
+                os.remove(injrecovdir+pklname)
+                os.remove(injrecovdir+allqpklname)
+                print('>maxnpkls. Save core results, no diagnostic plots.'+\
+                      '\nrm {:s}\nrm {:s}\n'.format( injrecovdir+pklname,
+                      injrecovdir+allqpklname))
+                continue
 
             # Make plots.
             if ds:
