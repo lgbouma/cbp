@@ -1556,7 +1556,7 @@ def find_dips(lcd, allq, method='bls'):
     return allq
 
 
-def save_lightcurve_data(lcd, allq=None, stage=False):
+def save_lightcurve_data(lcd, allq=None, stage=False, tossiterintermed=True):
     '''
     Args:
         lcd (anytype): the thing you want to write to a pickle file. Always
@@ -1570,6 +1570,12 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
         name to simplify subsequent reading. E.g., "pw" for "post-whitening",
         or "redtr_inj" if it's post-redetrending, and you've injected fake
         transits.
+
+        tossiterintermed (bool): whether to look for, and throw out, all
+        intermediate data from the whitening (periodograms and timeseries
+        copies). This saves a factor of ~2-4x in hard disk memory
+        (100Mb->~25Mb). However, significant intermediate steps should as a
+        matter of principle be kept unless storage space prohibits it.
     '''
 
     kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
@@ -1592,6 +1598,15 @@ def save_lightcurve_data(lcd, allq=None, stage=False):
         #override; save pickles somewhere else for EB subtraction tests.
         spath = '../data/eb_subtr_pkl/'+pklname
         sallqpath = '../data/eb_subtr_pkl/'+pklallqname
+
+    if tossiterintermed:
+        for qnum in list(lcd.keys()):
+            iterkeys = list(lcd[qnum]['white'].keys())
+            for inum in list(range(min(iterkeys)+1,max(iterkeys))):
+                # This leaves the first and last iterations of whitening. The
+                # last one is what the plots and dipsearch actually need.
+                del lcd[qnum]['white'][inum]
+
 
     pickle.dump(lcd, open(spath, 'wb'))
     LOGINFO('Saved (pickled) lcd data to %s' % spath)

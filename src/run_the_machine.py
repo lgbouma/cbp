@@ -91,7 +91,8 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
             allq = {}
             allq = ir.find_dips(lcd, allq, method='bls')
             if 'realsearch' in stage:
-                kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
+                kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
+                        tossiterintermed=True)
 
         # Write results and make plots.
         lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
@@ -232,11 +233,10 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
                         nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
                         rms_floor=rms_floor)
-                if 'eb_sbtr' in stage:
-                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
                 allq = ir.find_dips(lcd, allq, method='bls')
                 if 'dipsearch' in stage:
-                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage)
+                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
+                            tossiterintermed=True)
 
         # Write results and make plots.
         for δ in δarr:
