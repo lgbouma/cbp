@@ -13,7 +13,27 @@ important to do the below things:
 
 BEFORE PRODUCTION-LEVEL REAL SEARCH
 
+x get a functioning software environment on adroit
+
 * branch when beginning the adroit setup
+
+ADROIT MOVE 
+* where do we put the pkls? (it's just 100Gb!)
+-> for now, just do it in same ../data/injrecov_pkl/real
+
+* how do we define the array of jobs?
+-> need to modify run_the_machine's recov (and perhaps inj) to accept KIC
+ids. then feed them in as an index.
+
+N.B. this is EXACTLY why it makes sense to branch. The PICSCIE setup for
+running this code is different: it's "I would like to run many stars at the
+same time across different cores".
+The best way to avoid cross-talk is to specify which star you want in the
+arguments (and skip over intermediates).
+
+Can add this as two new cmd-line arguments: "-frd -cluster -kic [KICID]".
+The addition to the codebase can then also be merged.
+
 
 * make easiest speed improvements (e.g., profile with python -m cProfiler)
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
