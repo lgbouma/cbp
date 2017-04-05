@@ -432,42 +432,48 @@ def retrieve_random_lc():
     return rd, lcflag
 
 
-def retrieve_next_lc(stage=None, blacklist=None):
+def retrieve_next_lc(stage=None, blacklist=None, kicid=None):
     '''
     Get the next LC from the KEBWG list of morph>0.6 EBs.
     Returns a dictionary with keys of quarter number and a flag if failed.
+
+    If no KIC ID is passed in kicid, finds the next one to search based on what
+    dipsearchplots, pkls, and whitened diagnostics exist locally.
     '''
 
-    kebc = get_kepler_ebs_info()
-    kebc = kebc[kebc['morph']>0.6]
-    kebc_kic_ids = np.sort(np.array(kebc['KIC']))
+    if not kicid:
+        kebc = get_kepler_ebs_info()
+        kebc = kebc[kebc['morph']>0.6]
+        kebc_kic_ids = np.sort(np.array(kebc['KIC']))
 
-    ind = 0
-    # Find the next KIC ID to search (requires dipsearchplot, pkl, and whitened
-    # diagnostic to proceed).
-    while True:
-        if ind == len(kebc_kic_ids):
-            return np.nan, 'finished', np.nan
-        this_id = kebc_kic_ids[ind]
-        if this_id in blacklist:
-            ind += 1
-            continue
+        ind = 0
+        # Find the next KIC ID to search (requires dipsearchplot, pkl, and whitened
+        # diagnostic to proceed).
+        while True:
+            if ind == len(kebc_kic_ids):
+                return np.nan, 'finished', np.nan
+            this_id = kebc_kic_ids[ind]
+            if this_id in blacklist:
+                ind += 1
+                continue
 
-        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/real/') if
-                f.endswith('.p') and f.startswith(str(this_id)) and stage in f]
-        dspmatch = [f for f in os.listdir('../results/dipsearchplot/real/') if
-                f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
-        wdmatch = [f for f in os.listdir('../results/whitened_diagnostic/real/') if
-                f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
+            pklmatch = [f for f in os.listdir('../data/injrecov_pkl/real/') if
+                    f.endswith('.p') and f.startswith(str(this_id)) and stage in f]
+            dspmatch = [f for f in os.listdir('../results/dipsearchplot/real/') if
+                    f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
+            wdmatch = [f for f in os.listdir('../results/whitened_diagnostic/real/') if
+                    f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
 
-        if len(pklmatch)>0 and len(dspmatch)>0 and len(wdmatch)>0:
-            LOGINFO('Found {:s} pkl, dipsearchplt, whitened_diagnostic'.format(
-                str(this_id)))
-            blacklist.append(this_id)
-            ind += 1
-            continue
-        else:
-            break
+            if len(pklmatch)>0 and len(dspmatch)>0 and len(wdmatch)>0:
+                LOGINFO('Found {:s} pkl, dipsearchplt, whitened_diagnostic'.format(
+                    str(this_id)))
+                blacklist.append(this_id)
+                ind += 1
+                continue
+            else:
+                break
+    elif kicid:
+        this_id = np.int64(kicid)
 
     # Retrieve the LC data.
     rd, errflag = get_all_quarters_lc_data(this_id)

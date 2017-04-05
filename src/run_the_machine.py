@@ -54,7 +54,7 @@ def get_lcd(stage='redtr', inj=None, allq=None):
 
 
 def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
-        iwplot=False, whitened=True, ds=True, min_pf_SNR=3.):
+        iwplot=False, whitened=True, ds=True, min_pf_SNR=3., kicid=None):
     '''
     See docstring for injrecov. This does identical recovery, but has different
     enough control flow to merit a separate function.
@@ -72,7 +72,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
     keepgoing, blacklist = True, []
     while keepgoing:
         lcd, lcflag, blacklist = ir.retrieve_next_lc(stage=stage,
-                blacklist=blacklist)
+                blacklist=blacklist, kicid=kicid)
         if lcflag:
             if lcflag == 'finished':
                 print('finished searching!')
@@ -159,10 +159,14 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
             irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                         δ=δ)
 
+        if kicid:
+            print('Finished {:s}.'.format(str(kicid)))
+            keepgoing = False
+
 
 
 def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
-        rms_floor=5e-4, iwplot=False, whitened=True, ds=True):
+        rms_floor=5e-4, iwplot=False, whitened=True, ds=True, kicid=None):
     '''
     Inject transits, and find dips in short period binaries in the Kepler
     Eclipsing Binary Catalog. There are two important objects: `lcd` organizes
@@ -205,7 +209,13 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         iwplot, whitened, ds (all bools): whether to create the
             eb_subtraction_diagnostic 3row whitened plot, the whitened 6row
             plot, and dipsearch plots (all diagnostics), respectively.
+
+        kicid (optional): the KIC ID of star to inject/recover on. If None,
+            will choose a random star. Else if int, will use the KIC ID.
     '''
+    #TODO:
+    #Implement correct grid to inject and recover on. Use kicid arg as
+    #appropriate on clusters.
 
     assert inj
     np.random.seed(N)
@@ -380,17 +390,21 @@ if __name__ == '__main__':
         description='This is a short period EB injection-recovery machine '+\
                     '(injection is optional).')
     parser.add_argument('-ir', '--injrecovtest', action='store_true',
-        help='inject and recover periodic transits for a small number of '+\
-             'trial stars. must specify N.')
+        help='Inject and recover periodic transits for a small number of '+\
+             'trial stars. Must specify N.')
     parser.add_argument('-N', '--Nstars', type=int, default=None,
         help='int number of stars to inject/recov on (& RNG seed). '+\
              'required if running injrecovtest')
     parser.add_argument('-p', '--pkltocsv', action='store_true',
-        help='process ur pkl files to csv results. needs inj arg.')
+        help='Process ur pkl files to csv results. Needs inj arg.')
     parser.add_argument('-inj', '--inj', type=int, default=None,
         help='1 if u want to process inj&recov results, 0 if real results.')
     parser.add_argument('-frd', '--findrealdips', action='store_true',
-        help='search real short period contact EBs for transiting planets')
+        help='Search real short period contact EBs for transiting planets')
+    parser.add_argument('-c', '--cluster', action='store_true', default=False,
+        help='Use this flag if you are running on a cluster. Requires kicid.')
+    parser.add_argument('-kicid', '--kicid', type=int, default=None,
+        help='KIC ID of the system you want to load.')
     parser.add_argument('-q', '--quicklcd', action='store_true',
         help='if you need a quick `lcd` to play with, this option returns it'+\
              ' (useful in IPython, to easily explore the data structures)')
@@ -405,6 +419,10 @@ if __name__ == '__main__':
         parser.error('The --injrecovtest argument requires -N')
     if (args.pkltocsv and not isinstance(args.inj,int)):
         parser.error('The --pkltocsv argument requires --inj.')
+    if (args.cluster and not args.kicid):
+        parser.error('The --cluster argument requires --kicid.')
+    if (args.kicid and not args.cluster):
+        parser.error('The kicid arg currently should only be used on clusters')
     if isinstance(args.inj,int):
         if args.inj not in [0,1]:
             parser.error('--inj must be given as 0 or 1.')
@@ -415,11 +433,13 @@ if __name__ == '__main__':
 
     if args.injrecovtest:
         injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=False,
-                whitened=False, nwhiten_max=8, nwhiten_min=1, rms_floor=5e-4)
+                whitened=False, nwhiten_max=8, nwhiten_min=1, rms_floor=5e-4,
+                kicid=args.kicid)
 
     if args.findrealdips:
         recov(inj=False, stage='realsearch', ds=True, whitened=True,
-                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.)
+                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.,
+                kicid=args.kicid)
 
     if args.pkltocsv:
         pkls_to_results_csvs(inj=args.inj)
