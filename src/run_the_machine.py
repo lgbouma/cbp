@@ -54,7 +54,8 @@ def get_lcd(stage='redtr', inj=None, allq=None):
 
 
 def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
-        iwplot=False, whitened=True, ds=True, min_pf_SNR=3., kicid=None):
+        iwplot=False, whitened=True, ds=True, min_pf_SNR=3., kicid=None,
+        nworkers=None):
     '''
     See docstring for injrecov. This does identical recovery, but has different
     enough control flow to merit a separate function.
@@ -93,9 +94,9 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
             lcd = ir.normalize_allquarters(lcd, dt='dtr')
             lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
                     nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
-                    rms_floor=rms_floor)
+                    rms_floor=rms_floor, nworkers=nworkers)
             allq = {}
-            allq = ir.find_dips(lcd, allq, method='bls')
+            allq = ir.find_dips(lcd, allq, method='bls', nworkers=nworkers)
             if 'realsearch' in stage:
                 kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
                         tossiterintermed=True)
@@ -405,6 +406,8 @@ if __name__ == '__main__':
         help='Use this flag if you are running on a cluster. Requires kicid.')
     parser.add_argument('-kicid', '--kicid', type=int, default=None,
         help='KIC ID of the system you want to load.')
+    parser.add_argument('-nw', '--nworkers', type=int, default=None,
+        help='Number of workers for MPI.')
     parser.add_argument('-q', '--quicklcd', action='store_true',
         help='if you need a quick `lcd` to play with, this option returns it'+\
              ' (useful in IPython, to easily explore the data structures)')
@@ -419,9 +422,9 @@ if __name__ == '__main__':
         parser.error('The --injrecovtest argument requires -N')
     if (args.pkltocsv and not isinstance(args.inj,int)):
         parser.error('The --pkltocsv argument requires --inj.')
-    if (args.cluster and not args.kicid):
+    if (args.cluster and (not args.kicid or not args.nworkers)):
         parser.error('The --cluster argument requires --kicid.')
-    if (args.kicid and not args.cluster):
+    if (args.kicid and (not args.cluster or not args.nworkers)):
         parser.error('The kicid arg currently should only be used on clusters')
     if isinstance(args.inj,int):
         if args.inj not in [0,1]:
@@ -434,12 +437,12 @@ if __name__ == '__main__':
     if args.injrecovtest:
         injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=False,
                 whitened=False, nwhiten_max=8, nwhiten_min=1, rms_floor=5e-4,
-                kicid=args.kicid)
+                kicid=args.kicid, nworkers=args.nworkers)
 
     if args.findrealdips:
         recov(inj=False, stage='realsearch', ds=True, whitened=True,
                 nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.,
-                kicid=args.kicid)
+                kicid=args.kicid, nworkers=args.nworkers)
 
     if args.pkltocsv:
         pkls_to_results_csvs(inj=args.inj)

@@ -1046,7 +1046,7 @@ def _get_legendre_deg_phase(npts, norbs):
 
 
 def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
-        dynamical_prefactor=3.5):
+        dynamical_prefactor=3.5, nworkers=None):
 
     # Initialize periodogram or fineperiodogram dictionaries.
     kebc_period = nparr(float(dat['kebwg_info']['period']))
@@ -1100,7 +1100,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
             nbestpeaks=5,
             periodepsilon=periodepsilon,
             sigclip=None, # no sigma clipping
-            nworkers=None)
+            nworkers=nworkers)
 
         if isinstance(pgd, dict):
             LOGINFO('KIC ID %s, computed periodogram (inum %s) quarter %s. (%s)'
@@ -1141,7 +1141,7 @@ def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], nwhiten_max=10,
 
 def iterative_whiten_lightcurve(dat, qnum, method='legendre',
         legendredeg='best', rescaletomedian=True, σ_clip=None, nwhiten_max=10,
-        nwhiten_min=1, rms_floor=0.001, mingap=0.5):
+        nwhiten_min=1, rms_floor=0.001, mingap=0.5, nworkers=None):
     '''
     Given the normalized, detrended fluxes, and the known period computed from
     the periodogram routines, iteratively fit for the eclipsing binary signal
@@ -1186,6 +1186,8 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
         process.
 
         nwhiten_min (int): converse of nwhiten_max. Must be >=1.
+
+        nworkers (int): number of workers.
 
     Returns:
         dat (dict): dat, with the phased times, fluxes and errors in a
@@ -1238,11 +1240,13 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
             whiten_at_eb_period = True if nwhiten == 0 else False
 
             # Run coarse periodogram and get initial period guess.
-            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=False)
+            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap,
+                    fine=False, nworkers=nworkers)
             dat = _select_whiten_period(dat, fine=False, inum=nwhiten, ap=ap,
                     want_eb_period=whiten_at_eb_period)
             # Run fine periodogram and get precise period at which to whiten.
-            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap, fine=True)
+            dat = _iter_run_periodogram(dat, qnum, inum=nwhiten, ap=ap,
+                    fine=True, nworkers=nworkers)
             dat = _select_whiten_period(dat, fine=True, inum=nwhiten, ap=ap,
                     want_eb_period=whiten_at_eb_period)
 
@@ -1363,7 +1367,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
     return dat
 
 
-def find_dips(lcd, allq, method='bls'):
+def find_dips(lcd, allq, method='bls', nworkers=None):
     '''
     Find dips (e.g., what planets would do) over the entire magnitude time
     series.
@@ -1444,7 +1448,7 @@ def find_dips(lcd, allq, method='bls'):
             autofreq=True, # auto-find frequencies and nphasebins
             nbestpeaks=30, # large number now, filter for positive dips after
             periodepsilon=0.1, # 0.1 days btwn period peaks to be distinct.
-            nworkers=None,
+            nworkers=nworkers,
             sigclip=None)
         pgd['nphasebins'] = int(np.ceil(2.0/minTdur_φ))
 
