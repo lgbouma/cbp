@@ -396,4 +396,19 @@ Easiest speed improvements:
 * do not make diagnostic plots until after pf-SNR is computed. If it's <3, we
   will not look at the LC, so do not make the plots.
 
+*debug:
+(sci) luke@crispy:~/Dropbox/proj/cbp/src$ Traceback (most recent call last):
+  File "run_the_machine.py", line 407, in <module>
+    lcd = get_lcd(stage='dtr', inj=False)
+  File "run_the_machine.py", line 93, in recov
+    if 'realsearch' in stage:
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 651, in detrend_allquarters
+    inj=inj)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov.py", line 747, in detrend_lightcurve
+    sel = (tgtimes > npmin(tgtimes)+mingap) & \
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/core/fromnumeric.py", line 2359, in amin
+    out=out, keepdims=keepdims)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/numpy/core/_methods.py", line 29, in _amin
+    return umr_minimum(a, axis, None, out, keepdims)
+ValueError: zero-size array to reduction operation minimum which has no identity
 

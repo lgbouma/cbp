@@ -640,6 +640,9 @@ def detrend_allquarters(lcd, σ_clip=None, inj=False):
     "Detrend" means: select finite, sigma-clipped, not-near-gaps-in-timeseries
     points, and fit each resulting time group with a variable-order finite
     Legendre series.
+    If `errflag` is raised in `detrend_lightcurve`, this quarter gets skipped
+    (this was required because of an exception raised in a quarter with a
+    single good time).
     '''
 
     rd = {}
@@ -647,8 +650,10 @@ def detrend_allquarters(lcd, σ_clip=None, inj=False):
     LOGINFO('Beginning detrend. KIC {:s}'.format(str(keplerid)))
 
     for k in lcd.keys():
-        rd[k] = detrend_lightcurve(lcd[k], k, σ_clip=σ_clip,
+        tempdict, errflag = detrend_lightcurve(lcd[k], k, σ_clip=σ_clip,
                 inj=inj)
+        if not errflag:
+            rd[k] = tempdict
         LOGINFO('KIC ID %s, detrended quarter %s.'
             % (str(lcd[k]['objectinfo']['keplerid']), str(k)))
 
@@ -683,6 +688,8 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
         changes which fluxes are detrended.
 
     Returns:
+        lcd (dict) and errflag (bool).
+
         lcd (dict): lcd, with the detrended times, magnitudes, and fluxes in a
         sub-dictionary, accessible as lcd['dtr'], which gives the
         dictionary:
@@ -702,6 +709,8 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
 
         where the particular subclass of fitfluxs is specified by the detrend
         kwarg.
+
+        errflag (bool): boolean error flag.
     '''
 
     assert detrend == 'legendre'
@@ -744,8 +753,12 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
         tgtimes = ssaptimes[group]
         tgfluxs = ssapfluxs[group]
         tgerrs  = ssaperrs[group]
-        sel = (tgtimes > npmin(tgtimes)+mingap) & \
-                 (tgtimes < npmax(tgtimes)-mingap)
+        try:
+            sel = (tgtimes > npmin(tgtimes)+mingap) & \
+                     (tgtimes < npmax(tgtimes)-mingap)
+        except ValueError:
+            # If tgtimes is empty, continue to next timegroup.
+            continue
         tmptimes.append(tgtimes[sel])
         tmpfluxs.append(tgfluxs[sel])
         tmperrs.append(tgerrs[sel])
@@ -756,8 +769,13 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
         ssapfluxs = np.append(ssapfluxs, tmpfluxs[ix])
         ssaperrs =  np.append(ssaperrs, tmperrs[ix])
     # Extra inter-quarter burn-in of 0.5 days.
-    ssapfluxs = ssapfluxs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
-                          (ssaptimes<(npmax(ssaptimes)-mingap))]
+    try:
+        ssapfluxs = ssapfluxs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
+                              (ssaptimes<(npmax(ssaptimes)-mingap))]
+    except:
+        # Case: ssaptimes is WONKY, all across this quarter.
+        LOGERROR('DETREND FAILED, qnum {:d}'.format(qnum))
+        return np.nan, True
     ssaperrs  = ssaperrs[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
                           (ssaptimes<(npmax(ssaptimes)-mingap))]
     ssaptimes = ssaptimes[(ssaptimes>(npmin(ssaptimes)+mingap)) & \
@@ -854,7 +872,7 @@ def detrend_lightcurve(lcd, qnum, detrend='legendre', σ_clip=None, inj=False):
 
     lcd['dtr'] = dtr
 
-    return lcd
+    return lcd, False
 
 
 def normalize_lightcurve(lcd, qnum, dt='dtr'):

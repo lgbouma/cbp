@@ -13,6 +13,10 @@ important to do the below things:
 
 BEFORE PRODUCTION-LEVEL REAL SEARCH
 
+* v1.0 tag
+
+* branch when beginning the adroit setup
+
 * make easiest speed improvements (e.g., profile with python -m cProfiler)
 (currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
 dataset. It gives >1 month to run the injection recovery sims, which is
