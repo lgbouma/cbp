@@ -1,4 +1,4 @@
-name: sci
+name: cbp
 channels:
 - conda-forge
 - http://ssb.stsci.edu/astroconda
@@ -43,10 +43,6 @@ dependencies:
 - jinja2=2.8=py35_1
 - jpeg=8d=2
 - jsonschema=2.5.1=py35_0
-- jupyter=1.0.0=py35_3
-- jupyter_client=4.4.0=py35_0
-- jupyter_console=5.0.0=py35_0
-- jupyter_core=4.1.1=py35_0
 - libffi=3.2.1=0
 - libgcc=5.2.0=0
 - libgfortran=3.0.0=1
@@ -128,18 +124,8 @@ dependencies:
   - fitsio==0.9.10
   - ipython-genutils==0.1.0
   - jplephem==2.6
-  - jupyter-client==4.4.0
-  - jupyter-console==5.0.0
-  - jupyter-core==4.1.1
-  - ketu==0.4.0
-  - kplr==0.2.1
   - lmdb==0.92
   - memory-profiler==0.41
-  - mesa-reader==0.3.0
-  - nb-anacondacloud==1.2.0
-  - nb-conda==2.0.0
-  - nb-conda-kernels==2.0.0
-  - palindrome==0.0.4
   - prompt-toolkit==1.0.3
   - simplejson==3.10.0
   - tables==3.3.0
