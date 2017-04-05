@@ -13,8 +13,6 @@ important to do the below things:
 
 BEFORE PRODUCTION-LEVEL REAL SEARCH
 
-* v1.0 tag
-
 * branch when beginning the adroit setup
 
 * make easiest speed improvements (e.g., profile with python -m cProfiler)

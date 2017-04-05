@@ -412,3 +412,4 @@ Easiest speed improvements:
     return umr_minimum(a, axis, None, out, keepdims)
 ValueError: zero-size array to reduction operation minimum which has no identity
 
+* v1.0 tag
