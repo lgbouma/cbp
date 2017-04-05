@@ -149,5 +149,3 @@ dependencies:
   - secretstorage==2.3.1
   - simplejson==3.10.0
   - tables==3.3.0
-prefix: /home/lbouma/.conda/envs/cbp
-
