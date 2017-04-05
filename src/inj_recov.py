@@ -1115,7 +1115,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
 
 
 def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], nwhiten_max=10,
-        nwhiten_min=2, rms_floor=0.1):
+        nwhiten_min=2, rms_floor=0.1, nworkers=None):
     '''
     Wrapper to iterative_whiten_lightcurve, to run for all quarters. NOTE that
     this doesn't make whiten_allquarters redundant because the data structures
@@ -1134,7 +1134,8 @@ def iterative_whiten_allquarters(lcd, σ_clip=[30.,5.], nwhiten_max=10,
                 σ_clip=σ_clip,
                 nwhiten_max=nwhiten_max,
                 nwhiten_min=nwhiten_min,
-                rms_floor=rms_floor)
+                rms_floor=rms_floor,
+                nworkers=nworkers)
 
     return rd
 
