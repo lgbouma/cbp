@@ -1,0 +1,23 @@
+Thu 06 Apr 2017 11:12:37 AM EDT
+
+We have 1016 "contact EBs" in the Kepler sample (morph>0.6).
+
+We've processed 818 of them:
+
+  In [15]: done_ids = os.listdir('../data/injrecov_pkl/real/')
+
+  In [16]: len(ids)
+  Out[16]: 1016
+
+  In [17]: len(done_ids)
+  Out[17]: 1636
+
+  In [18]: len(done_ids)/2
+  Out[18]: 818.0
+
+So it makes sense to keep running things on crispy. This will finish what we
+can call a "nominal run". N.b. it's still sensible to complete the adroit move,
+so that we can repeat it much faster (than the ~2 weeks this run took), and
+also do inj/recov at reasonable pace.
+
+--> Made "find_not_done_IDs.py" utility script to do this easily.
