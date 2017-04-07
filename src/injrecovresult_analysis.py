@@ -257,7 +257,7 @@ def summarize_realsearch_result(substr=None, N=None):
             for l in lines:
                 wrnerrexc.append(l)
     else:
-        wrnerrexc.append(['WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!'])
+        wrnerrexc.append('WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!')
 
     writestr = ''
     now = time.strftime('%c')
@@ -412,8 +412,10 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
                 kicid,csvdir,ap))
 
-    return fblserr, results
-
+    if not fblserr:
+        return fblserr, results
+    elif fblserr:
+        return fblserr, np.nan
 
 #########
 # PLOTS #
