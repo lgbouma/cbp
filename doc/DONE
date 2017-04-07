@@ -413,3 +413,17 @@ Easiest speed improvements:
 ValueError: zero-size array to reduction operation minimum which has no identity
 
 * v1.0 tag
+
+##########
+
+ADROIT IMPLEMENTATION
+
+*debug matplotlib errors. likely requires whatever protections (e.g., Agg
+backend?) Waqas put on astrobase...
+  *approach: use known SNR>3 candidate (from existing "good list")
+
+*debug UnboundLocalError when trying to reference results (more important: why
+is it not assigned?)
+--> not actually done, because this is an error that should not even be
+raised... (so it's ok to leave it as fatal, for now)
+

@@ -10,6 +10,8 @@ import astropy.units as u, astropy.constants as c
 from datetime import datetime
 from astrobase import astrokep, periodbase, lcmath
 from astrobase.varbase import lcfit as lcf
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from numpy import nan as npnan, median as npmedian, \

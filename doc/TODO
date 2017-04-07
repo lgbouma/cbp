@@ -2,6 +2,12 @@
 #TODO#
 ######
 
+*debug the 1_2856* case (where it just ran for 3hrs). E.g., at least have it
+throw errors?  (I think this happened twice)
+
+
+
+
 1. Be efficient with how you allocate your coding time.
 
 Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
