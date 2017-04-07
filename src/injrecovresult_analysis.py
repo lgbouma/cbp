@@ -234,7 +234,7 @@ def summarize_realsearch_result(substr=None, N=None):
     writedir = '../results/real_search/'
     wo.to_csv(writedir+'candidates_sort.csv', index=False)
 
-    # Make symlinks to the best 20 dipsearch plots.
+    # Make symlinks to the best N dipsearch plots.
     if isinstance(N, int):
         kicids = np.array(wo.head(n=N)['kicid'])
         for kicid in kicids:
