@@ -413,3 +413,60 @@ Easiest speed improvements:
 ValueError: zero-size array to reduction operation minimum which has no identity
 
 * v1.0 tag
+
+
+
+1. Be efficient with how you allocate your coding time.
+
+Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
+to look at it carefully, and in a way that allows u to update human-input
+(e.g., y/n/maybe), one-time-thru. This human-input is only necessary once the
+processing has been completed across everything, which means it's more
+important to do the below things:
+
+
+BEFORE PRODUCTION-LEVEL REAL SEARCH
+
+x get a functioning software environment on adroit
+
+
+X branch when beginning the adroit setup
+
+ADROIT MOVE 
+X where do we put the pkls? (it's just 100Gb!)
+-> for now, just do it in same ../data/injrecov_pkl/real
+
+X how do we define the array of jobs?
+-> need to modify run_the_machine's recov (and perhaps inj) to accept KIC
+ids. then feed them in as an index.
+
+N.B. this is EXACTLY why it makes sense to branch. The PICSCIE setup for
+running this code is different: it's "I would like to run many stars at the
+same time across different cores".
+The best way to avoid cross-talk is to specify which star you want in the
+arguments (and skip over intermediates).
+
+Can add this as two new cmd-line arguments: "-frd -cluster -kic [KICID]".
+The addition to the codebase can then also be merged.
+
+
+* make easiest speed improvements (e.g., profile with python -m cProfiler)
+(currently, runs ~5 per hour. That gives 12.5 days to do the full 1500 LC
+dataset. It gives >1 month to run the injection recovery sims, which is
+untenable.).
+
+These include:
+* enable "multithread" over stars (this is the point of running on adroit).
+  adroit has 160 cores, over 8 nodes (20 per node). my computer has 16.
+  
+  If we give each star e.g., 5 cores, (or even, say, 2), and can have >20 nodes
+  running at a time, we are net winning. (Nb. we can easily get more cores by
+  asking Jim, and quickly moving to a different cluster once we're on adroit)
+
+
+* move to adroit for full injrecov simulations, and full search. current OOM: a
+full month to run everything, which is not OK.
+
+
+
+

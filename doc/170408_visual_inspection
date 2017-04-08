@@ -1,0 +1,22 @@
+Lessons from looking at 500 dipsearchplots:
+
+* Wonky edges of Kepler quarters mess with dipfinding routines
+
+* A bunch of these LCs had spots(?) appear and disappear, e.g., over the course
+  of a few quarters.
+  I flagged these as "maybes", in case of "planet precesses in, transits,
+  precesses out" type scenarios.
+  What should I do with them?
+
+* Even down in positions ~300-500 there was one dip that looked pretty
+  reasonable, and a few maybes.
+
+Bugs to fix:
+
+* If Q0 RMS >> rest of quarters, just throw out Q0 when searching for dips.
+  (Otherwise the super-noisy bit dominates the search results).
+  See: 11447953, 6471048
+
+* Many dipsearchplot images (all flagged as "WTF") did not have images, likely
+  b/c of some adroit fail. Make the images, and then look at them & label them.
+

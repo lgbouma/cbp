@@ -1,0 +1,55 @@
+####################
+OVERVIEW
+
+NASA's Kepler mission recorded the brightness of hundreds of thousands of stars
+for four years with unprecented precision. Kepler's data are now public, and
+most of its light curves have been scrutinized by the exoplanet community,
+among others. 
+
+In this project, we select a specific subset of stars whose intrinsic
+variability has hindered planet searches: eclipsing binaries with periods less
+than ~5 days. We remove the stellar signal, and perform a systematic search for
+transiting, circumbinary, planets. To understand our search's completeness, we
+must test our pipeline with fake signals, which we inject and then recover.
+
+The motivations are A) to discover the planets and B) to improve understanding
+of how common these planets must be (and in the event of no convincing
+detections, to provide an upper bound to this occurrence rate).
+
+####################
+PROGRAMMING APPROACH
+
+Programming language: Python libraries wrapping over fortran and C for
+numerically intensive subroutines.
+
+Parallelization mechanism: MPI (embarassingly parallel part: each star in my
+dataset does not care about the other stars).
+
+Required libraries: Standard scientific python stack, + installation of third
+party libraries managed via conda/pip. (+ Standard C & fortran compilers)
+
+RESOURCE REQUIREMENTS:
+
+Total cpu time: ~30k CPU hours. (~1 hour per injection/recovery experiment as
+tested on adroit, ~20k experiments to fully sample our parameter space, then
+10k extra hours for change).
+
+Number of concurrent cpus: as many as possible (e.g., 1000, for my total job to
+take of order 1 day). Given the Della job scheduling limits, this might merit
+in-person discussion.
+
+RAM per task: ~50-100Mb.
+
+Total disk space: ~50Gb.
+
+A few references or citations:
+
+1. Armstrong, D. J. et al. On the abundance of circumbinary planets. Monthly
+Notices of the Royal Astronomical Society 444, 1873–1883 (2014).
+
+2. Welsh, W. F., Orosz, J. A., Carter, J. A. & Fabrycky, D. C. Recent Kepler
+Results On Circumbinary Planets. in 293, 125–132 (2014).
+
+3. Doyle, L. R. et al. Kepler-16: A Transiting Circumbinary Planet. Science 333,
+1602–1606 (2011).
+
