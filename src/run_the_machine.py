@@ -369,10 +369,6 @@ def pkls_to_results_csvs(inj=None):
             continue
         fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                 stage=stage)
-        if fblserr:
-            continue
-        else:
-            irra.write_search_result(lcd, allq, inj=inj, stage=stage)
 
     if inj:
         irra.summarize_injrecov_result()
