@@ -1,20 +1,28 @@
 '''
 >>> python run_the_machine.py --help
-usage: run_the_machine.py [-h] [-ir] [-N NSTARS] [-p] [-frd] [-q]
+usage: run_the_machine.py [-h] [-ir] [-N NSTARS] [-p] [-inj INJ] [-frd] [-c]
+                          [-kicid KICID] [-nw NWORKERS] [-q]
 
 This is a short period EB injection-recovery machine (injection is optional).
 
 optional arguments:
   -h, --help            show this help message and exit
-  -ir, --injrecovtest   inject and recover periodic transits for a small
-                        number of trial stars. must specify N.
+  -ir, --injrecovtest   Inject and recover periodic transits for a small
+                        number of trial stars. Must specify N.
   -N NSTARS, --Nstars NSTARS
                         int number of stars to inject/recov on (& RNG seed).
                         required if running injrecovtest
-  -p, --pkltocsv        process all the pkl files made by injrecovtest to csv
-                        results
-  -frd, --findrealdips  search real short period contact EBs for transiting
+  -p, --pkltocsv        Process ur pkl files to csv results. Needs inj arg.
+  -inj INJ, --inj INJ   1 if u want to process inj&recov results, 0 if real
+                        results.
+  -frd, --findrealdips  Search real short period contact EBs for transiting
                         planets
+  -c, --cluster         Use this flag if you are running on a cluster.
+                        Requires kicid.
+  -kicid KICID, --kicid KICID
+                        KIC ID of the system you want to load.
+  -nw NWORKERS, --nworkers NWORKERS
+                        Number of workers for MPI.
   -q, --quicklcd        if you need a quick `lcd` to play with, this option
                         returns it (useful in IPython, to easily explore the
                         data structures)
