@@ -1,6 +1,7 @@
 # install
 
-Get a working version of anaconda. Then:
+Get a working version of anaconda (e.g., `module load anaconda3` when on
+PICSciE clusters). Once anaconda is on your path:
 ```bash
 conda env create -f environment.yml
 ```
