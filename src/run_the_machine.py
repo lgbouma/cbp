@@ -24,14 +24,22 @@ import numpy as np, os
 import inj_recov as ir
 import inj_recov_plots as irp
 import injrecovresult_analysis as irra
-import argparse
+import argparse, socket
+
+#############
+## GLOBALS ##
+#############
+global HOSTNAME, DATADIR
+HOSTNAME = socket.gethostname()
+DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/'
+
 
 def get_lcd(stage='redtr', inj=None, allq=None):
     '''
     Get the lightcurve dictionary from saved pickles for a given stage and
     injection mode. (Random injected depth).
     '''
-    datapath = '../data/injrecov_pkl/'
+    datapath = DATADIR+'injrecov_pkl/'
     if inj:
         datapath += 'inj/'
         stage += '_inj'
@@ -84,7 +92,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
 
         kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
 
-        pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
+        pklmatch = [f for f in os.listdir(DATADIR+'injrecov_pkl/'+predir) if
                 f.endswith('.p') and f.startswith(kicid) and stage in f]
 
         if len(pklmatch) > 0:
@@ -242,8 +250,8 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         for δ in δarr:
             # Control flow for injection & iterative whitening.
             stage = origstage + '_' + str(δ)
-            pklmatch = [f for f in os.listdir('../data/injrecov_pkl/'+predir) if
-                    f.endswith('.p') and f.startswith(kicid) and stage in f]
+            pklmatch = [f for f in os.listdir(DATADIR+'injrecov_pkl/'+predir)
+                    if f.endswith('.p') and f.startswith(kicid) and stage in f]
             if len(pklmatch) > 0:
                 print('Found {:s}, {:f}, continue'.format(kicid, δ))
                 continue
@@ -286,10 +294,10 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # not write diagnostic plots. Note that "stage" has δ in it, which
             # prevents name degeneracy.
             if nsavedpkls > maxnpkls:
-                savedir = '../data/injrecov_summ/'
+                savedir = DATADIR+'injrecov_summ/'
                 csvname = str(kicid)+'_'+stage+'.csv'
                 results.to_csv(savedir+csvname, index=False, header=False)
-                injrecovdir = '../data/injrecov_pkl/inj/'
+                injrecovdir = DATADIR+'injrecov_pkl/inj/'
                 pklname = str(kicid)+'_'+stage+'.pkl'
                 allqpklname = str(kicid)+'_allq_'+stage+'.p'
                 os.remove(injrecovdir+pklname)
@@ -344,7 +352,8 @@ def pkls_to_results_csvs(inj=None):
     subdir = 'inj' if inj else 'real'
     # I maybe messed up the names somewhere.
     stage = 'dipsearch' if inj else 'realsearch_real'
-    pklnames = os.listdir('../data/injrecov_pkl/'+subdir)
+
+    pklnames = os.listdir(DATADIR+'injrecov_pkl/'+subdir)
     lcdnames = [pn for pn in pklnames if 'allq' not in pn]
     allqnames = [pn for pn in pklnames if 'allq' in pn]
 

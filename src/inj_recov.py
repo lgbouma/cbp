@@ -4,7 +4,7 @@ Short period search:
     Binary Catalog entries.
 '''
 
-import pickle, os, logging, pdb
+import pickle, os, logging, pdb, socket
 from astropy.io import ascii
 import astropy.units as u, astropy.constants as c
 from datetime import datetime
@@ -18,6 +18,13 @@ from numpy import nan as npnan, median as npmedian, \
 from numpy.polynomial.legendre import Legendre, legval
 import batman
 import pandas as pd
+
+#############
+## GLOBALS ##
+#############
+global HOSTNAME, DATADIR
+HOSTNAME = socket.gethostname()
+DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/'
 
 #############
 ## LOGGING ##
@@ -457,7 +464,7 @@ def retrieve_next_lc(stage=None, blacklist=None, kicid=None):
                 ind += 1
                 continue
 
-            pklmatch = [f for f in os.listdir('../data/injrecov_pkl/real/') if
+            pklmatch = [f for f in os.listdir(DATADIR+'injrecov_pkl/real/') if
                     f.endswith('.p') and f.startswith(str(this_id)) and stage in f]
             dspmatch = [f for f in os.listdir('../results/dipsearchplot/real/') if
                     f.endswith('.png') and f.startswith(str(this_id)) and stage in f]
@@ -497,7 +504,7 @@ def get_kepler_ebs_info():
     '''
 
     #get Kepler EB data (e.g., the period)
-    keb_path = '../data/kepler_eb_catalog_v3.csv'
+    keb_path = DATADIR+'kepler_eb_catalog_v3.csv'
     cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
     cols = tuple(cols.split(','))
     tab = ascii.read(keb_path,comment='#')
@@ -526,7 +533,7 @@ def get_all_quarters_lc_data(kicid):
     '''
     assert type(kicid) == np.int64, 'kicid was {:s}'.format(str(type(kicid)))
 
-    lcdir = '../data/morph_gt0.6_kepler_MAST/'
+    lcdir = DATADIR+'morph_gt0.6_kepler_MAST/'
 
     fs = [lcdir+f for f in os.listdir(lcdir) if f.endswith('.fits') and
             str(kicid) in f]
@@ -558,9 +565,9 @@ def get_kebwg_info(kicid):
     Given a KIC ID, get the EB period reported by the Kepler Eclipsing Binary
     Working Group in v3 of their catalog.
     '''
-    keb_path = '../data/kepler_eb_catalog_v3.csv'
+    keb_path = DATADIR+'kepler_eb_catalog_v3.csv'
     #fast read
-    f = open('../data/kepler_eb_catalog_v3.csv', 'r')
+    f = open(DATADIR+'kepler_eb_catalog_v3.csv', 'r')
     ls = f.readlines()
     thisentry = [l for l in ls if l.startswith(str(kicid))]
     if len(thisentry) == 1:
@@ -1620,13 +1627,13 @@ def save_lightcurve_data(lcd, allq=None, stage=False, tossiterintermed=True):
         predir += 'inj/'
     else:
         predir += 'real/'
-    spath = '../data/injrecov_pkl/'+predir+pklname
-    sallqpath = '../data/injrecov_pkl/'+predir+pklallqname
+    spath = DATADIR+'injrecov_pkl/'+predir+pklname
+    sallqpath = DATADIR+'injrecov_pkl/'+predir+pklallqname
 
     if 'eb_sbtr' in stage:
         #override; save pickles somewhere else for EB subtraction tests.
-        spath = '../data/eb_subtr_pkl/'+pklname
-        sallqpath = '../data/eb_subtr_pkl/'+pklallqname
+        spath = DATADIR+'eb_subtr_pkl/'+pklname
+        sallqpath = DATADIR+'eb_subtr_pkl/'+pklallqname
 
     if tossiterintermed:
         for qnum in list(lcd.keys()):
@@ -1668,11 +1675,11 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
     else:
         predir += 'real/'
 
-    lpath = '../data/injrecov_pkl/'+predir+pklname
+    lpath = DATADIR+'injrecov_pkl/'+predir+pklname
 
     if 'eb_sbtr' in stage:
         #saved pickles somewhere else for EB subtraction tests.
-        lpath = '../data/eb_subtr_pkl/'+pklname
+        lpath = DATADIR+'eb_subtr_pkl/'+pklname
 
     try:
         dat = pickle.load(open(lpath, 'rb'))
@@ -1695,11 +1702,11 @@ def load_allq_data(kicid, stage=None, δ=None):
     else:
         predir += 'real/'
 
-    lpath = '../data/injrecov_pkl/'+predir+pklname
+    lpath = DATADIR+'injrecov_pkl/'+predir+pklname
 
     if 'eb_sbtr' in stage:
         #saved pickles somewhere else for EB subtraction tests.
-        lpath = '../data/eb_subtr_pkl/'+pklname
+        lpath = DATADIR+'eb_subtr_pkl/'+pklname
 
     try:
         allq = pickle.load(open(lpath, 'rb'))
