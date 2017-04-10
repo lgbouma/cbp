@@ -28,11 +28,12 @@ completeness_top1_heatmap:
 import pandas as pd, numpy as np, os
 import time, logging
 from datetime import datetime
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pdb
 import subprocess
 from itertools import product
-plt.style.use('utils/lgb.mplstyle')
 
 #############
 ## LOGGING ##

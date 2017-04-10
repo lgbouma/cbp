@@ -4,7 +4,7 @@
 #SBATCH --array=1-198
 #SBATCH -N 1   # node count. OpenMP requires 1.
 #SBATCH --ntasks-per-node=1  # core count.
-#SBATCH -t 3:30:00 # 5min gets test queue. e.g., 3:00:00 for 3hr
+#SBATCH -t 3:15:00 # 5min gets test queue. e.g., 3:00:00 for 3hr
 # sends mail when process begins, and
 # when it ends. Make sure you define your email
 #SBATCH --mail-type=end

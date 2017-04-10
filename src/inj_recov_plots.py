@@ -1,4 +1,6 @@
 import pdb
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np, matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid.inset_locator import inset_axes
