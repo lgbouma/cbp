@@ -31,7 +31,7 @@ import argparse, socket
 #############
 global HOSTNAME, DATADIR
 HOSTNAME = socket.gethostname()
-DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/'
+DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/data/'
 
 
 def get_lcd(stage='redtr', inj=None, allq=None):

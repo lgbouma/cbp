@@ -26,7 +26,7 @@ import pandas as pd
 #############
 global HOSTNAME, DATADIR
 HOSTNAME = socket.gethostname()
-DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/'
+DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/data/'
 
 #############
 ## LOGGING ##
