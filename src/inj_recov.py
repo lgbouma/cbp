@@ -77,9 +77,8 @@ def LOGEXCEPTION(message):
 
 def inject_transit_known_depth(lcd, δ):
     '''
-    Same as inject_random_drawn_transit, but made easier by gridding over
-    transit depth from δ = (2,1,1/2,1/4,1/8,1/16,1/32)% in the calling
-    routine.
+    Same as inject_random_drawn_transit, but made easier by getting the transit
+    depth from the calling routine.
 
     Args:
         lcd (dict): the dictionary with everything, before any processing has
@@ -112,7 +111,7 @@ def inject_transit_known_depth(lcd, δ):
     # X q1 and q2 from q~U(0,1)
     # X Argument of periapsis ω (which, per Winn Ch of Exoplanets, is the same
     #   as curly-pi up to 180deg) ω~U(-180deg,180deg).
-    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*4, ln P_EB*40)), i.e. a
+    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*3.5, ln 150 d)), i.e. a
     #   log-uniform distribution, where P_EB is the value reported by the
     #   KEBWG.
     # X Reference transit time t_0 [days] from t_0 ~ U(0,P_CBP) (plus the
@@ -495,6 +494,23 @@ def retrieve_next_lc(stage=None, blacklist=None, kicid=None):
         lcflag = False
 
     return rd, lcflag, blacklist
+
+
+def retrieve_injrecov_lc(kicid=None):
+    '''
+    Given the KIC ID parsed from /data/N_to_KICID.txt, get lightcurve data.
+    '''
+    assert isinstance(kicid, int)
+    kicid = np.int64(kicid)
+
+    rd, errflag = get_all_quarters_lc_data(kicid)
+    if len(rd) < 1 or errflag:
+        lcflag = True
+        LOGERROR('Error getting LC data. KICID-{:s}'.format(str(kicid)))
+    else:
+        lcflag = False
+
+    return rd, lcflag
 
 
 def get_kepler_ebs_info():
@@ -1426,9 +1442,10 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
-    smallfactor, bigfactor = 4., 80.
+    smallfactor, bigfactor = 3.5, None
     smallest_p = smallfactor * kebc_period
-    biggest_p = bigfactor * kebc_period
+    #biggest_p = bigfactor * kebc_period
+    biggest_p = 150. # days
     minTdur_φ = 0.005 # minimum transit length in phase
     maxTdur_φ = 0.25 # maximum transit length in phase
 

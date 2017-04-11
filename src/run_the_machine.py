@@ -37,10 +37,14 @@ import argparse, socket
 #############
 ## GLOBALS ##
 #############
+
 global HOSTNAME, DATADIR
 HOSTNAME = socket.gethostname()
 DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/data/'
 
+###############
+## FUNCTIONS ##
+###############
 
 def get_lcd(stage='redtr', inj=None, allq=None):
     '''
@@ -187,39 +191,39 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
 
 
 def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
-        rms_floor=5e-4, iwplot=False, whitened=True, ds=True, kicid=None):
+        rms_floor=5e-4, iwplot=False, whitened=True, ds=True, kicid=None,
+        injrecovtest=None):
     '''
     Inject transits, and find dips in short period binaries in the Kepler
     Eclipsing Binary Catalog. There are two important objects: `lcd` organizes
     everything by quarter. `allq` stitches over all quarters.
 
-    If doing injection & recovery, results get written to
-    '../results/injrecovresult'.
-
-    If doing a real search for dips, results get written to
-    '../results/real_search'.
-
     Currently implemented:
 
-        inject a realistic transit signal at δ=(1,1/2,1/4,1/8,1/16,1/32)%
-            depth, anywhere from P_CBP=(4-80)x P_EB.
+        if injrecovtest:
+            inject a transit signal at δ=(1,1/2,1/4,1/8,1/16,1/32)% depth,
+            anywhere from ln(P_CBP) ~ U(ln(3.5xP_EB),ln(150days))
+        elif injrecov:
+            inject a transit signal ln(δ) ~ U(ln(1%),ln([1/64]%)) depth,
+            anywhere from ln(P_CBP) ~ U(ln(3.5xP_EB),ln(150days))
         detrend (legendre and [30,30]σ sigclip)->
         normalize (median by quarter)->
         iterative whitening via PDM period-selection and legendre fitting (both
             in phase, then in time) ->
-        find dips (BLS, over all the quarters)
+        find dips (BLS, over all the quarters). From 3.5xP_EB to 150 days.
 
     args/kwargs:
 
         inj (bool): True if you're injecting (fixes names of things, and
         what routines to call).
 
-        N (int): the number of entries to inject/recover over. Also serves as
-        the RNG seed (for random selection of the targets). Only needed if
-        inj==True.
+        N (int): if injrecovtest, N is both the RNG seed and the number of LCs
+        to inject and recov on. If injrecov (the Real Deal), it is just the RNG
+        seed, passed by the calling routine, unique to this injrection/recovery
+        experiment (I use a unique integer, also related to the slurm job
+        array).
 
         stage (str): one of stages:
-            'pw' if post-whitening.
             'dipsearch' if doing injection recovery.
             'realsearch' if you're searching for real dips.
 
@@ -231,14 +235,16 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             eb_subtraction_diagnostic 3row whitened plot, the whitened 6row
             plot, and dipsearch plots (all diagnostics), respectively.
 
-        kicid (optional): the KIC ID of star to inject/recover on. If None,
-            will choose a random star. Else if int, will use the KIC ID.
-    '''
-    #TODO:
-    #Implement correct grid to inject and recover on. Use kicid arg as
-    #appropriate on clusters.
+        kicid (int): the KIC ID of star to inject/recover on. If injrecovtest,
+            is not needed; will choose a random star. If injrecov, will use the
+            kicid.
 
+        injrecovtest (bool): whether you're running a test (bigger dips,
+        easiesr recovery) or the Real Deal.
+    '''
     assert inj
+    # If injrecovtest, then N is both the RNG seed and the number of LCs. If
+    # injrecov, it is just the RNG seed.
     np.random.seed(N)
     seeds = np.random.randint(0, 99999999, size=N)
 
@@ -248,23 +254,37 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
 
     # To save disk space (since in production this is run for a large number of
     # lightcurves), impose a maximum number of pickle files to save.
-    nsavedpkls, maxnpkls = 0, 50
+    nsavedpkls, maxnpkls = len(os.listdir(DATADIR+'injrecov_pkl/'+predict)), 50
     for s in seeds:
-        np.random.seed(s)
-
-        lcd, lcflag = ir.retrieve_random_lc()
-        kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
-        if lcflag:
+        # Try retrieving light curve dictionary.
+        if injrecovtest:
+            np.random.seed(s)
+            lcd, lcflag = ir.retrieve_random_lc()
+        else:
+            lcd, lcflag = ir.retrieve_injrecov_lc(kicid=kicid)
+        if lcflag and injrecovtest:
             continue
+        elif lcflag and not injrecovtest:
+            print('ERR: retrieve_injrecov_lc failed.')
+            break
 
         # Inject transits, whiten lightcurves, find dips.
-        δarr = np.array([1.,1/2.,1/4.,1/8.,1/16.,1/32.])/100.
+        kicid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
+        if injrecovtest:
+            δarr = np.array([1.,1/2.,1/4.,1/8.,1/16.,1/32.])/100.
+        elif not injrecovtest:
+            lnδ = np.random.uniform(
+                    low=np.log(1/64./100.),
+                    high=np.log(1/100.),
+                    size=1)
+            δarr = np.array(np.e**lnδ)
+
         for δ in δarr:
             # Control flow for injection & iterative whitening.
             stage = origstage + '_' + str(δ)
             pklmatch = [f for f in os.listdir(DATADIR+'injrecov_pkl/'+predir)
                     if f.endswith('.p') and f.startswith(kicid) and stage in f]
-            if len(pklmatch) > 0:
+            if len(pklmatch) > 0 and injrecovtest:
                 print('Found {:s}, {:f}, continue'.format(kicid, δ))
                 continue
             else:
@@ -275,18 +295,21 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                         nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
                         rms_floor=rms_floor)
                 allq = ir.find_dips(lcd, allq, method='bls')
-                if 'dipsearch' in stage:
+                if 'dipsearch' in stage and injrecovtest:
                     kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
                             tossiterintermed=True)
-                    nsavedpkls += 1
+                if 'dipsearch' in stage and not injrecovtest and nsavedpkls<maxnpkls:
+                    kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
+                            tossiterintermed=True)
 
         # Write results and make plots.
         for δ in δarr:
             stage = origstage + '_' + str(δ)
-            lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
+            if injrecovtest:
+                lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
             if loadfailed:
                 continue
-            if 'dipsearch' in stage:
+            if 'dipsearch' in stage and injrecovtest:
                 allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
                 if loadfailed:
                     continue
@@ -296,6 +319,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # run, and it'll reconstruct the table based on everything in the
             # saved pickles.)
             if 'dipsearch' in stage:
+                #FIXME: improve write_search_result to write the correct parameters
                 fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                         stage=stage)
                 if fblserr:
@@ -351,8 +375,9 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                     irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                             δ=δ)
 
-        # Summarize results tables in a text file!
-        irra.summarize_injrecov_result()
+        # Summarize results tables in a text file.
+        if injrecovtest:
+            irra.summarize_injrecov_result()
 
 
 def pkls_to_results_csvs(inj=None):
@@ -411,12 +436,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='This is a short period EB injection-recovery machine '+\
                     '(injection is optional).')
-    parser.add_argument('-ir', '--injrecovtest', action='store_true',
+    parser.add_argument('-irtest', '--injrecovtest', action='store_true',
         help='Inject and recover periodic transits for a small number of '+\
              'trial stars. Must specify N.')
     parser.add_argument('-N', '--Nstars', type=int, default=None,
-        help='int number of stars to inject/recov on (& RNG seed). '+\
-             'required if running injrecovtest')
+        help='RNG seed for injrecov. Also, if injrecovtest, is int number of'+\
+        ' stars to inject/recov on. ')
+    parser.add_argument('-ir', '--injrecov', action='store_true',
+        help='Inject and recover periodic transits for KEBC stars.'+\
+             'Must specify kicid, and unique N.')
     parser.add_argument('-p', '--pkltocsv', action='store_true',
         help='Process ur pkl files to csv results. Needs inj arg.')
     parser.add_argument('-inj', '--inj', type=int, default=None,
@@ -435,12 +463,15 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if (args.injrecovtest and args.findrealdips):
+    if (args.injrecovtest and args.findrealdips) or (args.injrecov and
+            args.findrealdips):
         parser.error('Choose either (injection&recovery) XOR findrealdips')
     if (args.quicklcd and (args.findrealdips or args.injrecovtest)):
         parser.error('quicklcd must be run without any other options')
     if (args.injrecovtest and not isinstance(args.N,int)):
         parser.error('The --injrecovtest argument requires -N')
+    if (args.injrecov and (not args.kicid or not args.N)):
+        parser.error('--injrecov argument requires --kicid and -N.')
     if (args.pkltocsv and not isinstance(args.inj,int)):
         parser.error('The --pkltocsv argument requires --inj.')
     if (args.cluster and (not args.kicid or not args.nworkers)):
@@ -450,20 +481,23 @@ if __name__ == '__main__':
     if isinstance(args.inj,int):
         if args.inj not in [0,1]:
             parser.error('--inj must be given as 0 or 1.')
+    if (args.injrecovtest and args.injrecov):
+        parser.error('can only do either injrecovtest XOR injrecov')
 
     if args.quicklcd:
         lcd = get_lcd(stage='dtr', inj=False)
         lcd, allq = get_lcd(stage='dipsearch', inj=True)
 
-    if args.injrecovtest:
-        injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=False,
-                whitened=False, nwhiten_max=8, nwhiten_min=1, rms_floor=5e-4,
-                kicid=args.kicid, nworkers=args.nworkers)
+    if args.injrecov or args.injrecovtest:
+        makeplots = True if args.injrecovtest else False
+        injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=makeplots,
+            whitened=makeplots, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
+            kicid=args.kicid, nworkers=args.nworkers, injrecovtest=False)
 
     if args.findrealdips:
         recov(inj=False, stage='realsearch', ds=True, whitened=True,
-                nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.,
-                kicid=args.kicid, nworkers=args.nworkers)
+            nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4, min_pf_SNR=3.,
+            kicid=args.kicid, nworkers=args.nworkers)
 
     if args.pkltocsv:
         pkls_to_results_csvs(inj=args.inj)

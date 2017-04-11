@@ -466,4 +466,59 @@ X enable "multithread" over stars (this is the point of running on adroit).
   running at a time, we are net winning. (Nb. we can easily get more cores by
   asking Jim, and quickly moving to a different cluster once we're on adroit)
 
+Be efficient with how you allocate your coding time.
+
+Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
+to look at it carefully, and in a way that allows u to update human-input
+(e.g., y/n/maybe), one-time-thru. This human-input is only necessary once the
+processing has been completed across everything, which means it's more
+important to do the below things:
+
+* production run on actual KEBC stars, now that completeness is high enough,
+and everything works fast enough.  ->  _look through_ the ~1.5k search results,
+sorted per the above.
+(my toy run of ~500 LCs on the desktop is not sustainable)
+
+* bugfix:
+
+Traceback (most recent call last):
+  File "run_inj_recov.py", line 513, in <module>
+    injrecov_test1(101, stage='dipsearch', inj=True, ds=True, whitened=True)
+  File "run_inj_recov.py", line 480, in injrecov_test1
+    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+  File "/home/luke/Dropbox/proj/cbp/src/inj_recov_plots.py", line 631, in whitenedplot_6row
+    f.savefig(savedir+plotname, dpi=300)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1565, in savefig
+    self.canvas.print_figure(*args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_qt5agg.py", line 196, in print_figure
+    FigureCanvasAgg.print_figure(self, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backend_bases.py", line 2232, in print_figure
+    **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 527, in print_png
+    FigureCanvasAgg.draw(self)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 474, in draw
+    self.figure.draw(self.renderer)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1159, in draw
+    func(*args)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/axes/_base.py", line 2324, in draw
+    a.draw(renderer)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
+    draw(artist, renderer, *args, **kwargs)
+  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/text.py", line 757, in draw
+    raise ValueError("posx and posy should be finite values")
+ValueError: posx and posy should be finite values
+
+[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_2.txt
+
+
+* make ur interp1d calls smarter (if possible)
+
+(NEVER DID)
+* implement Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending
+  (add it in astrobase, then call in find_dips)
+
 

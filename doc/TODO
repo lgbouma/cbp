@@ -1,51 +1,34 @@
+Be efficient with how you allocate your coding time.
 ######
 #TODO#
 ######
 
-1. Be efficient with how you allocate your coding time.
-
-Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
-to look at it carefully, and in a way that allows u to update human-input
-(e.g., y/n/maybe), one-time-thru. This human-input is only necessary once the
-processing has been completed across everything, which means it's more
-important to do the below things:
-
-
-BEFORE PRODUCTION-LEVEL REAL SEARCH
-
-
-* move to adroit for full injrecov simulations, and full search. current OOM: a
-full month to run everything, which is not OK.
-
-
-
-
-
-BEFORE PRODUCTION-LEVEL INJ/RECOV:
-
-* store whatever stellar parameters you will need (e.g. peerless eqs 4-6. Need
-stellar parameters, with better estimates than just asserting Rstar=1.5Rsun,
-duty cycle estimate from time groups, eccentricity of orbit, etc. )
-
-* to understand those parameters, consider the eventual inference you will be
-making. it will be an (upper bound on an) occurrence rate over a volume, Γ_V vs
-κ, a Fischer distribution parameter (since these two things are very
-degenerate). 
-
-
-* make sure SNR>3 cut makes it in.
-
-* make sure exactly the same post-find_dips work is being on the injected LCs
-
-----------
-
-* Make sure injrecov works with the recov-only update (i.e. test it & break it)
+PRODUCTION-LEVEL INJ/RECOV:
+* check della legit works
+  > by just fixing my shit and doing it via injrecov.
 
 * in find_dips, check if Q0 exists, and if its RMS is much higher than
 everything else. If so, throw it out. (b/c this means that substraction failed)
 
 * Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
 into the PDC LC"
+
+* store whatever stellar parameters you will need (e.g. peerless eqs 4-6. Need
+stellar parameters, with better estimates than just asserting Rstar=1.5Rsun,
+duty cycle estimate from time groups, eccentricity of orbit, etc. )
+
+    #FIXME: improve write_search_result to write the correct parameters
+
+* to understand those parameters, consider the eventual inference you will be
+making. it will be an (upper bound on an) occurrence rate over a volume, Γ_V vs
+κ, a Fischer distribution parameter (since these two things are very
+degenerate). 
+
+* make sure SNR>3 cut makes it in.
+
+* make sure exactly the same post-find_dips work is being on the injected LCs
+
+* Make sure injrecov works with the recov-only update (i.e. test it & break it)
 
 * push injections (& search) out to longer periods(?).
 (E.g., apply something like DFM's single transit search algorithm/inspired by
@@ -56,21 +39,33 @@ completeness_heatmap_top1_pfSNR_vs_periodcbp is not showing boxes in the
 right place, if you compare with the scatter plot (e.g., should be more low
 period, higher pf-SNR objects).
 
-* production run on actual KEBC stars, now that completeness is high enough,
-and everything works fast enough.  ->  _look through_ the ~1.5k search results,
-sorted per the above.
-(my toy run of ~500 LCs on the desktop is not sustainable)
-
-* read Mowlavi et al recent Gaia EB gaussian fitting discussion. Could apply to
-HAT data. What did they learn?  http://arxiv.org/abs/1703.10597
-(also, read his other papers)
-
 * how big & how fine of an injection grid do we need/want to answer the
 _statistical_ questions (on occurrence rates) --> see
 ../../peerless/peerless/occurrence.py for an example of the actual calculation
 that's required
 
 > yes, it must be a big grid.
+
+* make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
+evaluating completenss.  It shouldn't change things.
+
+
+PRODUCTION-LEVEL REAL SEARCH
+
+* rerun, given the new BLS search params (not much should change >_>)
+* bribe another human labeller to spend ~2-3 boring hrs looking at dips.
+
+
+PAPER
+
+* copy template from e.g. DFM (duh)
+
+
+----------
+
+* read Mowlavi et al recent Gaia EB gaussian fitting discussion. Could apply to
+HAT data. What did they learn?  http://arxiv.org/abs/1703.10597
+(also, read his other papers)
 
 * why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
 pipeline?). How many of these instances are there?
@@ -83,9 +78,6 @@ understand the pulsations better by getting spatially- resolved light?
 * look at DFM's new O(N) GP models. Can they be used for *discovery*, as is the
 idea here?
 
-* make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
-evaluating completenss.  It shouldn't change things.
-
 [total aside question]:
 * What aspects of stellar formation (or post-formation physical evolution) can
 be inferred from contact EBs? Do they trace any particular physical processes?
@@ -97,45 +89,6 @@ delta scuti or gamma doradus?
 Discussed in any of: Rucisnki 1994, Rucisnki & Duerbeck 1997, Rucinski 2004
 
 
-
-
-* bugfix:
-
-Traceback (most recent call last):
-  File "run_inj_recov.py", line 513, in <module>
-    injrecov_test1(101, stage='dipsearch', inj=True, ds=True, whitened=True)
-  File "run_inj_recov.py", line 480, in injrecov_test1
-    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
-  File "/home/luke/Dropbox/proj/cbp/src/inj_recov_plots.py", line 631, in whitenedplot_6row
-    f.savefig(savedir+plotname, dpi=300)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1565, in savefig
-    self.canvas.print_figure(*args, **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_qt5agg.py", line 196, in print_figure
-    FigureCanvasAgg.print_figure(self, *args, **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backend_bases.py", line 2232, in print_figure
-    **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 527, in print_png
-    FigureCanvasAgg.draw(self)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/backends/backend_agg.py", line 474, in draw
-    self.figure.draw(self.renderer)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
-    draw(artist, renderer, *args, **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/figure.py", line 1159, in draw
-    func(*args)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
-    draw(artist, renderer, *args, **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/axes/_base.py", line 2324, in draw
-    a.draw(renderer)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/artist.py", line 61, in draw_wrapper
-    draw(artist, renderer, *args, **kwargs)
-  File "/home/luke/Dropbox/miniconda3/envs/sci/lib/python3.5/site-packages/matplotlib/text.py", line 757, in draw
-    raise ValueError("posx and posy should be finite values")
-ValueError: posx and posy should be finite values
-
-[1]+  Exit 1                  python run_inj_recov.py > LOGS/completeness_test_170320_2.txt
-
-
-
 ##########
 Possible improvements:
 
@@ -143,8 +96,6 @@ Possible improvements:
   11013201 has real dips, and is also KOI 972. Possible delta Scuti 
   oscillations, with the transiting planet. ?!?!. What does that mean about
   evolutionary state?)
-
-* make ur interp1d calls smarter (if possible)
 
 * avoid fitting out subharmonics of planet transits!!
 Example cases: 8122124. See 8122124_qnum9_inum2_sap.png
@@ -160,9 +111,6 @@ Possibilities:
 
 * Understand how DFM+ peerless implemented model comparison once you have nice
     transits. Implement it.
-
-* implement Armstrong+ 2014, Sec 3.1. Box with local polynomial detrending
-  (add it in astrobase, then call in find_dips)
 
 ----------
 

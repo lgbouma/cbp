@@ -304,7 +304,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
         ../results/whitened_diagnostic/
     '''
 
-    plt.style.use('utils/lgb.mplstyle')
+    #plt.style.use('utils/lgb.mplstyle')
 
     #TODO: fix ylabels to mean correct things
     assert ap == 'sap' or ap == 'pdc'
@@ -608,7 +608,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         ../results/dipsearchplot/
     '''
 
-    plt.style.use('utils/lgb.mplstyle')
+    #plt.style.use('utils/lgb.mplstyle')
     assert ap == 'sap' or ap == 'pdc'
 
     keplerid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
@@ -850,7 +850,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
 def plot_iterwhiten_3row(lcd, allq, ap='sap', stage='', inj=False, δ=None):
 
-    plt.style.use('utils/lgb.mplstyle')
+    #plt.style.use('utils/lgb.mplstyle')
 
     #lcd[qnum]['white'][inum][ap]['w*']`, for * in (fluxs,errs,times,phases)
 

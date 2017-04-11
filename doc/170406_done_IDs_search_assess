@@ -21,3 +21,6 @@ so that we can repeat it much faster (than the ~2 weeks this run took), and
 also do inj/recov at reasonable pace.
 
 --> Made "find_not_done_IDs.py" utility script to do this easily.
+
+N.b. let's do 20 injection/recoveries per LC. This makes 20320 injection
+recovery experiments, total.
