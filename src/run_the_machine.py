@@ -254,7 +254,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
 
     # To save disk space (since in production this is run for a large number of
     # lightcurves), impose a maximum number of pickle files to save.
-    nsavedpkls, maxnpkls = len(os.listdir(DATADIR+'injrecov_pkl/'+predict)), 50
+    nsavedpkls, maxnpkls = len(os.listdir(DATADIR+'injrecov_pkl/'+predir)), 50
     for s in seeds:
         # Try retrieving light curve dictionary.
         if injrecovtest:
