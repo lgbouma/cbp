@@ -23,4 +23,4 @@ N=$(expr $SLURM_ARRAY_TASK_ID-1)
 kicid="$(sed "${linenumber}q;d" /tigress/lbouma/data/N_to_KICID.txt | awk '{print $2}')"
 
 #FIXME: check appropriate call
-srun python run_the_machine.py --injrecov -c -kicid $kicid -nw 1 > LOGS/"$linenumber"_"$kicid".log
+srun python run_the_machine.py --injrecov -c -kicid $kicid -nw 1 -N $N > LOGS/"$linenumber"_"$kicid".log
