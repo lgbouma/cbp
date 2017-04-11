@@ -468,9 +468,9 @@ if __name__ == '__main__':
         parser.error('Choose either (injection&recovery) XOR findrealdips')
     if (args.quicklcd and (args.findrealdips or args.injrecovtest)):
         parser.error('quicklcd must be run without any other options')
-    if (args.injrecovtest and not isinstance(args.N,int)):
+    if (args.injrecovtest and not isinstance(args.Nstars,int)):
         parser.error('The --injrecovtest argument requires -N')
-    if (args.injrecov and (not args.kicid or not args.N)):
+    if (args.injrecov and (not args.kicid or not isinstance(args.Nstars,int))):
         parser.error('--injrecov argument requires --kicid and -N.')
     if (args.pkltocsv and not isinstance(args.inj,int)):
         parser.error('The --pkltocsv argument requires --inj.')
