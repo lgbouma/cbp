@@ -192,7 +192,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
 
 def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         rms_floor=5e-4, iwplot=False, whitened=True, ds=True, kicid=None,
-        injrecovtest=None):
+        injrecovtest=None, nworkers=None):
     '''
     Inject transits, and find dips in short period binaries in the Kepler
     Eclipsing Binary Catalog. There are two important objects: `lcd` organizes
@@ -293,8 +293,8 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 lcd = ir.normalize_allquarters(lcd, dt='dtr')
                 lcd = ir.iterative_whiten_allquarters(lcd, σ_clip=[30.,5.],
                         nwhiten_max=nwhiten_max, nwhiten_min=nwhiten_min,
-                        rms_floor=rms_floor)
-                allq = ir.find_dips(lcd, allq, method='bls')
+                        rms_floor=rms_floor, nworkers=nworkers)
+                allq = ir.find_dips(lcd, allq, method='bls', nworkers=nworkers)
                 if 'dipsearch' in stage and injrecovtest:
                     kicid = ir.save_lightcurve_data(lcd,allq=allq,stage=stage,
                             tossiterintermed=True)
@@ -333,14 +333,6 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 savedir = DATADIR+'injrecov_summ/'
                 csvname = str(kicid)+'_'+stage+'.csv'
                 results.to_csv(savedir+csvname, index=False, header=False)
-                injrecovdir = DATADIR+'injrecov_pkl/inj/'
-                pklname = str(kicid)+'_'+stage+'.pkl'
-                allqpklname = str(kicid)+'_allq_'+stage+'.p'
-                os.remove(injrecovdir+pklname)
-                os.remove(injrecovdir+allqpklname)
-                print('>maxnpkls. Save core results, no diagnostic plots.'+\
-                      '\nrm {:s}\nrm {:s}\n'.format( injrecovdir+pklname,
-                      injrecovdir+allqpklname))
                 continue
 
             # Make plots.
