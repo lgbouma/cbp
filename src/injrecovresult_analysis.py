@@ -235,7 +235,7 @@ def summarize_realsearch_result(substr=None, N=None):
     writedir = '../results/real_search/'
     wo.to_csv(writedir+'candidates_sort.csv', index=False)
 
-    # Make symlinks to the best 20 dipsearch plots.
+    # Make symlinks to the best N dipsearch plots.
     if isinstance(N, int):
         kicids = np.array(wo.head(n=N)['kicid'])
         for kicid in kicids:
@@ -258,7 +258,7 @@ def summarize_realsearch_result(substr=None, N=None):
             for l in lines:
                 wrnerrexc.append(l)
     else:
-        wrnerrexc.append(['WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!'])
+        wrnerrexc.append('WARNING! CURRENTLY NOT PARSING WARNINGS & ERRORS!')
 
     writestr = ''
     now = time.strftime('%c')
@@ -413,8 +413,10 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
                 kicid,csvdir,ap))
 
-    return fblserr, results
-
+    if not fblserr:
+        return fblserr, results
+    elif fblserr:
+        return fblserr, np.nan
 
 #########
 # PLOTS #

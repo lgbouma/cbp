@@ -398,7 +398,8 @@ def pkls_to_results_csvs(inj=None):
     else:
         fs_to_rm = ['../results/real_search/irresult_sap_top1.csv',
                     '../results/real_search/irresult_sap_allN.csv',
-                    '../results/real_search/summary.txt']
+                    '../results/real_search/summary.txt',
+                    '../results/real_search/candidates_sort.csv']
 
     for f in fs_to_rm:
         if os.path.exists(f):
@@ -415,7 +416,8 @@ def pkls_to_results_csvs(inj=None):
         allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
         if loadfailed:
             continue
-        irra.write_search_result(lcd, allq, inj=inj, stage=stage)
+        fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
+                stage=stage)
 
     if inj:
         irra.summarize_injrecov_result()

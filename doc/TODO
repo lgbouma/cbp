@@ -8,6 +8,9 @@ CANDIDATE SEARCH
 list. Also, produce more narrow diagnostics (e.g., trimming out weird jumps,
 dropping bad quarters, etc). Do they get better? Worse? What is known?
 
+* If Q0 RMS >> rest of quarters, just throw out Q0 when searching for dips.
+  (Otherwise the super-noisy bit dominates the search results).
+  See: 11447953, 6471048
 
 ```
 ** Contamination factors from KIC indicate risk of light contamination from
@@ -59,7 +62,15 @@ degenerate).
 
 * make sure exactly the same post-find_dips work is being on the injected LCs
 
+----------
+
 * Make sure injrecov works with the recov-only update (i.e. test it & break it)
+
+* in find_dips, check if Q0 exists, and if its RMS is much higher than
+everything else. If so, throw it out. (b/c this means that substraction failed)
+
+* Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
+into the PDC LC"
 
 * push injections (& search) out to longer periods(?).
 (E.g., apply something like DFM's single transit search algorithm/inspired by
@@ -69,6 +80,15 @@ it)
 completeness_heatmap_top1_pfSNR_vs_periodcbp is not showing boxes in the
 right place, if you compare with the scatter plot (e.g., should be more low
 period, higher pf-SNR objects).
+
+* production run on actual KEBC stars, now that completeness is high enough,
+and everything works fast enough.  ->  _look through_ the ~1.5k search results,
+sorted per the above.
+(my toy run of ~500 LCs on the desktop is not sustainable)
+
+* read Mowlavi et al recent Gaia EB gaussian fitting discussion. Could apply to
+HAT data. What did they learn?  http://arxiv.org/abs/1703.10597
+(also, read his other papers)
 
 * how big & how fine of an injection grid do we need/want to answer the
 _statistical_ questions (on occurrence rates) --> see

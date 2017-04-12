@@ -414,24 +414,21 @@ ValueError: zero-size array to reduction operation minimum which has no identity
 
 * v1.0 tag
 
-##########
 
-ADROIT IMPLEMENTATION
 
-*debug matplotlib errors. likely requires whatever protections (e.g., Agg
-backend?) Waqas put on astrobase...
-  *approach: use known SNR>3 candidate (from existing "good list")
+1. Be efficient with how you allocate your coding time.
 
-*debug UnboundLocalError when trying to reference results (more important: why
-is it not assigned?)
---> not actually done, because this is an error that should not even be
-raised... (so it's ok to leave it as fatal, for now)
+Corollary: IGNORE your output for the toy run of 500 LCs, until you are ready
+to look at it carefully, and in a way that allows u to update human-input
+(e.g., y/n/maybe), one-time-thru. This human-input is only necessary once the
+processing has been completed across everything, which means it's more
+important to do the below things:
 
-*debug the 1_2856* case (where it just ran for 3hrs). E.g., at least have it
-throw errors?  (I think this happened twice)
 
+BEFORE PRODUCTION-LEVEL REAL SEARCH
 
 x get a functioning software environment on adroit
+
 
 X branch when beginning the adroit setup
 

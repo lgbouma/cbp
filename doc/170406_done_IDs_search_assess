@@ -22,5 +22,41 @@ also do inj/recov at reasonable pace.
 
 --> Made "find_not_done_IDs.py" utility script to do this easily.
 
-N.b. let's do 20 injection/recoveries per LC. This makes 20320 injection
-recovery experiments, total.
+--------------------
+
+Running on workstation, as 16-core jobs. At ~0.5hr clock time per job, would
+mean 0.5*200 = 100 hours.
+
+Running these on adroit, as single core jobs. At ~1hr CPU time per job
+(previous single core average was 1.25hr/star), means 250 CPU hours.
+
+Fortunately, this is divided by anywhere from ~10-~80 cores, depending how many
+I can take over on the cluster. (E.g. just on submission, I got 32).
+
+This means at most 1 day (24hrs) of real clock time. (At best, an afternoon).
+
+Compare to for 1000 stars (the whole sample), at most 5 days of real clock time
+(averaging only 10 cores on the cluster).
+
+----------
+
+WILL THIS BE GOOD ENOUGH FOR INJECTION RECOVERY?
+
+Compare to ~20,000 stars (expected injection load with 20 injections per star),
+which means ~20k CPU hours.
+
+Even averaging 100 cores of the cluster, that's 200 hours (~8-9 days real clock
+time). 
+
+More likely ~50 cores of the (160 core) cluster, makes ~2-3weeks runtime.
+
+This isn't IMPOSSIBLE. It's actually pretty reasonable that I could be writing
+things up / focusing on other things in the mean time.
+
+However, if we asked Jim Stone & landed Tiger time, this is very preferable:
+
+vshort queue
+6 hour limit
+2048 core limit per job
+8512 total cores available
+64  job maximum per user
