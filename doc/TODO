@@ -3,10 +3,41 @@ Be efficient with how you allocate your coding time.
 #TODO#
 ######
 
-PRODUCTION-LEVEL INJ/RECOV:
-* check della legit works
-  > by just fixing my shit and doing it via injrecov.
+CANDIDATE SEARCH
+* deep-dive into the literature for every candidate on your
+list. Also, produce more narrow diagnostics (e.g., trimming out weird jumps,
+dropping bad quarters, etc). Do they get better? Worse? What is known?
 
+
+```
+** Contamination factors from KIC indicate risk of light contamination from
+neighboring stars
+
+Uytterhoeven et al (2011):
+** Table 3 & Table 4: KIC ID and classifications (for γ Dor vs δ Sct vs
+hybrid). 
+** Table 1 has ~750 candidate γ Dor and δ Sct pulsators.
+
+Armstrong+ (2013): Best game in town(?) for KEBC temperatures.
+* Compare performance w/ known systems (e.g. vs Armstrong+ 2013's Table 5)
+
+Why do we care about the stellar properties?
+1. We need to estimate our contamination fraction in the ~1k K"EB"C sample
+2. If we want to convert our search result into Γ_V vs κ, we need to know the
+inclinations of the systems, and the stellar radii (assuming Γ_V is defined
+over planet radius, not δ).
+
+The KEBC produced rough values of sini, R2/R1, T2/T1, which they then
+retracted. Armstrong produced rough Teffs.
+```
+
+
+PRODUCTION-LEVEL REAL SEARCH
+* rerun, given the new BLS search params (not much should change >_>)
+* bribe another human labeller to spend ~2-3 boring hrs looking at dips.
+
+
+PRODUCTION-LEVEL INJ/RECOV:
 * in find_dips, check if Q0 exists, and if its RMS is much higher than
 everything else. If so, throw it out. (b/c this means that substraction failed)
 
@@ -50,15 +81,11 @@ that's required
 evaluating completenss.  It shouldn't change things.
 
 
-PRODUCTION-LEVEL REAL SEARCH
-
-* rerun, given the new BLS search params (not much should change >_>)
-* bribe another human labeller to spend ~2-3 boring hrs looking at dips.
-
 
 PAPER
 
 * copy template from e.g. DFM (duh)
+* write introduction
 
 
 ----------

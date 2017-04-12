@@ -522,3 +522,40 @@ ValueError: posx and posy should be finite values
   (add it in astrobase, then call in find_dips)
 
 
+* check della legit works
+> by just fixing my shit and doing it via injrecov.
+> it can run 140 cores simultaneously on the short queue. At 1hr per injrecov
+(BCS), we have 20k CPU hours to go thru. 140 CPUs means 1 real hour = 140 CPU
+hours, so 2e4/140/24 = 6 days.
+If they were willing to up the MaxJobsPerUser, to say 256 on this queue (to
+match the MaxCPUsPerUser), this would shrink by a factor of 1.8 to 3.3 days.
+
+
+lbouma@della4:~/proj/cbp$ qos
+      Name   Priority GrpNodes  GrpCPUs MaxCPUsPU MaxJobsPU MaxNodesPU MaxSubmit 
+---------- ---------- -------- -------- --------- --------- ---------- --------- 
+     vlong       2800              1600       160        40                 2000 
+    medium       3000              1600       256       140                 2000 
+     short       5000                         256       140                 2000 
+      test       6000                                     2                  200 
+
+
+Wed 12 Apr 2017 11:31:58 AM EDT
+
+* how do u classify btwn pulsators & EBs? (seems like the KEBWG had issues)
+  > amplitude
+  > shape (e.g. ellipsoidal variables, ELVs, vs γ Dor, vs low sini contact EB
+  tend to have slightly differetn shapes. ELVs are sharp, no primary/secondary
+  transit. Ditto γ Dor? A tell for γ Dor is star's Teff, logg, likely inferred
+  thru colors)
+X understand what "morph" means (Matijevic+ 2012).
+  > see discussion in summarized_papers.txt
+* ctrl-f thru Kepler EB WG papers for "pulsator" or "δ Sct" or (most
+  relevant) "γ Dor" to see if they thought about these as false positives
+  > doesn't matter so much if they did, they should have.
+X based e.g. off Fig 4 of Matijevic+ 2012, or using the v2 hand classifications
+  and cross-matching, what fraction of our morph>0.7 objects are contact binaries
+  vs the other high-morphology classes?
+  > like, half. (~58%, going off v2 of KEBC). see 170412_* in docs.
+
+

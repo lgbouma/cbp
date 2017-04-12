@@ -1,0 +1,23 @@
+N in KEBC_v3, retrieved 170204: 2876
+N in KEBC_v2, retrieved 170412: 2177
+N in KEBC_v3, morph>0.6: 1016
+KEBC_v2 does not have morph parameter.
+
+N in KEBC_v3, morph>0.6 that have crossmatches in KEBC_v2: 737
+	which is 72.5%
+Of the 737,
+	?:	75	(10.2%)
+	D:	43	(5.83%)
+	ELV:	101	(13.7%)
+	OC:	427	(57.9%)
+	SD:	91	(12.3%)
+
+Assuming the same rates apply to the v3 catalog, we get
+Of the 1016,
+	?:	103	(10.2%)
+	D:	59	(5.83%)
+	ELV:	139	(13.7%)
+	OC:	588	(57.9%)
+	SD:	125	(12.3%)
+
+Wrote overcontact sini distribn to ../../doc/170412_overcontact_sini_distribution.pdf
