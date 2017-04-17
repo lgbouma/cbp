@@ -1,6 +1,6 @@
 '''
 In results/real_search/dip_deepdive, make easier to read lightcurves, with 4
-rows and flux vs time split across all the quarters (of once-whitened LCs)
+rows of 4 different time groups, each 5 days long.
 '''
 import numpy as np, matplotlib.pyplot as plt
 import pickle
@@ -17,6 +17,7 @@ def make_fluxvstime_panel(dipid):
 
     maxtime = max(allq['dipfind']['tfe'][ap]['times'])
     mintime = min(allq['dipfind']['tfe'][ap]['times'])
+    midtime = (maxtime - mintime)/2.
 
     nrows = 4
     colors = ['r', 'g', 'b', 'gray']
@@ -28,11 +29,11 @@ def make_fluxvstime_panel(dipid):
     for qnum in np.sort(list(lcd.keys())):
 
         min_inum = np.min(list(lcd[qnum]['white'].keys()))
-        lc = lcd[qnum]['white'][min_inum][ap]['legdict']['whiteseries']
 
+        lc = lcd[qnum]['dtr'][ap]
         times = lc['times']
-        fluxs = lc['wfluxs']
-        errs = lc['errs']
+        fluxs = lc['fluxs_dtr_norm']
+        errs = lc['errs_dtr_norm']
 
         thiscolor = colors[int(qnum)%len(colors)]
 
@@ -42,12 +43,11 @@ def make_fluxvstime_panel(dipid):
                     marker='o', markerfacecolor=thiscolor,
                     markeredgecolor=thiscolor, ms=0.1, lw=0.1)
 
-        # Now fix the xlims so it looks like 3 different plots.
-        panel_timelen = (maxtime-mintime)/nrows
+        panel_timelen = 10. # days
         xlims = []
-        for i in range(0, nrows):
+        for i in np.array(list(range(0, nrows)))-2:
             xlims.append(
-                    (mintime+i*panel_timelen, mintime+(i+1)*panel_timelen)
+                    (midtime+i*panel_timelen, midtime+(i+1)*panel_timelen)
                     )
 
         for ix, ax in enumerate(axs):
@@ -56,7 +56,7 @@ def make_fluxvstime_panel(dipid):
 
     f.tight_layout()
 
-    savedir = '../../results/real_search/dip_deepdive/fluxvstime_panels/'
+    savedir = '../../results/real_search/dip_deepdive/fewdays_fluxvstime/'
     f.savefig(savedir+str(dipid)+'.png',dpi=300)
 
 if __name__ == '__main__':
