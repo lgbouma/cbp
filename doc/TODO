@@ -2,7 +2,52 @@ Be efficient with how you allocate your coding time.
 ######
 #TODO#
 ######
+* Email Andrej: how contaminated with gamma dor are these?
 
+  11013201:
+  (Almost certain) the KEBC period is wrong. The period they give is a
+  pulsation period (cf. Uytterhoeven+ (2011) and Niemczura+ (2015)). It should be a single 
+
+  7515679:
+  What do "Pu" flag mean? Not described in Kirk+ (2013). 
+
+
+  > have examples to back up claim that they're contaminated.
+  > e.g. crossmatch the 2011 Kepler astroseis paper
+  Should Gamma dor be more incoherent? 
+
+* how do you determine W vs A type contact binaries? can it be done through
+the LC alone? (important for estimating contamination fraction within things
+hand-labelled as overcontact EBs)
+
+-> how do you rule these out?
+
+* Look at CFOP. Get account, query KOI, discussion.
+
+FURTHER SCRUTINY OF CANDIDATES:
+(The goal being: we _want_ to rule these things out. Can we do it?)
+* Literature
+* CFOP
+* Exoplanet archive
+* Contamination fraction
+* Centroid motion: specific to dips.
+  -> Look at vector difference associated w/ moments in time (in dips and
+    outside). N.b. centroid time
+  Read: Steve Bryson.
+* Better detrending / masking (cleanest possible look at signal). Careful f(t)
+  timeseries.
+* **Odd/even** (key!)
+
+--> half or a third survive. Then we get spectra.
+* Timing analysis of the dips: do we get nonperiodicites? -> does it hold w/ planet hypothesis?
+Transit shape check: tricky b/c we don't expect it to be normal shaped. But if
+  its excessively V-shaped.
+
+Photometric followup possible.
+High angular resoln of events -> another way of verifying it's from the star itself.
+
+####################
+####################
 CANDIDATE SEARCH
 * deep-dive into the literature for every candidate on your
 list. Also, produce more narrow diagnostics (e.g., trimming out weird jumps,

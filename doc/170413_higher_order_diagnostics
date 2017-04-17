@@ -1,0 +1,61 @@
+TODO:
+
+* append contamination fraction to text files.
+* make centroid motion plots
+
+####################
+For every object:
+
+* contamination fraction?
+
+From https://keplerscience.arc.nasa.gov/PyKEprimerStitching.shtml:
+
+"""
+The FITS keyword FLFRCSAP contains the fraction of target flux falling within
+the optimal aperture. The keyword CROWDSAP contains the ratio of target flux
+relative to flux from all sources within the photometric aperture. Both
+quantities are the average value over each quarter and are estimated using
+point-spread function and spacecraft jitter models (Bryson et al. 2010)
+combined with source characteristics found within the KIC (Brown et al. 2011).
+The PDC time-series data archived within the FITS light curve files have both
+of these corrections applied by default.
+"""
+
+-> These are stored in lcd[qnum]['varinfo']['aptgttotrat']
+Close to 1 means not very contaminated. Close to 0 means quite contaminated.
+
+* centroid offset during transit?
+Likely either:
+
+psf_centr1
+psf_centr2
+mom_centr1
+mom_centr2
+
+What are these? What's the difference?
+
+Well, it looks like (N=2 quarters) psf_centr1 is typically nans, while
+mom_centr1 has values. 
+
+Talking w/ Kento:
+
+Ya dude. Plotting out these centroids is a good idea.
+
+From internet, yes MOM_CENTR1 and MOM_CENTR2 are the X and Y centroid over
+time.
+
+```
+kepsff requires target position data on the CCD detector in order to correlate
+spacecraft boresight motion with systematic signal within the flux time-series.
+The typical Kepler/K2 light curve files have place-holders for two different
+measures of source centroid: 1. center-of-light within the pixel aperture
+(alternatively known as the zeroth-moment of the flux distribution over the
+pixels). These two arrays, the X and Y centroid over time, are stored in FITS
+columns MOM_CENTR1 and MOM_CENTR2. 2. The PSF-fitting method, the X and Y
+locations of best-fit PSF models to the aperture pixels. These are rarely
+available within archived Kepler data but can be stored in PSF_CENTR1 and
+PSF_CENTR2. Both sets of centroids are provided in the output from kepextract,
+where the moments data is generally preferred over the PSF data which derives
+from the simplifying assumptions that sources are not confused and are
+well-characterized by symmetric Gaussian profiles.
+```
