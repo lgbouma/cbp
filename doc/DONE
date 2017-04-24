@@ -555,4 +555,46 @@ X based e.g. off Fig 4 of Matijevic+ 2012, or using the v2 hand classifications
   vs the other high-morphology classes?
   > like, half. (~58%, going off v2 of KEBC). see 170412_* in docs.
 
+* Email Andrej with notes from search
+
+  11013201:
+  (Almost certain) the KEBC period is wrong. The period they give is a
+  pulsation period (cf. Uytterhoeven+ (2011) and Niemczura+ (2015)). It should be a single 
+
+  7515679:
+  What do "Pu" flag mean? Not described in Kirk+ (2013). 
+  > have examples to back up claim that they're contaminated.
+  > e.g. crossmatch the 2011 Kepler astroseis paper
+  Should Gamma dor be more incoherent? 
+
+* Look at CFOP. Get account, query KOI, discussion.
+
+* deep-dive into the literature for every candidate on your
+list. Also, produce more narrow diagnostics (e.g., trimming out weird jumps,
+dropping bad quarters, etc). Do they get better? Worse? What is known?
+
+Uytterhoeven et al (2011):
+** Table 3 & Table 4: KIC ID and classifications (for γ Dor vs δ Sct vs
+hybrid). 
+** Table 1 has ~750 candidate γ Dor and δ Sct pulsators.
+
+* further analysis of remaining 4 (deep dive) (e.g.: by end of Thurs, have a
+better idea which of the 4 seem promising / worth getting spectroscopy of).
+  X Literature
+  X CFOP
+  X Exoplanet archive
+  X Contamination fraction
+  * Centroid motion: specific to dips.
+    -> Look at vector difference associated w/ moments in time (in dips and
+      outside). N.b. centroid time
+    Read: Steve Bryson.
+  X Better detrending / masking (cleanest possible look at signal). Careful f(t)
+    timeseries.
+  * **Odd/even** (key!)
+  X Timing analysis of the dips: do we get nonperiodicites? -> does it hold w/ planet hypothesis?
+  * Transit shape check: tricky b/c we don't expect it to be normal shaped. But if
+    its excessively V-shaped.
+  X Contamination factors from KIC indicate risk of light contamination from
+  neighboring stars
+
 

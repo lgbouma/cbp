@@ -25,10 +25,19 @@ def make_fluxvstime(dipid):
 
         min_inum = np.min(list(lcd[qnum]['white'].keys()))
 
-        lc = lcd[qnum]['dtr'][ap]
+        # If u want raw
+        #lc = lcd[qnum]['dtr'][ap]
+        #times = lc['times']
+        #fluxs = lc['fluxs_dtr_norm']
+        #errs = lc['errs_dtr_norm']
+
+        # If u want subtracted
+        max_inum = np.max(list(lcd[qnum]['white'].keys()))
+        #min_inum = np.min(list(lcd[qnum]['white'].keys()))
+        lc = lcd[qnum]['white'][max_inum][ap]['legdict']['whiteseries']
         times = lc['times']
-        fluxs = lc['fluxs_dtr_norm']
-        errs = lc['errs_dtr_norm']
+        fluxs = lc['wfluxsresid']
+        errs = lc['errs']
 
         # Plot the same thing three times.
         ax.plot(times, fluxs, c='k', linestyle='-',
@@ -41,5 +50,5 @@ def make_fluxvstime(dipid):
 
 
 if __name__ == '__main__':
-    dipid = 7515679
+    dipid = 9480977
     make_fluxvstime(dipid)

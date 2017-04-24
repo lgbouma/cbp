@@ -1,89 +1,74 @@
 '''
-In results/real_search/dip_deepdive, make 2x2 grid of centroid timeseries. (The
-plots are column # vs row #). The points are colored by proximity to expected
-transit time.
+In results/real_search/dip_deepdive, plot (vector distance from median of
+centroid) vs time, for all quarters. (The plots are column # vs row #). Points
+close to the expected transit time are highlighted with vertical lines.
 '''
 import numpy as np, matplotlib.pyplot as plt
 import pickle
 import os
+import pdb
 
-def centroid_diagnostics(dipid):
-    '''e.g., dipid = 9843451
-    '''
+def plot_centroid_diagnostic(dipid, t_0, period):
     ap = 'sap'
     savdir = '../../data/injrecov_pkl/real/'
     lcd = pickle.load(open(savdir+str(dipid)+'_realsearch_real.p', 'rb'))
     allq = pickle.load(open(savdir+str(dipid)+'_allq_realsearch_real.p', 'rb'))
 
-    #FIXME: actually write this!
-    pgdf = allq['dipfind']['bls'][ap]['finebls']
-    periods_powers = [(k, max(pgdf[k]['serialdict']['lspvals'])) \
-            for k in list(pgdf.keys())]
-    nbestperiods = [per for (per,power) in sorted(periods_powers,
-            key=lambda pair:pair[1], reverse=True)]
-
-    # assume BLS actually found the right period...
-    foldperiod = nbestperiods[0]
-    fbls = allq['dipfind']['bls'][ap]['finebls'][foldperiod]
-    plotφ = fbls['φ']
-    plotfluxs = fbls['flux_φ']
-    binplotφ = fbls['binned_φ']
-    binplotfluxs = fbls['binned_flux_φ']
-
-
     maxtime = max(allq['dipfind']['tfe'][ap]['times'])
     mintime = min(allq['dipfind']['tfe'][ap]['times'])
 
+    transit_times = np.array(list(range(-100,100)))*period + t_0
+    transit_times = transit_times[(transit_times < maxtime) & (transit_times >
+        mintime)]
+
     colors = ['r', 'g', 'b', 'gray']
-    # Set up matplotlib figure and axes.
     plt.close('all')
-    f, axs = plt.subplots(figsize=(16, 10), nrows=2, ncols=2)
+    f, axs = plt.subplots(figsize=(16, 10), nrows=2, ncols=1)
 
     for qnum in np.sort(list(lcd.keys())):
 
         centroid_x = lcd[qnum]['mom_centr1']
         centroid_y = lcd[qnum]['mom_centr2']
-
-
-
+        r = np.sqrt(centroid_x**2 + centroid_y**2)
+        r0 = np.median(r[np.isfinite(r)])
+        r_minus_r0 = r-r0
 
         min_inum = np.min(list(lcd[qnum]['white'].keys()))
-        lc = lcd[qnum]['white'][min_inum][ap]['legdict']['whiteseries']
-
+        max_inum = np.max(list(lcd[qnum]['white'].keys()))
+        lc = lcd[qnum]['white'][max_inum][ap]['legdict']['whiteseries']
         times = lc['times']
         fluxs = lc['wfluxs']
         errs = lc['errs']
 
         thiscolor = colors[int(qnum)%len(colors)]
+        # centroid vs time
+        axs[0].plot(lcd[qnum]['time'], r_minus_r0, c=thiscolor, linestyle='-',
+                marker='o', markerfacecolor=thiscolor,
+                markeredgecolor=thiscolor, ms=1, lw=0.1)
+        # flux vs time
+        axs[1].plot(times, fluxs, c=thiscolor, linestyle='-',
+                marker='o', markerfacecolor=thiscolor,
+                markeredgecolor=thiscolor, ms=1, lw=0.1)
 
-        # Plot the same thing three times.
-        for ax in axs:
-            ax.plot(times, fluxs, c=thiscolor, linestyle='-',
-                    marker='o', markerfacecolor=thiscolor,
-                    markeredgecolor=thiscolor, ms=0.1, lw=0.1)
-
-        # Now fix the xlims so it looks like 3 different plots.
-        panel_timelen = (maxtime-mintime)/nrows
-        xlims = []
-        for i in range(0, nrows):
-            xlims.append(
-                    (mintime+i*panel_timelen, mintime+(i+1)*panel_timelen)
-                    )
-
-        for ix, ax in enumerate(axs):
-            ax.set_xlim(xlims[ix])
-
+    for ax in axs:
+        ylims = ax.get_ylim()
+        ax.vlines(transit_times, min(ylims), max(ylims), colors='gray',
+                linestyles='solid', zorder=-5, alpha=0.3)
+        ax.set(ylim=ylims)
+    axs[1].set(xlabel='time [days]', ylabel='relative flux',
+           title='constant {:.4g} period centered on transits'.format(period))
+    axs[0].set(ylabel='r-r_0 [pixels, r_0 is median centroid per quarter]')
 
     f.tight_layout()
 
-    savedir = '../../results/real_search/dip_deepdive/fluxvstime_panels/'
-    f.savefig(savedir+str(dipid)+'.png',dpi=300)
+    savedir = '../../results/real_search/dip_deepdive/centroid_diagnostic/'
+    f.savefig(savedir+str(dipid)+'.png',dpi=350)
 
 if __name__ == '__main__':
-    dipids = [int(f.split('.')[0]) for f in \
-            os.listdir('../../results/real_search/dip_deepdive/') if \
-            f.endswith('.txt')]
+    id_t0_period = [(9480977,158.34006,38.04367),#check this t0 w/ manual measurements
+                    (6791604,144.79417,18.43698),#same
+                    (7889628,155.07355,24.2372)]
 
-    for dipid in dipids:
-        make_fluxvstime_panel(dipid)
+    for dipid, t_0, period in id_t0_period:
+        plot_centroid_diagnostic(dipid, t_0, period)
         print('made {:s}'.format(str(dipid)))

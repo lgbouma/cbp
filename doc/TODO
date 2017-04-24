@@ -2,67 +2,46 @@ Be efficient with how you allocate your coding time.
 ######
 #TODO#
 ######
-* Email Andrej: how contaminated with gamma dor are these?
 
-  11013201:
-  (Almost certain) the KEBC period is wrong. The period they give is a
-  pulsation period (cf. Uytterhoeven+ (2011) and Niemczura+ (2015)). It should be a single 
+* further analysis of remaining 4 (deep dive) (e.g.: by end of Thurs, have a
+better idea which of the 4 seem promising / worth getting spectroscopy of).
+  X Literature
+  X CFOP
+  X Exoplanet archive
+  X Contamination fraction
+  * Centroid motion: specific to dips.
+    -> Look at vector difference associated w/ moments in time (in dips and
+      outside). N.b. centroid time
+    Read: Steve Bryson.
+  X Better detrending / masking (cleanest possible look at signal). Careful f(t)
+    timeseries.
+  * **Odd/even** (key!)
+  X Timing analysis of the dips: do we get nonperiodicites? -> does it hold w/ planet hypothesis?
+  * Transit shape check: tricky b/c we don't expect it to be normal shaped. But if
+    its excessively V-shaped.
+  X Contamination factors from KIC indicate risk of light contamination from
+  neighboring stars
 
-  7515679:
-  What do "Pu" flag mean? Not described in Kirk+ (2013). 
+* begin paper draft (e.g., introduction, write up methods...)
 
+* ondrej peycha's ampltitude of variability idea.  
 
-  > have examples to back up claim that they're contaminated.
-  > e.g. crossmatch the 2011 Kepler astroseis paper
-  Should Gamma dor be more incoherent? 
+* figure out photometric / spectroscopic / high angular resoln follow-up program
 
 * how do you determine W vs A type contact binaries? can it be done through
 the LC alone? (important for estimating contamination fraction within things
 hand-labelled as overcontact EBs)
 
--> how do you rule these out?
 
-* Look at CFOP. Get account, query KOI, discussion.
-
-FURTHER SCRUTINY OF CANDIDATES:
-(The goal being: we _want_ to rule these things out. Can we do it?)
-* Literature
-* CFOP
-* Exoplanet archive
-* Contamination fraction
-* Centroid motion: specific to dips.
-  -> Look at vector difference associated w/ moments in time (in dips and
-    outside). N.b. centroid time
-  Read: Steve Bryson.
-* Better detrending / masking (cleanest possible look at signal). Careful f(t)
-  timeseries.
-* **Odd/even** (key!)
-
---> half or a third survive. Then we get spectra.
-* Timing analysis of the dips: do we get nonperiodicites? -> does it hold w/ planet hypothesis?
-Transit shape check: tricky b/c we don't expect it to be normal shaped. But if
-  its excessively V-shaped.
-
-Photometric followup possible.
-High angular resoln of events -> another way of verifying it's from the star itself.
+email Andrej Prsa once you have questions he can help you understand
 
 ####################
 ####################
 CANDIDATE SEARCH
-* deep-dive into the literature for every candidate on your
-list. Also, produce more narrow diagnostics (e.g., trimming out weird jumps,
-dropping bad quarters, etc). Do they get better? Worse? What is known?
 
 * review "maybes" too
 
 ```
-** Contamination factors from KIC indicate risk of light contamination from
-neighboring stars
-
-Uytterhoeven et al (2011):
-** Table 3 & Table 4: KIC ID and classifications (for γ Dor vs δ Sct vs
-hybrid). 
-** Table 1 has ~750 candidate γ Dor and δ Sct pulsators.
 
 Armstrong+ (2013): Best game in town(?) for KEBC temperatures.
 * Compare performance w/ known systems (e.g. vs Armstrong+ 2013's Table 5)
@@ -82,9 +61,10 @@ PRODUCTION-LEVEL REAL SEARCH
   (Otherwise the super-noisy bit dominates the search results).
   See: 11447953, 6471048
 * rerun, given the new BLS search params (not much should change >_>)
+-->e.g., BLS should have run out to longer periods (?). (Something for the
+  rerun pre/during-paper writing).
+
 * bribe another human labeller to spend ~2-3 boring hrs looking at dips.
-
-
 
 PRODUCTION-LEVEL INJ/RECOV:
 * in find_dips, check if Q0 exists, and if its RMS is much higher than
@@ -230,3 +210,4 @@ astrokep.keplerflux_to_keplermag
 ALSO:
  PyKE is also worth assessing: what detrending tricks does it use?
 '''
+
