@@ -14,4 +14,4 @@ doc/refs/*pdf
 
 # SECRET STUFF THAT I DON'T WANT ANYONE TO SEE YET
 results*
-src/analysis_scripts/*py
+src/analysis_scripts*
