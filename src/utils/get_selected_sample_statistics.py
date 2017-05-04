@@ -89,12 +89,70 @@ for TYPE in np.sort(list(type_frac.keys())):
         type_frac[TYPE]*100))
 
 # 4. What does the sini distribution of overcontact binaries from v2 look like?
-import seaborn as sns
-import matplotlib.pyplot as plt
-plt.close('all')
-ax = sns.distplot(kebc_v2[kebc_v2['TYPE']=='OC']['sini'], kde=False)
-ax.set_title('KEBC, v2, things labelled \"overcontact\"\n(types and sini\'s were later retracted(?))')
-writepath = '../../doc/170412_overcontact_sini_distribution.pdf'
-plt.savefig(writepath)
+make_sini_distribution = False
+if make_sini_distribution:
+    import seaborn as sns
+    import matplotlib.pyplot as plt
+    plt.close('all')
+    ax = sns.distplot(kebc_v2[kebc_v2['TYPE']=='OC']['sini'], kde=False)
+    ax.set_title('KEBC, v2, things labelled \"overcontact\"\n(types and sini\'s were later retracted(?))')
+    writepath = '../../doc/170412_overcontact_sini_distribution.pdf'
+    plt.savefig(writepath)
 
-print('\nWrote overcontact sini distribn to {:s}'.format(writepath))
+    print('\nWrote overcontact sini distribn to {:s}'.format(writepath))
+
+##############
+##############
+# 5. Now repeat, for morph>0.7:
+df_v3 = kebc_v3[kebc_v3['morph']>0.7]
+print('N in KEBC_v3, morph>0.7: {:d}'.format(
+    len(df_v3)))
+
+print('KEBC_v2 does not have morph parameter.\n')
+
+highmorph_ids_v3 = np.array(df_v3['KIC'])
+kic_ids_v2 = np.array(kebc_v2['KIC'])
+# Make sure these .00, .01, .02 things can be ignored.
+v2_dot_ids = np.unique(list(map(int, kic_ids_v2[kic_ids_v2 % 1 != 0])))
+v2_int_v3_dot_ids = np.intersect1d(v2_dot_ids, highmorph_ids_v3)
+assert v2_int_v3_dot_ids.size == 0, 'the .00, .01, .02 stuff is not safe to'+\
+    ' ignore! they show up in morph>0.7 sample!'
+
+# 5.1. What fraction of v3 morph>0.6 were in v2?
+v2_int_v3_highmorph_ids = np.intersect1d(kic_ids_v2, highmorph_ids_v3)
+print('N in KEBC_v3, morph>0.7 that have crossmatches in KEBC_v2: {:d}'.format(
+    len(v2_int_v3_highmorph_ids)))
+print('\twhich is {:.3g}%'.format(float(
+    len(v2_int_v3_highmorph_ids)/len(df_v3)*100)))
+
+# 5.2. Of the v3 morph>0.6 entries that also had entries in v2, what is the
+# distribution of TYPE (detached, semidetached, etc)?
+is_in_v3_highmorph = []
+for v2_id in kic_ids_v2:
+    val = True if v2_id in highmorph_ids_v3 else False
+    is_in_v3_highmorph.append(val)
+
+kebc_v2['is_in_v3'] = is_in_v3_highmorph
+highmorph_v2 = kebc_v2[kebc_v2['is_in_v3']==True]
+print('Of the {:d},'.format(len(highmorph_v2)))
+type_frac = {}
+for TYPE in np.sort(np.unique(highmorph_v2['TYPE'])):
+    print('\t{:s}:\t{:d}\t({:.3g}%)'.format(
+        str(TYPE),
+        len(highmorph_v2[highmorph_v2['TYPE']==TYPE]),
+        len(highmorph_v2[highmorph_v2['TYPE']==TYPE])/len(highmorph_v2)*100,
+        ))
+    type_frac[TYPE] = \
+        len(highmorph_v2[highmorph_v2['TYPE']==TYPE])/len(highmorph_v2)
+
+# 5.3. What number of overcontact binaries is in our v3 sample if the same rates
+# apply? (Unclear if should be expected, but this is a 0th order guess).
+
+print('\nAssuming the same rates apply to the v3 catalog, we get' )
+print('Of the {:d},'.format(len(highmorph_ids_v3)))
+for TYPE in np.sort(list(type_frac.keys())):
+    print('\t{:s}:\t{:d}\t({:.3g}%)'.format(
+        str(TYPE),
+        int(type_frac[TYPE]*len(highmorph_ids_v3)),
+        type_frac[TYPE]*100))
+

@@ -23,10 +23,11 @@ def plot_centroid_diagnostic(dipid, t_0, period):
 
     colors = ['r', 'g', 'b', 'gray']
     plt.close('all')
-    f, axs = plt.subplots(figsize=(16, 10), nrows=2, ncols=1)
+    f, axs = plt.subplots(figsize=(10, 10), nrows=2, ncols=1)
 
     for qnum in np.sort(list(lcd.keys())):
 
+        #"moment-derived column centroid"
         centroid_x = lcd[qnum]['mom_centr1']
         centroid_y = lcd[qnum]['mom_centr2']
         r = np.sqrt(centroid_x**2 + centroid_y**2)

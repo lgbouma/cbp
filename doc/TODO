@@ -13,6 +13,15 @@ better idea which of the 4 seem promising / worth getting spectroscopy of).
     -> Look at vector difference associated w/ moments in time (in dips and
       outside). N.b. centroid time
     Read: Steve Bryson.
+    -> read it, and that stuff is overkill for 2 objects. It takes serious
+    treatment (read ~>two weeks of coding work+ analysis, at least) for basically
+    anything like "conclusive" to come out. Look instead at Sanchis-Ojeda 2014.
+    We can estimate, using simple physical arguments, the expected deviation that
+    we might see in the centroid.
+    It makes more sense to just take the centroid timeseries, convert to
+    degrees in arcsec, do the full subtraction & keep it in relative units.
+
+  * Simple physical arguments: are the transit durations good? (i.e. in line with 
   X Better detrending / masking (cleanest possible look at signal). Careful f(t)
     timeseries.
   * **Odd/even** (key!)
@@ -24,16 +33,13 @@ better idea which of the 4 seem promising / worth getting spectroscopy of).
 
 * begin paper draft (e.g., introduction, write up methods...)
 
+* set the minimum transit duration in phase to be less than 0.005.
+  For a 30 day period, that's 3.6hr; for a 50 day period it's 6 hr.
+  So ~half that minimum phase would have been better...
+
 * ondrej peycha's ampltitude of variability idea.  
 
 * figure out photometric / spectroscopic / high angular resoln follow-up program
-
-* how do you determine W vs A type contact binaries? can it be done through
-the LC alone? (important for estimating contamination fraction within things
-hand-labelled as overcontact EBs)
-
-
-email Andrej Prsa once you have questions he can help you understand
 
 ####################
 ####################
