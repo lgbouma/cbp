@@ -1,11 +1,17 @@
+# DATA FILES ARE TOO BIG
 data*
 notebooks/*csv
 notebooks/plots/*pdf
 notebooks/nb-data*
 notebooks/.*
 notebooks/plots/*demo
-results*
+
+# GENERAL MESSY THINGS
 src/LOGS*
 src/__*
 doc/refs/*pdf
 *xcf
+
+# SECRET STUFF THAT I DON'T WANT ANYONE TO SEE YET
+results*
+src/analysis_scripts/*py
