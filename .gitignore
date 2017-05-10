@@ -1,4 +1,4 @@
-# DATA FILES ARE TOO BIG
+# DATA FILES ARE TOO BIG. IPYTHON NOTEBOOK DIFFS ARE MESSY.
 data*
 notebooks/*csv
 notebooks/plots/*pdf
@@ -6,12 +6,13 @@ notebooks/nb-data*
 notebooks/.*
 notebooks/plots/*demo
 
-# GENERAL MESSY THINGS
+# OTHER MESSY THINGS
 src/LOGS*
 src/__*
 doc/refs/*pdf
 *xcf
 
 # SECRET STUFF THAT I DON'T WANT ANYONE TO SEE YET
+paper*
 results*
 src/analysis_scripts*
