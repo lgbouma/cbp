@@ -1,20 +1,8 @@
 method todo:
 
-* select P less than 3 day objects from KEBC too (as described in text)
-
-* actually compute lightcurve RMS where u say u do in pseudo-code
-
-* set the minimum transit duration in phase to be less than 0.005.
-  For a 30 day period, that's 3.6hr; for a 50 day period it's 6 hr.
-  So ~half that minimum phase would have been better...
-
 * regenerate (in appropriate ``plot'' folder of the paper) the legendre degree 
 vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
 Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
-
-* change ir.find-dips' smallfactor to be 2 (Li, Holman, Tao 2016 misaligned), 
-
-* keep max period as 150 days
 
 * in find_dips, store the depths for the depths ur keeping, so that in
 phase-folded LCs you can OVERPLOT the fucking BLS model (um, duh?)
@@ -25,6 +13,9 @@ phase-folded LCs you can OVERPLOT the fucking BLS model (um, duh?)
 
 * ditto cumulative whitening assessment (e.g., consider classic RMS vs apparent
 mag, instead of just the RMS cumulative)
+
+* be sure the two duplicates, 3832716 and 8167938, have both their periods
+  treated (... or at least, be able to justify why they shouldnt)
 
 * inject_transit_known_depth bug fix:
 qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)

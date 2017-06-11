@@ -551,7 +551,7 @@ def get_all_quarters_lc_data(kicid):
     '''
     assert type(kicid) == np.int64, 'kicid was {:s}'.format(str(type(kicid)))
 
-    lcdir = DATADIR+'morph_gt0.6_kepler_MAST/'
+    lcdir = DATADIR+'morph_gt0.6_OR_period_lt3_kepler_MAST/'
 
     fs = [lcdir+f for f in os.listdir(lcdir) if f.endswith('.fits') and
             str(kicid) in f]

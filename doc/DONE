@@ -746,3 +746,18 @@ X redownload KEBC v3
     and then find-replace across all of them for kebc_v3_170611.csv
   X update paper text
 
+x select P less than 3 day objects from KEBC too (as described in text)
+
+X actually compute lightcurve RMS where u say u do in pseudo-code
+
+X change ir.find-dips' smallfactor to be 2 (Li, Holman, Tao 2016 misaligned), 
+
+X keep max period as 150 days
+
+X same in periodograms (PDM search part...)
+
+X set the minimum transit duration in phase to be less than 0.005.
+  For a 30 day period, that's 3.6hr; for a 50 day period it's 6 hr.
+  So ~half that minimum phase would have been better...
+  > done -- letting it be 0.0025
+
