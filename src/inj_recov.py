@@ -524,14 +524,14 @@ def get_kepler_ebs_info():
 
     #get Kepler EB data (e.g., the period)
     keb_path = DATADIR+'kebc_v3_170611.csv'
-    cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
+    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,sep,morph,GLon,GLat,kmag,Teff,SC,'
     cols = tuple(cols.split(','))
     tab = ascii.read(keb_path,comment='#')
     currentcols = tab.colnames
     for ix, col in enumerate(cols):
         tab.rename_column(currentcols[ix], col)
 
-    tab.remove_column('col12') # now table has correct features
+    tab.remove_column('') # now table has correct features
 
     return tab
 
@@ -596,7 +596,7 @@ def get_kebwg_info(kicid):
             str(kicid)))
         errflag = True
 
-    cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
+    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,sep,morph,GLon,GLat,kmag,Teff,SC,'
     cols = cols.split(',')
     thesevals = thisentry.pop().split(',')[:-1]
 
