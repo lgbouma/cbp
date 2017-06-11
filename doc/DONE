@@ -761,3 +761,7 @@ X set the minimum transit duration in phase to be less than 0.005.
   So ~half that minimum phase would have been better...
   > done -- letting it be 0.0025
 
+X regenerate (in appropriate ``plot'' folder of the paper) the legendre degree 
+vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
+Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
+

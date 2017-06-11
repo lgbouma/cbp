@@ -1045,12 +1045,16 @@ def _select_whiten_period(dat, rtol=5e-2, fine=False, inum=0, ap='sap',
 def _get_legendre_deg_time(npts):
     from scipy.interpolate import interp1d
 
-    degs = np.array([4,5,6,10,20,30])
-    pts = np.array([1e2,3e2,5e2,1e3,2e3,3e3])
+    degs = np.array([2,4,5,6,10,20])
+    pts = np.array([5e1,1e2,3e2,5e2,1e3,2e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
-                 fill_value=(4, 30))
-    legendredeg = int(np.floor(fn(npts)))
+                 fill_value=(min(degs), max(degs)))
+
+    if len(npts)==1:
+        legendredeg = int(np.floor(fn(npts)))
+    else:
+        legendredeg = list(map(int,np.floor(fn(npts))))
 
     return legendredeg
 
@@ -1059,14 +1063,20 @@ def _get_legendre_deg_phase(npts, norbs):
     from scipy.interpolate import interp1d
 
     if norbs > 10:
-        degs = np.array([5,15,30,40,50])
+        # better phase-coverage means you can raise the fit order
+        degs = np.array([5,15,40,50])
+        pts = np.array([1e2,5e2,2e3,3e3])
     else:
-        degs = np.array([4,7,15,20,30])
-    pts = np.array([1e2,5e2,1e3,2e3,3e3])
+        degs = np.array([4,7,15,22,30])
+        pts = np.array([1e2,5e2,1e3,2e3,3e3])
     fn = interp1d(pts, degs, kind='linear',
                  bounds_error=False,
-                 fill_value=(4, 30))
-    legendredeg = int(np.floor(fn(npts)))
+                 fill_value=(min(degs), max(degs)))
+
+    if len(npts)==1:
+        legendredeg = int(np.floor(fn(npts)))
+    else:
+        legendredeg = list(map(int,np.floor(fn(npts))))
 
     return legendredeg
 
