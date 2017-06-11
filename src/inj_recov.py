@@ -441,7 +441,7 @@ def retrieve_random_lc():
 
 def retrieve_next_lc(stage=None, blacklist=None, kicid=None):
     '''
-    Get the next LC from the KEBWG list of morph>0.6 EBs.
+    Get the next LC from the KEBWG list of morph>0.6 or period<3 day EBs.
     Returns a dictionary with keys of quarter number and a flag if failed.
 
     If no KIC ID is passed in kicid, finds the next one to search based on what
@@ -449,10 +449,10 @@ def retrieve_next_lc(stage=None, blacklist=None, kicid=None):
     '''
 
     if not kicid:
-        kebc = get_kepler_ebs_info()
-        kebc = kebc[kebc['morph']>0.6]
-        kebc_kic_ids = np.sort(np.array(kebc['KIC']))
-
+        kebc_kic_ids = np.genfromtxt(
+                DATADIR+'morph_gt0.6_OR_period_lt3_kepler_MAST/'+\
+                        'morph_gt_0.6_OR_per_lt_3_ids.txt',
+                dtype=int)
         ind = 0
         # Find the next KIC ID to search (requires dipsearchplot, pkl, and whitened
         # diagnostic to proceed).
@@ -1072,7 +1072,7 @@ def _get_legendre_deg_phase(npts, norbs):
 
 
 def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
-        dynamical_prefactor=3.5, nworkers=None):
+        dynamical_prefactor=2.01, nworkers=None):
 
     # Initialize periodogram or fineperiodogram dictionaries.
     kebc_period = nparr(float(dat['kebwg_info']['period']))
@@ -1095,7 +1095,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
         dat['white'][inum][ap][pgkey] = np.nan
     else:
         if not fine:
-            # Range of interesting periods (morph>0.7): 0.05days(1.2hr)-20days.
+            # Range of interesting periods (morph>0.6): 0.05days(1.2hr)-20days.
             # BLS can only search for periods < half the light curve observing 
             # baseline. (Nb longer signals are almost always stellar rotation).
             smallest_p = 0.05
@@ -1255,7 +1255,10 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
     dat['white'] = {}
 
-    sap_rms = 42 # placeholder RMS
+    fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+    sap_rms = np.sqrt(np.sum((fluxs-np.mean(fluxs))**2)/\
+                        (float(len(fluxs))-1))
+
     nwhiten = 0 # number of whitenings that have been done
 
     while (sap_rms>rms_floor or nwhiten<nwhiten_min) and nwhiten<=nwhiten_max:
@@ -1443,11 +1446,10 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
-    smallfactor, bigfactor = 2.01, None
+    smallfactor, bigfactor = 2.02, None # slightly above 2*P_EB to avoid harmonic
     smallest_p = smallfactor * kebc_period
-    #biggest_p = bigfactor * kebc_period
     biggest_p = 150. # days
-    minTdur_φ = 0.005 # minimum transit length in phase
+    minTdur_φ = 0.0025 # minimum transit length in phase
     maxTdur_φ = 0.25 # maximum transit length in phase
 
     df_dict = {}
