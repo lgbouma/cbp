@@ -1,0 +1,68 @@
+method todo:
+
+* select P less than 3 day objects from KEBC too (as described in text)
+
+* actually compute lightcurve RMS where u say u do in pseudo-code
+
+* set the minimum transit duration in phase to be less than 0.005.
+  For a 30 day period, that's 3.6hr; for a 50 day period it's 6 hr.
+  So ~half that minimum phase would have been better...
+
+* regenerate (in appropriate ``plot'' folder of the paper) the legendre degree 
+vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
+Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
+
+* change ir.find-dips' smallfactor to be 2 (Li, Holman, Tao 2016 misaligned), 
+
+* keep max period as 150 days
+
+* in find_dips, store the depths for the depths ur keeping, so that in
+phase-folded LCs you can OVERPLOT the fucking BLS model (um, duh?)
+
+* implement ad-hoc chopped up BLS (by quarter)
+
+* add completeness map generation script (not just the pdf) to /paper/figures
+
+* ditto cumulative whitening assessment (e.g., consider classic RMS vs apparent
+mag, instead of just the RMS cumulative)
+
+* inject_transit_known_depth bug fix:
+qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+
+pretty sure this is the wrong procedure. qsapflux is in ADU.
+you want to... i THINK... just multiply qfluxtoinj (relative flux units) by
+qsapflux. b/c if the entire star "gets brighter" (or really, there's some
+instrumental brightening systematic)... i think you'd expect the transit depths
+to scale commensurately.
+
+--> this fixes the claim in your description of inj/recov that you're
+multiplying in the signals.
+(Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
+into the PDC LC")
+
+* improve write_search_result to write the correct parameters
+
+* do the exercise of: "Can we rule out obvious astrophysical cases?"
+  * assign each contact binary an orientation. (from isotropic cosi!)
+  * assign a coplanar planet, exactly at the stability limit (or exactly at the
+    median a_cbp/a_crit from Kepler CBPs, to make it slightly more realistic). 
+  * for planet sizes to inject, estimate stellar size from period-color relations
+    (very coarse)
+  * get third light estimate from european groups' results
+  * use the "vanilla" inj-recover rate to immediately get the probability of
+    detecting these allowed hypotheses.
+
+  If you can say "this case is definitely ruled out -- we know that these types
+  of planets are not in the Kepler data", that is new knowledge.
+
+* should be able to identify KIC 2856960 events (Armstrong 2012's disc)
+
+* in find_dips: If Q0 RMS >> rest of quarters, just throw out Q0 when searching
+  for dips.  (Otherwise the super-noisy bit dominates the search results).
+  See: 11447953, 6471048
+
+* rerun, given the new BLS search params (not much should change >_>)
+-->e.g., BLS should have run out to longer periods (?). (Something for the
+  rerun pre/during-paper writing).
+
+

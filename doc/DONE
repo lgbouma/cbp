@@ -605,3 +605,138 @@ hand-labelled as overcontact EBs)
 
 email Andrej Prsa once you have questions he can help you understand
 
+
+Sun 11 Jun 2017 12:17:46 PM EDT
+
+
+X further analysis of remaining 4 (deep dive) (e.g.: by end of Thurs, have a
+better idea which of the 4 seem promising / worth getting spectroscopy of).
+  X Literature
+  X CFOP
+  X Exoplanet archive
+  X Contamination fraction
+  * Centroid motion: specific to dips.
+    -> Look at vector difference associated w/ moments in time (in dips and
+      outside). N.b. centroid time
+    Read: Steve Bryson.
+    -> read it, and that stuff is overkill for 2 objects. It takes serious
+    treatment (read ~>two weeks of coding work+ analysis, at least) for basically
+    anything like "conclusive" to come out. Look instead at Sanchis-Ojeda 2014.
+    We can estimate, using simple physical arguments, the expected deviation that
+    we might see in the centroid.
+    It makes more sense to just take the centroid timeseries, convert to
+    degrees in arcsec, do the full subtraction & keep it in relative units.
+
+  X Simple physical arguments: are the transit durations good? (i.e. in line with 
+  X Better detrending / masking (cleanest possible look at signal). Careful f(t)
+    timeseries.
+  X **Odd/even** (key!)
+  X Timing analysis of the dips: do we get nonperiodicites? -> does it hold w/ planet hypothesis?
+  X Transit shape check: tricky b/c we don't expect it to be normal shaped. But if
+    its excessively V-shaped.
+  X Contamination factors from KIC indicate risk of light contamination from
+  neighboring stars
+
+
+X begin paper draft (e.g., introduction, write up methods...)
+
+~ ondrej peycha's ampltitude of variability idea.  
+
+~ figure out photometric / spectroscopic / high angular resoln follow-up program
+
+~```
+
+Armstrong+ (2013): Best game in town(?) for KEBC temperatures.
+* Compare performance w/ known systems (e.g. vs Armstrong+ 2013's Table 5)
+
+Why do we care about the stellar properties?
+1. We need to estimate our contamination fraction in the ~1k K"EB"C sample
+2. If we want to convert our search result into Γ_V vs κ, we need to know the
+inclinations of the systems, and the stellar radii (assuming Γ_V is defined
+over planet radius, not δ).
+
+The KEBC produced rough values of sini, R2/R1, T2/T1, which they then
+retracted. Armstrong produced rough Teffs.
+```
+
+PAPER
+
+X copy template from e.g. DFM (duh)
+X write introduction
+
+READING
+X read Mowlavi et al recent Gaia EB gaussian fitting discussion. Could apply to
+HAT data. What did they learn?  http://arxiv.org/abs/1703.10597
+(also, read his other papers)
+
+X why does that one KOI show up as a δ scuti? (was this a failure in the KEBC
+pipeline?). How many of these instances are there?
+
+X read WASP 33 Van Esse+ COROT paper. δ scuti w/ a transiting planet.  >
+spatially-resolved light from transiting planet. Can you get e.g., obliquity of
+star? (if you understand the pulsation dirns, you get a preferred dirn). Can u
+understand the pulsations better by getting spatially- resolved light?
+
+X look at DFM's new O(N) GP models. Can they be used for *discovery*, as is the
+idea here?
+
+X Rucinski 2004: how do you confirm that a variable star is a contact EB, not a
+delta scuti or gamma doradus? 
+
+X Why should a M_V(logP) calibration EXIST / work? 
+Discussed in any of: Rucisnki 1994, Rucisnki & Duerbeck 1997, Rucinski 2004
+
+[total aside question]:
+X What aspects of stellar formation (or post-formation physical evolution) can
+be inferred from contact EBs? Do they trace any particular physical processes?
+
+~ avoid fitting out subharmonics of planet transits!!
+Example cases: 8122124. See 8122124_qnum9_inum2_sap.png
+Possibilities: 
+- model comparison?
+- smart condition on really only searching for harmonics & subharmonics 
+  of EB signal (i.e. look over some frequency comb)
+- nb. this really should only be an issue w/ the shortest-period injected 
+  planets
+
+~ review doc/discussion from 170308. consider integrating QATS (if we want 
+  long-period, ED rather than just EC and EA sensitivity)
+
+~ Understand how DFM+ peerless implemented model comparison once you have nice
+    transits. Implement it.
+
+~ How to fit out spots: e.g., with `george` (GP regression)?
+
+Longer-term ideas:
+~Detrend+normalize:
+    Match the KEBC detrending? As-is, I think I'm leaving in trends that are
+    too big.
+
+~ add "s2n_on_grass" (Petigura et al 2013) to cull out "significant" transits
+-> can do this in post-processing, or (likely better) add direct to
+astrobase. See FIXME below.
+
+ ALSO:
+astrokep.stitch_lightcurve_gaps
+
+astrokep.keplerflux_to_keplermag
+
+ALSO:
+ PyKE is also worth assessing: what detrending tricks does it use?
+
+X production run on actual KEBC stars, now that completeness is high enough,
+and everything works fast enough.  ->  _look through_ the ~1.5k search results,
+sorted per the above.
+(my toy run of ~500 LCs on the desktop is not sustainable)
+
+
+X how big & how fine of an injection grid do we need/want to answer the
+_statistical_ questions (on occurrence rates) --> see
+../../peerless/peerless/occurrence.py for an example of the actual calculation
+that's required
+
+> yes, it must be a big grid.
+
+
+METHOD THINGS
+
