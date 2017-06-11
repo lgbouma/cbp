@@ -28,11 +28,13 @@ def get_kepler_ebs_info():
 if __name__ == '__main__':
     tab = get_kepler_ebs_info()
     sel = tab[(tab['period'] < 3) | (tab['morph'] > 0.6)]
-    sel_KIC_ID = np.array(sel['KIC'])
+    sel_KIC_ID, indices = np.unique(np.array(sel['KIC']), return_index=True)
+    oldsel = sel
+    sel = sel[indices]
 
     # write to numbers.tex
     N_kep_EBs_tot = len(tab)
-    N_sel_EBs = len(sel)
+    N_sel_EBs = len(sel_KIC_ID)
     N_sel_morph_gt_pt6 = len(sel[sel['morph']>0.6])
     N_sel_per_lt_3 = len(sel[sel['period']<3])
 
@@ -52,9 +54,14 @@ if __name__ == '__main__':
     f.close()
 
     # write KIC IDs to use for MAST download
-
     np.savetxt(
         '../../data/morph_gt_0.6_OR_per_lt_3_ids.txt',
         sel_KIC_ID,
         fmt='%d',
         header='written by utils/kebc_v3_IDs_parse.py before MAST upload')
+
+    # notice that there are duplicates
+    import pandas as pd
+    df = pd.DataFrame({'kic':np.array(oldsel['KIC'])})
+    print('found duplicates:')
+    print(pd.concat(g for _,g in df.groupby('kic') if len(g) > 1))

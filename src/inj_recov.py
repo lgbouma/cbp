@@ -1,7 +1,5 @@
 '''
-Short period search:
-    Injection/recovery of planet transits on the P<1 day Kepler Eclipsing
-    Binary Catalog entries.
+See docstrings in run_the_machine.py
 '''
 
 import pickle, os, logging, pdb, socket
@@ -524,7 +522,8 @@ def get_kepler_ebs_info():
 
     #get Kepler EB data (e.g., the period)
     keb_path = DATADIR+'kebc_v3_170611.csv'
-    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,sep,morph,GLon,GLat,kmag,Teff,SC,'
+    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,'+\
+           'sep,morph,GLon,GLat,kmag,Teff,SC,'
     cols = tuple(cols.split(','))
     tab = ascii.read(keb_path,comment='#')
     currentcols = tab.colnames
@@ -596,7 +595,8 @@ def get_kebwg_info(kicid):
             str(kicid)))
         errflag = True
 
-    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,sep,morph,GLon,GLat,kmag,Teff,SC,'
+    cols = 'KIC,period,period_err,bjd0,bjd0_err,pdepth,sdepth,pwidth,swidth,'+\
+           'sep,morph,GLon,GLat,kmag,Teff,SC,'
     cols = cols.split(',')
     thesevals = thisentry.pop().split(',')[:-1]
 
