@@ -111,7 +111,7 @@ def inject_transit_known_depth(lcd, δ):
     # X q1 and q2 from q~U(0,1)
     # X Argument of periapsis ω (which, per Winn Ch of Exoplanets, is the same
     #   as curly-pi up to 180deg) ω~U(-180deg,180deg).
-    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*3.5, ln 150 d)), i.e. a
+    # X P_CBP [days] from exp(lnP_CBP) ~ exp(U(ln P_EB*2, ln 150 d)), i.e. a
     #   log-uniform distribution, where P_EB is the value reported by the
     #   KEBWG.
     # X Reference transit time t_0 [days] from t_0 ~ U(0,P_CBP) (plus the
@@ -140,10 +140,11 @@ def inject_transit_known_depth(lcd, δ):
     params.w = w
 
     period_eb = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
-    lowpref, highpref = 4, 80
+    lowpref = 2
+    max_period = 150 # days
     ln_period_cbp = np.random.uniform(
             low=np.log(lowpref*period_eb),
-            high=np.log(highpref*period_eb))
+            high=np.log(max_period))
     period_cbp = np.e**ln_period_cbp
     params.per = period_cbp
 
@@ -522,7 +523,7 @@ def get_kepler_ebs_info():
     '''
 
     #get Kepler EB data (e.g., the period)
-    keb_path = DATADIR+'kepler_eb_catalog_v3.csv'
+    keb_path = DATADIR+'kebc_v3_170611.csv'
     cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
     cols = tuple(cols.split(','))
     tab = ascii.read(keb_path,comment='#')
@@ -583,9 +584,9 @@ def get_kebwg_info(kicid):
     Given a KIC ID, get the EB period reported by the Kepler Eclipsing Binary
     Working Group in v3 of their catalog.
     '''
-    keb_path = DATADIR+'kepler_eb_catalog_v3.csv'
+    keb_path = DATADIR+'kebc_v3_170611.csv'
     #fast read
-    f = open(DATADIR+'kepler_eb_catalog_v3.csv', 'r')
+    f = open(DATADIR+'kebc_v3_170611.csv', 'r')
     ls = f.readlines()
     thisentry = [l for l in ls if l.startswith(str(kicid))]
     if len(thisentry) == 1:
@@ -1442,7 +1443,7 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
-    smallfactor, bigfactor = 3.5, None
+    smallfactor, bigfactor = 2.01, None
     smallest_p = smallfactor * kebc_period
     #biggest_p = bigfactor * kebc_period
     biggest_p = 150. # days

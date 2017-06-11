@@ -740,3 +740,9 @@ that's required
 
 METHOD THINGS
 
+X redownload KEBC v3
+  X ack-grep to find all instances of "kepler_eb_catalog_v3.csv" in code
+    (ack-grep -l for file names only), `vi -p` to open many of them at once,
+    and then find-replace across all of them for kebc_v3_170611.csv
+  X update paper text
+

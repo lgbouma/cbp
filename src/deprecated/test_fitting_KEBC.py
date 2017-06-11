@@ -47,7 +47,7 @@ def get_kepler_ebs_info():
     '''
 
     #get Kepler EB data (e.g., the period)
-    keb_path = '../data/kepler_eb_catalog_v3.csv'
+    keb_path = '../data/kebc_v3_170611.csv'
     cols = 'KIC,period,period_err,bjd0,bjd0_err,morph,GLon,GLat,kmag,Teff,SC'
     cols = tuple(cols.split(','))
     tab = ascii.read(keb_path,comment='#')
