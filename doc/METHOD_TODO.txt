@@ -1,12 +1,5 @@
 method todo:
 
-* regenerate (in appropriate ``plot'' folder of the paper) the legendre degree 
-vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
-Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
-
-* in find_dips, store the depths for the depths ur keeping, so that in
-phase-folded LCs you can OVERPLOT the fucking BLS model (um, duh?)
-
 * implement ad-hoc chopped up BLS (by quarter)
 
 * add completeness map generation script (not just the pdf) to /paper/figures

@@ -726,7 +726,6 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         φ_0 = fbls['φ_0']
         if ix == 0:
             bestφ_0 = φ_0
-        φ_ing, φ_egr = fbls['φ_ing'],fbls['φ_egr']
         # Want to wrap over φ=[-2,2]
         plotφ = np.concatenate(
                 (plotφ-2.,plotφ-1.,plotφ,plotφ+1.,plotφ+2.)
@@ -743,10 +742,29 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
         # Make the phased LC plot
         ax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=2,color='gray')
+
         # Overlay the binned phased LC plot
         if phasebin:
             ax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10,color='blue')
 
+        # Compute and overlay the BLS model
+        φ_ing, φ_egr = fbls['φ_ing'], fbls['φ_egr']
+        δ = fbls['serialdict']['blsresult']['transdepth']
+
+        def _get_bls_model_flux(φ, φ_0, φ_ing, φ_egr, δ, median_flux):
+            flux = np.zeros_like(φ)
+            for ix, phase in enumerate(φ-φ_0):
+                if phase < φ_ing - φ_0 or phase > φ_egr - φ_0:
+                    flux[ix] = median_flux
+                else:
+                    flux[ix] = median_flux - δ
+            return flux
+
+        bls_flux = _get_bls_model_flux(np.arange(-2,2,0.005), φ_0, φ_ing,
+                φ_egr, δ, np.median(plotfluxs))
+        ax.plot(np.arange(-2,2,0.005)-φ_0, bls_flux, 'r-')
+
+        # Overlay the inset plot
         if inset:
             subpos = [0.03,0.03,0.25,0.2]
             iax = _add_inset_axes(ax,f,subpos)

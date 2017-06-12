@@ -41,31 +41,26 @@ import argparse, socket
 global HOSTNAME, DATADIR
 HOSTNAME = socket.gethostname()
 DATADIR = '../data/' if 'della' not in HOSTNAME else '/tigress/lbouma/data/'
+PKLDIR = '/media/luke/LGB_tess_data/cbp_data_injrecov_pkl_real/' # external HD
 
 ###############
 ## FUNCTIONS ##
 ###############
 
-def get_lcd(stage='redtr', inj=None, allq=None):
+def get_lcd(stage=None):
     '''
-    Get the lightcurve dictionary from saved pickles for a given stage and
-    injection mode. (Random injected depth).
+    Get the lightcurve dictionary from saved pickles for a given stage.
     '''
-    datapath = DATADIR+'injrecov_pkl/'
-    if inj:
-        datapath += 'inj/'
-        stage += '_inj'
-    else:
-        datapath += 'no_inj/'
+    datapath = PKLDIR
     pklnames = [f for f in os.listdir(datapath) if stage in f]
 
-    kicids = np.unique([pn.split('_')[0] for pn in pklnames])
-    sind = np.random.randint(0, len(kicids))
-    kicid = kicids[sind]
+    kicid = 5302006
 
-    lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage, δ='whatever')
-    if 'dipsearch' in stage:
-        allq, loadfailed = ir.load_allq_data(kicid, stage=stage, δ='whatever')
+    lcd, loadfailed = ir.load_lightcurve_data(
+                                kicid, stage=stage, datapath=datapath)
+    if 'dipsearch' in stage or 'realsearch' in stage:
+        allq, loadfailed = ir.load_allq_data(
+                                kicid, stage=stage, datapath=datapath)
 
     if isinstance(allq, dict):
         return lcd, allq
@@ -479,8 +474,7 @@ if __name__ == '__main__':
         parser.error('can only do either injrecovtest XOR injrecov')
 
     if args.quicklcd:
-        lcd = get_lcd(stage='dtr', inj=False)
-        lcd, allq = get_lcd(stage='dipsearch', inj=True)
+        lcd, allq = get_lcd(stage='realsearch')
 
     if args.injrecov or args.injrecovtest:
         makeplots = True if args.injrecovtest else False
