@@ -304,6 +304,9 @@ def write_search_result(lcd, allq, inj=None, stage=None):
     P_inj = im['params'].per if inj else np.nan
     t0_inj = im['params'].t0 if inj else np.nan
     δ = (im['params'].rp)**2 if inj else np.nan
+    ecc = im['params'].ecc if inj else np.nan
+    a = im['params'].a if inj else np.nan
+    cosi = np.cos(np.deg2rad(im['params'].inc)) if inj else np.nan
 
     csvdir = '../results/injrecovresult/' if inj else '../results/real_search/'
 
@@ -364,7 +367,7 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             else:
                 foundinj = np.nan
 
-            # Give or take.
+            # Estimate number of transits for pf-SNR estimate.
             Ntra = baseline/P_rec
 
             results = pd.DataFrame({
@@ -384,7 +387,10 @@ def write_search_result(lcd, allq, inj=None, stage=None):
                     'depth_rec':fdepth,
                     'SNR_rec_pf':fdepth/rms_biased*np.sqrt(Ntra),
                     'baseline':baseline,
-                    'Ntra':Ntra
+                    'Ntra':Ntra,
+                    'ecc':ecc,
+                    'a_by_Rstar':a,
+                    'cosi':cosi
                     }, index=['0'])
 
             # Write csv1 (appending if the csv file already exists)

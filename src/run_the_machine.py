@@ -199,13 +199,12 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             inject a transit signal at δ=(1,1/2,1/4,1/8,1/16,1/32)% depth,
             anywhere from ln(P_CBP) ~ U(ln(3.5xP_EB),ln(150days))
         elif injrecov:
-            inject a transit signal ln(δ) ~ U(ln(1%),ln([1/64]%)) depth,
-            anywhere from ln(P_CBP) ~ U(ln(3.5xP_EB),ln(150days))
-        detrend (legendre and [30,30]σ sigclip)->
+            inject a transit signal as specified in cbp paper.
+        detrend (legendre and 30σ sigclip)->
         normalize (median by quarter)->
         iterative whitening via PDM period-selection and legendre fitting (both
             in phase, then in time) ->
-        find dips (BLS, over all the quarters). From 3.5xP_EB to 150 days.
+        find dips (BLS, over all the quarters).
 
     args/kwargs:
 
@@ -314,7 +313,6 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # run, and it'll reconstruct the table based on everything in the
             # saved pickles.)
             if 'dipsearch' in stage:
-                #FIXME: improve write_search_result to write the correct parameters
                 fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                         stage=stage)
                 if fblserr:

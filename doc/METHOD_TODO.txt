@@ -1,18 +1,15 @@
 method todo:
 
-* add cumulative whitening assessment plot script (e.g., consider classic RMS
-  vs apparent mag, instead of just the RMS cumulative) to /paper/figures
-  * (could entail needing to run thru search, at least the computation part, a
-    few times w/ different parameters. this should be cheap vs injrecov)
-
-* improve write_search_result to write the correct parameters
-
 * rerun injection & recovery, given the new BLS search params (not much should
   change >_>)
 
   (Something for the rerun pre/during-paper writing).
 
 * rerun main search
+
+* run thru whitening a few times w/ different parameters. this should be cheap
+  vs injrecov or even just recov, and will be useful to compare different
+  whitening choices.
 
 * implement chopped up BLS (by quarter, and quarter pairs)
 
