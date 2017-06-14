@@ -268,11 +268,11 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         if injrecovtest:
             δarr = np.array([1.,1/2.,1/4.,1/8.,1/16.,1/32.])/100.
         elif not injrecovtest:
-            lnδ = np.random.uniform(
-                    low=np.log(1/64./100.),
-                    high=np.log(1/100.),
+            ln_RpbyRs = np.random.uniform(
+                    low=np.log(5e-3),
+                    high=np.log(0.2),
                     size=1)
-            δarr = np.array(np.e**lnδ)
+            δarr = np.array( (np.e**ln_RpbyRs)**2 )
 
         for δ in δarr:
             # Control flow for injection & iterative whitening.

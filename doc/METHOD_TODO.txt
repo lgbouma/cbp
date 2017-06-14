@@ -1,19 +1,5 @@
 method todo:
 
-* inject_transit_known_depth bug fix:
-qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
-
-pretty sure this is the wrong procedure. qsapflux is in ADU.
-you want to... i THINK... just multiply qfluxtoinj (relative flux units) by
-qsapflux. b/c if the entire star "gets brighter" (or really, there's some
-instrumental brightening systematic)... i think you'd expect the transit depths
-to scale commensurately.
-
---> this fixes the claim in your description of inj/recov that you're
-multiplying in the signals.
-(Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
-into the PDC LC")
-
 * in find_dips: If Q0 RMS >> rest of quarters, just throw out Q0 when searching
   for dips.  (Otherwise the super-noisy bit dominates the search results).
   See: 11447953, 6471048

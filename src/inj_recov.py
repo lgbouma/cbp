@@ -114,13 +114,8 @@ def inject_transit_known_depth(lcd, δ):
     #   KEBWG.
     # X Reference transit time t_0 [days] from t_0 ~ U(0,P_CBP) (plus the
     #   minimum time of the timeseries).
-    # X Radius ratio Rp/Rstar from lnRp/Rstar ~ U(ln0.04,ln0.2)
+    # X Radius ratio Rp/Rstar from lnRp/Rstar ~ U(..., ...)
     # X Eccentricity e~Beta(0.867,3.03)
-    # X Assume M1+M2 = 2Msun. R_star=1.5Rsun. Draw cosi~U(0,1) (so that 
-    #   pdf(i)*di=sini*di). Compute the impact parameter, b_tra. If b_tra is 
-    #   within [-1,1] continue, else redraw cosi, repeat (we only want 
-    #   transiting planets). Then set the inclination as arccos of the
-    #   first inclination drawn that transits.
     # Note that argument of periapsis = longitude of periastron, w=ω. The
     # parameters are inspired by Foreman-Mackey et al (2015), Table 1 (K2).
     # Calculate the models for 10 samples over each full ~29.4 minute exposure
@@ -156,14 +151,21 @@ def inject_transit_known_depth(lcd, δ):
     ecc = np.random.beta(0.867,3.03) # Kipping 2013
     params.ecc = ecc
 
-    # Prefactor of 2^(1/3) comes from assuming M1+M2=2Msun. (Kepler's 3rd).
-    a_in_AU = 2**(1/3.)*(period_cbp*u.day/u.yr)**(2/3.)
-    Rstar_in_AU = (1.5*u.Rsun/u.au)
-    a_by_Rstar = a_in_AU.cgs.value / Rstar_in_AU.cgs.value
+    ln_ρstarbyρsun = np.random.uniform(
+            low=np.log(0.1),
+            high=np.log(100))
+    ρsun = 3*u.Msun / (4*np.pi*u.Rsun**3)
+
+    # Eq (30) Winn 2010, once we've sampled the stellar density
+    a_by_Rstar = ( ( c.G * (period_cbp*u.day)**2 / \
+            (3*np.pi) * (e**ln_ρstarbyρsun)*ρsun )**(1/3) ).cgs.value
+
+    import IPython; IPython.embed() # FIXME: verify gives good a_by_Rstar
+
     b_tra = 42. # initialize to whatever.
     while b_tra > 1:
         cosi = np.random.uniform(low=0.0,high=1.0)
-        # Equation (7) of Winn's Ch in Exoplanets textbook.
+        # Eq (7) of Winn 2010
         b_tra = a_by_Rstar*cosi * (1-ecc*ecc)/(1 + ecc*np.sin(w))
 
     params.a = a_by_Rstar

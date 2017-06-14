@@ -797,4 +797,48 @@ X sanity check that the actual plot gives numbers that agree with the analytics
 
 X add completeness map generation script (not just the pdf) to /paper/figures
 
+X
+in injection recovery, is my procedure for drawing impact parameters
+reasonable? or is it too weirdly biased, and should I be actually trying to do
+something better for R_star and M_star?
 
+X inject_transit_known_depth bug fix:
+qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
+
+pretty sure this is the wrong procedure. qsapflux is in ADU.
+you want to... i THINK... just multiply qfluxtoinj (relative flux units) by
+qsapflux. b/c if the entire star "gets brighter" (or really, there's some
+instrumental brightening systematic)... i think you'd expect the transit depths
+to scale commensurately. 
+
+--> this fixes the claim in your description of inj/recov that you're
+multiplying in the signals.
+(Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
+into the PDC LC")
+
+Wed 14 Jun 2017 12:44:22 PM EDT
+
+No. Discussed w/ JNW. The idea here is that we have a blob of fixed intensity
+whose angular size is changing. So the diminishment reduction is always
+CONSTANT, and should be subtracted (not multiplied in).
+
+This is the converse case from a blob of fixed angular size whose intensity is
+changing. This latter case would be multiplied in. 
+
+So the median is OK.
+
+For injection: could then opt to only sample across (P, δ, Tdur). We do not
+know enough about the stars to be sampling over actual physical models (do not
+fool yourself).  -> can go pretty fine for sampling, and then build a lookup
+table. Any physical interpretation for a proposed planet population comes from
+the lookup table after.
+
+However, this lookup table can also be constructed just as well from using
+batman (which is also easier, and pretty much as fast as whatever homebrew
+thing I would cook up).
+
+At the end of the day, either method requires sampling over the stellar density
+(in order to get Tdur for JNW's proposed method, in order to get a by Rstar and
+b in mine). Might as well opt for more parameters, to squash any idea that
+they're being slipped under the rug + to not have to rewrite a kepler cadence
+convolver
