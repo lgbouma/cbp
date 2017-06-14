@@ -1447,6 +1447,24 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
                 fluxs = np.append(fluxs, lc['wfluxsresid'])
                 errs = np.append(errs, lc['errs'])
                 quarter = np.append(quarter, np.ones_like(lc['times'])*qnum)
+
+        if quarter[quarter==0].size > 0:
+            # If quarter 0 has much worse RMS than other quarters, drop it.
+
+            m = (quarter == 0)
+            rms_q0 = np.sqrt(np.sum((fluxs[m]-np.mean(fluxs[m]))**2)/\
+                                (float(len(fluxs[m]))-1))
+            rms_otherquarters = \
+                     np.sqrt(np.sum((fluxs[~m]-np.mean(fluxs[~m]))**2)/\
+                                (float(len(fluxs[~m]))-1))
+
+            import IPython; IPython.embed()
+            if rms_q0 > 2*rms_otherquarters:
+                times = times[~m]
+                fluxs = fluxs[~m]
+                errs = errs[~m]
+                quarter = quarter[~m]
+
         tfe[ap] = {'times':times,
                    'fluxs':fluxs,
                    'errs':errs,

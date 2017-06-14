@@ -842,3 +842,9 @@ At the end of the day, either method requires sampling over the stellar density
 b in mine). Might as well opt for more parameters, to squash any idea that
 they're being slipped under the rug + to not have to rewrite a kepler cadence
 convolver
+
+X in find_dips: If Q0 RMS >> rest of quarters, just throw out Q0 when searching
+  for dips.  (Otherwise the super-noisy bit dominates the search results).
+  See: 11447953, 6471048
+
+

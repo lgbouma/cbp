@@ -17,7 +17,8 @@ making. it will be an (upper bound on an) occurrence rate over a volume, Γ_V vs
 κ, a Fischer distribution parameter (since these two things are very
 degenerate). 
 
-* make sure SNR>3 cut makes it in.
+* make sure SNR>3 cut makes it in. (or whatever analog based on injrecov
+parameter space that works)
 
 * make sure exactly the same post-find_dips work is being on the injected LCs
 
@@ -57,4 +58,7 @@ overcontact by human labellers (~427 objects). Maybe ~20-30% of them have
 sini>0.8. So, 100 objects would be capable of transiting(? Maybe 50?).
 Obviously far fewer if you throw out all morph>0.7 objects from your sample.
 At 10% occ rate, you might have 10 transiting objects (order 1-10).
+
+* 12055014 -- plausible candidate (missed so far). There's obvious by-eye
+periodic dips
 
