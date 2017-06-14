@@ -153,7 +153,7 @@ def inject_transit_known_depth(lcd, δ):
 
     params.rp = δ**(1/2.)
 
-    ecc = np.random.beta(0.867,3.03)
+    ecc = np.random.beta(0.867,3.03) # Kipping 2013
     params.ecc = ecc
 
     # Prefactor of 2^(1/3) comes from assuming M1+M2=2Msun. (Kepler's 3rd).
@@ -1425,7 +1425,7 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
                    'fluxs':fluxs,
                    'errs':errs,
                    'qnums':quarter}
-        ["dipfind"][method][ap] = periodogram dictionary.
+        ["dipfind"][method] = periodogram dictionary.
     '''
 
     #Concatenate all the quarters when running dip-finder.
@@ -1604,6 +1604,7 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
                 elif 1-φ_ing == φ_egr:
                     φ_0 = 0.
 
+            df_dict[ap]['finebls'][nbestperiod]['δ'] = sd['blsresult']['transdepth']
             df_dict[ap]['finebls'][nbestperiod]['φ'] = phasedlc['phase']
             df_dict[ap]['finebls'][nbestperiod]['flux_φ'] = phasedlc['mags']
             df_dict[ap]['finebls'][nbestperiod]['binned_φ'] = φ_bin
@@ -1685,7 +1686,7 @@ def save_lightcurve_data(lcd, allq=None, stage=False, tossiterintermed=True):
     return kicid
 
 
-def load_lightcurve_data(kicid, stage=None, δ=None):
+def load_lightcurve_data(kicid, stage=None, δ=None, datapath=None):
     '''
     Args:
         kicid (int): Kepler Input Catalog ID number
@@ -1697,7 +1698,8 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
     '''
 
     # `stage` includes the transit depth string
-    pklname = str(kicid)+'_'+stage+'.p'
+    poststr = '_real' if datapath else ''
+    pklname = str(kicid)+'_'+stage+poststr+'.p'
     if δ == 'whatever':
         pklname = str(kicid)+'_'+stage+'_0.00125.p'
 
@@ -1707,7 +1709,12 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
     else:
         predir += 'real/'
 
-    lpath = DATADIR+'injrecov_pkl/'+predir+pklname
+    if not datapath:
+        prepath = DATADIR+'injrecov_pkl/'+predir
+    else:
+        prepath = datapath
+
+    lpath = prepath+pklname
 
     if 'eb_sbtr' in stage:
         #saved pickles somewhere else for EB subtraction tests.
@@ -1722,9 +1729,10 @@ def load_lightcurve_data(kicid, stage=None, δ=None):
         return np.nan, True
 
 
-def load_allq_data(kicid, stage=None, δ=None):
+def load_allq_data(kicid, stage=None, δ=None, datapath=None):
 
-    pklname = str(kicid)+'_allq_'+stage+'.p'
+    poststr = '_real' if datapath else ''
+    pklname = str(kicid)+'_allq_'+stage+poststr+'.p'
     if δ == 'whatever':
         pklname = str(kicid)+'_'+stage+'_0.00125.p'
 
@@ -1734,7 +1742,11 @@ def load_allq_data(kicid, stage=None, δ=None):
     else:
         predir += 'real/'
 
-    lpath = DATADIR+'injrecov_pkl/'+predir+pklname
+    if not datapath:
+        prepath = DATADIR+'injrecov_pkl/'+predir
+    else:
+        prepath = datapath
+    lpath = prepath+pklname
 
     if 'eb_sbtr' in stage:
         #saved pickles somewhere else for EB subtraction tests.
@@ -1746,4 +1758,4 @@ def load_allq_data(kicid, stage=None, δ=None):
         return allq, False
     except:
         LOGERROR('Trying to load from %s failed. Continue.' % lpath)
-        return allq, True
+        return np.nan, True

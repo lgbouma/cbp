@@ -1,22 +1,5 @@
 method todo:
 
-* regenerate (in appropriate ``plot'' folder of the paper) the legendre degree 
-vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
-Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
-
-* in find_dips, store the depths for the depths ur keeping, so that in
-phase-folded LCs you can OVERPLOT the fucking BLS model (um, duh?)
-
-* implement ad-hoc chopped up BLS (by quarter)
-
-* add completeness map generation script (not just the pdf) to /paper/figures
-
-* ditto cumulative whitening assessment (e.g., consider classic RMS vs apparent
-mag, instead of just the RMS cumulative)
-
-* be sure the two duplicates, 3832716 and 8167938, have both their periods
-  treated (... or at least, be able to justify why they shouldnt)
-
 * inject_transit_known_depth bug fix:
 qinjsapflux = qsapflux + (qfluxtoinj-1.)*np.nanmedian(qsapflux)
 
@@ -31,7 +14,25 @@ multiplying in the signals.
 (Following DFM peerless, p. 15: "the transit signal is computed and MULTIPLIED
 into the PDC LC")
 
+* in find_dips: If Q0 RMS >> rest of quarters, just throw out Q0 when searching
+  for dips.  (Otherwise the super-noisy bit dominates the search results).
+  See: 11447953, 6471048
+
+* add cumulative whitening assessment script (e.g., consider classic RMS vs
+  apparent mag, instead of just the RMS cumulative) to /paper/figures
+
 * improve write_search_result to write the correct parameters
+
+* rerun, given the new BLS search params (not much should change >_>)
+-->e.g., BLS should have run out to longer periods (?). (Something for the
+  rerun pre/during-paper writing).
+
+
+* implement chopped up BLS (by quarter, and quarter pairs)
+
+* be sure the two duplicates, 3832716 and 8167938, have both their periods
+  treated (... or at least, be able to justify why they shouldnt)
+
 
 * do the exercise of: "Can we rule out obvious astrophysical cases?"
   * assign each contact binary an orientation. (from isotropic cosi!)
@@ -47,13 +48,4 @@ into the PDC LC")
   of planets are not in the Kepler data", that is new knowledge.
 
 * should be able to identify KIC 2856960 events (Armstrong 2012's disc)
-
-* in find_dips: If Q0 RMS >> rest of quarters, just throw out Q0 when searching
-  for dips.  (Otherwise the super-noisy bit dominates the search results).
-  See: 11447953, 6471048
-
-* rerun, given the new BLS search params (not much should change >_>)
--->e.g., BLS should have run out to longer periods (?). (Something for the
-  rerun pre/during-paper writing).
-
 

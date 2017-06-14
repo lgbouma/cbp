@@ -765,3 +765,36 @@ X regenerate (in appropriate ``plot'' folder of the paper) the legendre degree
 vs n points plots for Fig.~\ref{fig:legdeg_vs_npts_fluxvsphase} and 
 Fig.~\ref{fig:legdeg_vs_npts_fluxvstime}
 
+Mon 12 Jun 2017 12:27:10 PM EDT
+
+X in find_dips, store the depths for the depths ur keeping, so that in
+phase-folded LCs you can OVERPLOT the BLS model (um, duh?)
+
+X in phase-folded LC plots, overplot the BLS model
+  X code it in
+  X begin testing
+  X finish testing
+
+  ~ debug why the durations of detected BLS dips are too short (as in the
+    single case you currently have...)
+  -> they are short, but I think it's a factor of 2 error, and it does not
+  affect the overplotted BLS models (for some magical reason).
+  Both 5302006 and 11013201 look fine. So we can say the overplotting works.
+
+X debug aastex6 table for injected parameter draws.
+
+X am I injecting the right eccentricties?
+  > ya. (although kipping's values were from 
+
+X why does table have two rows for eccentricity?
+
+X correct the injected parameters with what i'm actually using. 
+
+X fix the 2pi in ur precession timescale contours (paper)
+
+X sanity check that the actual plot gives numbers that agree with the analytics
+(it does, for the x=5, P=1day case)
+
+X add completeness map generation script (not just the pdf) to /paper/figures
+
+
