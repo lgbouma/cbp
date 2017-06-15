@@ -14,10 +14,15 @@ METHOD TODO:
 
   X drop injrecovtest functionality (this is what single injrecov cases are for)
 
-  * produce list of integers & kicids to run it with
+  X produce list of integers & kicids to run it with
 
-  * verify write csv files are functional
-    (requires wiping old ones on della)
+  * verify write files are functional
+    X on crispy
+    * on della 
+      * wipe any csvs on della
+      * small number of plots to be produced
+      * small della job submit
+      * big della job submit
 
 
 * rerun main search

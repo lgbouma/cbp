@@ -17,7 +17,7 @@ import inj_recov as ir
 import numpy as np
 
 kebc = ir.get_kepler_ebs_info()
-kebc = kebc[kebc['morph']>0.6]
+kebc = kebc[(kebc['morph']>0.6) | (kebc['period']<3)]
 kic_ids = np.array(kebc['KIC'])
 N_injrecovs_per_LC = 20
 
@@ -29,5 +29,12 @@ while N < (len(kic_ids)*N_injrecovs_per_LC):
         kicid_ind += 1
     N += 1
 
-N_and_KICID = np.array(N_and_KICID)
+# make the first few a case with only 2 quarters of data for early error raise
+N_extra = 10
+header = np.array([range(N_extra), np.ones_like(range(N_extra))*4936680]).T
+
+N_and_KICID = np.concatenate([header, np.array(N_and_KICID)])
+
+N_and_KICID[N_extra:, 0] += N_extra
+
 np.savetxt('../data/N_to_KICID.txt', N_and_KICID, fmt='%d')

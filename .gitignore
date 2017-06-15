@@ -11,6 +11,7 @@ src/LOGS*
 src/__*
 doc/refs/*pdf
 *xcf
+*__pycache__*
 
 # SECRET STUFF THAT I DON'T WANT ANYONE TO SEE YET
 paper*
