@@ -866,4 +866,25 @@ degenerate).
 
 X make sure exactly the same post-find_dips work is being on the injected LCs
 
+X rerun injection & recovery, given the new BLS search params
+
+  (Something for the rerun pre/during-paper writing).
+
+  X verify dipsearchplots and whitened diagnostics looking like they should
+
+  X drop injrecovtest functionality (this is what single injrecov cases are for)
+
+  X produce list of integers & kicids to run it with
+
+  X verify write files are functional on crispy
+
+X on della 
+    x wipe any csvs on della
+    X small number of plots to be produced (should work)
+    X update submit scripts to have mp kwarg and any others
+    X della job submit
+    (notice the admins put a buffer s.t. only can add 2 jobs every 30 secs.
+    this is annoying, but OK)
+    X small della job
+    X verify output works
 

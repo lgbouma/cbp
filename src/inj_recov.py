@@ -1428,6 +1428,7 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
         ["dipfind"][method] = periodogram dictionary.
     '''
 
+    keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     #Concatenate all the quarters when running dip-finder.
     qnums = np.sort(list(lcd.keys()))
     tfe = {}
@@ -1456,12 +1457,17 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
                      np.sqrt(np.sum((fluxs[~m]-np.mean(fluxs[~m]))**2)/\
                                 (float(len(fluxs[~m]))-1))
 
-            import IPython; IPython.embed()
             if rms_q0 > 2*rms_otherquarters:
+                LOGWARNING(
+                    '{:s}: dropping Q0 data (high RMS). Ndet before: {:d}'
+                    .format(keplerid, len(times)))
                 times = times[~m]
                 fluxs = fluxs[~m]
                 errs = errs[~m]
                 quarter = quarter[~m]
+                LOGWARNING(
+                    '{:s}: dropping Q0 data (high RMS). Ndet after: {:d}'
+                    .format(keplerid, len(times)))
 
         tfe[ap] = {'times':times,
                    'fluxs':fluxs,

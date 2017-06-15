@@ -5,27 +5,19 @@ Be efficient with how you allocate your time.
 
 METHOD TODO:
 
-* rerun injection & recovery, given the new BLS search params (not much should
-  change >_>)
+injrecov run:
 
-  (Something for the rerun pre/during-paper writing).
+* big della job
 
-  X verify dipsearchplots and whitened diagnostics looking like they should
+* time estimate of run: ~20 minutes for a 2 quarter lightcurve. (oof).  this
+  seems too slow. assuming multiplicative (not sure), a 16 quarter LC would be
+  160 minutes, or 2.5hrs
 
-  X drop injrecovtest functionality (this is what single injrecov cases are for)
-
-  X produce list of integers & kicids to run it with
-
-  * verify write files are functional
-    X on crispy
-    * on della 
-      * wipe any csvs on della
-      * small number of plots to be produced
-      * small della job submit
-      * big della job submit
+  nominal run assessment: efficiency of pipeline w/ new additions not awesome
+  either. Not clear why.
 
 
-* rerun main search
+* rerun main search (e.g., on adroit, independent of injrecov work)
 
 * run thru whitening a few times w/ different parameters. this should be cheap
   vs injrecov or even just recov, and will be useful to compare different
