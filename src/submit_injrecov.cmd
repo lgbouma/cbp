@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=injrecov
 #SBATCH --output=LOGS/%a_%A_slurm.out # %A: master job ID, %a: array tasks ID.
-#SBATCH --array=1-1000
+#SBATCH --array=1-1000 # starting at 1, out to last index of /data/N_to_KICID.txt
 #SBATCH -N 1   # node count. OpenMP requires 1.
 #SBATCH --ntasks-per-node=1  # core count.
 #SBATCH -t 2:59:00 # 1hr min for fast queue. e.g., 3:00:00 for 3hr
@@ -22,5 +22,4 @@ linenumber=$SLURM_ARRAY_TASK_ID
 N=$(($SLURM_ARRAY_TASK_ID-1))
 kicid="$(sed "${linenumber}q;d" /tigress/lbouma/data/N_to_KICID.txt | awk '{print $2}')"
 
-#FIXME: check appropriate call
-srun python run_the_machine.py --injrecov -c -kicid $kicid -nw 1 --Nstars $N > LOGS/"$linenumber"_"$kicid".log
+srun python run_the_machine.py --injrecov -c -kicid $kicid -nw 1 --Nstars $N -mp > LOGS/"$linenumber"_"$kicid".log
