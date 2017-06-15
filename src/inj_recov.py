@@ -1108,7 +1108,7 @@ def _iter_run_periodogram(dat, qnum, inum=0, ap='sap', fine=False,
             # Range of interesting periods (morph>0.6): 0.05days(1.2hr)-20days.
             # BLS can only search for periods < half the light curve observing 
             # baseline. (Nb longer signals are almost always stellar rotation).
-            smallest_p = 0.05
+            smallest_p = 0.05 # days
             biggest_p = min((times[-1] - times[0])/2.01,
                     kebc_period*dynamical_prefactor)
             periodepsilon = 0.01 # days
@@ -1271,7 +1271,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
     nwhiten = 0 # number of whitenings that have been done
 
-    while (sap_rms>rms_floor or nwhiten<nwhiten_min) and nwhiten<=nwhiten_max:
+    while (sap_rms>rms_floor or nwhiten<=nwhiten_min) and nwhiten<=nwhiten_max:
 
         dat['white'][nwhiten] = {}
 
@@ -1401,9 +1401,10 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
             dat['white'][nwhiten][ap]['legdict'] = legdict
 
         nwhiten += 1
-        LOGINFO('nwhiten (inum) {:d}, sap_rms {:.3g}, rms_floor {:.3g}'.format(
-            nwhiten, sap_rms, rms_floor))
+        LOGINFO('On to nwhiten (inum) {:d}, sap_rms {:.3g}, rms_floor {:.3g}'
+            .format(nwhiten, sap_rms, rms_floor))
 
+    LOGINFO('!! completed iterative_whiten_lightcurve !!')
     return dat
 
 
@@ -1428,6 +1429,7 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
         ["dipfind"][method] = periodogram dictionary.
     '''
 
+    LOGINFO('!! beginning find_dips !!')
     keplerid = str(lcd[list(lcd.keys())[0]]['objectinfo']['keplerid'])
     #Concatenate all the quarters when running dip-finder.
     qnums = np.sort(list(lcd.keys()))
@@ -1481,9 +1483,11 @@ def find_dips(lcd, allq, method='bls', nworkers=None):
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
 
     smallfactor, bigfactor = 2.02, None # slightly above 2*P_EB to avoid harmonic
-    smallest_p = smallfactor * kebc_period
+    smallest_p = max(
+        smallfactor * kebc_period,
+        0.55) # 0.55 days to keep autofreq below 2*10^6 frequencies on BLS grid
     biggest_p = 150. # days
-    minTdur_φ = 0.0025 # minimum transit length in phase
+    minTdur_φ = 0.005 # minimum transit length in phase
     maxTdur_φ = 0.25 # maximum transit length in phase
 
     df_dict = {}
