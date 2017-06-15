@@ -416,8 +416,8 @@ def write_search_result(lcd, allq, inj=None, stage=None):
                         index=False,
                         mode='a')
 
-            LOGINFO('Wrote KIC-{:d} result to {:s} ({:s})'.format(
-                kicid,csvdir,ap))
+            LOGINFO('Wrote KIC-{:d} result to {:s} ({:s},{:.3g}day)'.format(
+                kicid,csvdir,ap,ffoldperiod))
 
     if not fblserr:
         return fblserr, results

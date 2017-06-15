@@ -10,6 +10,16 @@ METHOD TODO:
 
   (Something for the rerun pre/during-paper writing).
 
+  X verify dipsearchplots and whitened diagnostics looking like they should
+
+  X drop injrecovtest functionality (this is what single injrecov cases are for)
+
+  * produce list of integers & kicids to run it with
+
+  * verify write csv files are functional
+    (requires wiping old ones on della)
+
+
 * rerun main search
 
 * run thru whitening a few times w/ different parameters. this should be cheap

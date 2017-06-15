@@ -158,9 +158,7 @@ def inject_transit_known_depth(lcd, δ):
 
     # Eq (30) Winn 2010, once we've sampled the stellar density
     a_by_Rstar = ( ( c.G * (period_cbp*u.day)**2 / \
-            (3*np.pi) * (e**ln_ρstarbyρsun)*ρsun )**(1/3) ).cgs.value
-
-    import IPython; IPython.embed() # FIXME: verify gives good a_by_Rstar
+            (3*np.pi) * (np.e**ln_ρstarbyρsun)*ρsun )**(1/3) ).cgs.value
 
     b_tra = 42. # initialize to whatever.
     while b_tra > 1:
@@ -1053,7 +1051,7 @@ def _get_legendre_deg_time(npts):
                  bounds_error=False,
                  fill_value=(min(degs), max(degs)))
 
-    if len(npts)==1:
+    if isinstance(npts, int):
         legendredeg = int(np.floor(fn(npts)))
     else:
         legendredeg = list(map(int,np.floor(fn(npts))))
@@ -1075,7 +1073,7 @@ def _get_legendre_deg_phase(npts, norbs):
                  bounds_error=False,
                  fill_value=(min(degs), max(degs)))
 
-    if len(npts)==1:
+    if isinstance(npts, int):
         legendredeg = int(np.floor(fn(npts)))
     else:
         legendredeg = list(map(int,np.floor(fn(npts))))
@@ -1267,7 +1265,7 @@ def iterative_whiten_lightcurve(dat, qnum, method='legendre',
 
     dat['white'] = {}
 
-    fluxs = dat['dtr'][ap]['fluxs_dtr_norm']
+    fluxs = dat['dtr']['sap']['fluxs_dtr_norm']
     sap_rms = np.sqrt(np.sum((fluxs-np.mean(fluxs))**2)/\
                         (float(len(fluxs))-1))
 

@@ -1,17 +1,20 @@
 '''
 >>> python run_the_machine.py --help
-usage: run_the_machine.py [-h] [-ir] [-N NSTARS] [-p] [-inj INJ] [-frd] [-c]
-                          [-kicid KICID] [-nw NWORKERS] [-q]
+usage: run_the_machine.py [-h] [-irtest] [-N NSTARS] [-ir] [-p] [-inj INJ]
+                          [-frd] [-c] [-kicid KICID] [-nw NWORKERS] [-q]
 
 This is a short period EB injection-recovery machine (injection is optional).
 
 optional arguments:
   -h, --help            show this help message and exit
-  -ir, --injrecovtest   Inject and recover periodic transits for a small
+  -irtest, --injrecovtest
+                        Inject and recover periodic transits for a small
                         number of trial stars. Must specify N.
   -N NSTARS, --Nstars NSTARS
-                        int number of stars to inject/recov on (& RNG seed).
-                        required if running injrecovtest
+                        RNG seed for injrecov. Also, if injrecovtest, is int
+                        number of stars to inject/recov on.
+  -ir, --injrecov       Inject and recover periodic transits for KEBC stars.
+                        Must specify kicid, and unique N.
   -p, --pkltocsv        Process ur pkl files to csv results. Needs inj arg.
   -inj INJ, --inj INJ   1 if u want to process inj&recov results, 0 if real
                         results.
@@ -23,9 +26,24 @@ optional arguments:
                         KIC ID of the system you want to load.
   -nw NWORKERS, --nworkers NWORKERS
                         Number of workers for MPI.
+  -mp, --makeplots      in injrecov, whether you want to make dipsearchplot
+                        and others
   -q, --quicklcd        if you need a quick `lcd` to play with, this option
                         returns it (useful in IPython, to easily explore the
                         data structures)
+examples:
+
+To access a toy `lcd` and `allq` object:
+(ipython)
+>>> run run_the_machine.py -q
+
+To do injection recovery (convenient kicid with 2 quarters of data):
+(bash)
+>>> python run_the_machine.py --injrecov -N 1 -kicid 4936680 -nw 1 -mp
+
+To search for transiting planets ("recovery"):
+(bash)
+>>> python run_the_machine.py --findrealdips -kicid 12553806 -nw 1
 '''
 
 import numpy as np, os
@@ -255,7 +273,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             np.random.seed(s)
             lcd, lcflag = ir.retrieve_random_lc()
         else:
-            lcd, lcflag = ir.retrieve_injrecov_lc(kicid=kicid)
+            lcd, lcflag = ir.retrieve_injrecov_lc(kicid=int(kicid))
         if lcflag and injrecovtest:
             continue
         elif lcflag and not injrecovtest:
@@ -268,7 +286,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             δarr = np.array([1.,1/2.,1/4.,1/8.,1/16.,1/32.])/100.
         elif not injrecovtest:
             ln_RpbyRs = np.random.uniform(
-                    low=np.log(5e-3),
+                    low=np.log((4e-5)**(1/2.) ),
                     high=np.log(0.2),
                     size=1)
             δarr = np.array( (np.e**ln_RpbyRs)**2 )
@@ -278,7 +296,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             stage = origstage + '_' + str(δ)
             pklmatch = [f for f in os.listdir(DATADIR+'injrecov_pkl/'+predir)
                     if f.endswith('.p') and f.startswith(kicid) and stage in f]
-            if len(pklmatch) > 0 and injrecovtest:
+            if len(pklmatch) > 0 and (injrecovtest or inj):
                 print('Found {:s}, {:f}, continue'.format(kicid, δ))
                 continue
             else:
@@ -299,11 +317,11 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         # Write results and make plots.
         for δ in δarr:
             stage = origstage + '_' + str(δ)
-            if injrecovtest:
+            if (injrecovtest or inj):
                 lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
-            if loadfailed:
-                continue
-            if 'dipsearch' in stage and injrecovtest:
+                if loadfailed:
+                    continue
+            if 'dipsearch' in stage and (injrecovtest or inj):
                 allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
                 if loadfailed:
                     continue
@@ -333,28 +351,24 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 doneplots = os.listdir('../results/dipsearchplot/'+predir)
                 plotmatches = [f for f in doneplots if f.startswith(kicid) and
                         stage in f]
-                if len(plotmatches)>0:
-                    print('\nFound dipsearchplot, continuing.\n')
-                    continue
-                if 'dipsearch' in stage:
+                if not len(plotmatches)>0 and 'dipsearch' in stage:
                     irp.dipsearchplot(lcd, allq, ap='sap', stage=stage, inj=inj)
+                else:
+                    print('\nFound dipsearchplot, continuing.\n')
 
             if whitened:
                 doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
                 plotmatches = [f for f in doneplots if f.startswith(kicid) and
                         stage in f]
-                if len(plotmatches)>0:
+                if not len(plotmatches)>0 and 'dipsearch' in stage:
+                    #try:
+                    irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
+                    #except:
+                    #    with open('LOGS/error.txt', 'a') as f:
+                    #        f.write('whitenedplot_6row passed exception')
+                    #    continue
+                else:
                     print('\nFound whitened_diagnostic, continuing.\n')
-                    continue
-                if 'pw' in stage:
-                    irp.whitenedplot_5row(lcd, ap='sap', stage=stage)
-                elif 'dipsearch' in stage:
-                    try:
-                        irp.whitenedplot_6row(lcd, ap='sap', stage=stage, inj=inj)
-                    except:
-                        with open('LOGS/error.txt', 'a') as f:
-                            f.write('whitenedplot_6row passed exception')
-                        continue
 
             if iwplot:
                     irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
@@ -363,6 +377,11 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         # Summarize results tables in a text file.
         if injrecovtest:
             irra.summarize_injrecov_result()
+
+        if kicid:
+            print('Finished {:s}.'.format(str(kicid)))
+            break
+
 
 
 def pkls_to_results_csvs(inj=None):
@@ -421,7 +440,7 @@ def pkls_to_results_csvs(inj=None):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
-        description='This is a short period EB injection-recovery machine '+\
+        description='Run a short period EB injection-recovery machine '+\
                     '(injection is optional).')
     parser.add_argument('-irtest', '--injrecovtest', action='store_true',
         help='Inject and recover periodic transits for a small number of '+\
@@ -430,7 +449,7 @@ if __name__ == '__main__':
         help='RNG seed for injrecov. Also, if injrecovtest, is int number of'+\
         ' stars to inject/recov on. ')
     parser.add_argument('-ir', '--injrecov', action='store_true',
-        help='Inject and recover periodic transits for KEBC stars.'+\
+        help='Inject and recover periodic transits for KEBC stars. '+\
              'Must specify kicid, and unique N.')
     parser.add_argument('-p', '--pkltocsv', action='store_true',
         help='Process ur pkl files to csv results. Needs inj arg.')
@@ -444,6 +463,8 @@ if __name__ == '__main__':
         help='KIC ID of the system you want to load.')
     parser.add_argument('-nw', '--nworkers', type=int, default=None,
         help='Number of workers for MPI.')
+    parser.add_argument('-mp', '--makeplots', action='store_true',
+        help='in injrecov, whether you want to make dipsearchplot and others')
     parser.add_argument('-q', '--quicklcd', action='store_true',
         help='if you need a quick `lcd` to play with, this option returns it'+\
              ' (useful in IPython, to easily explore the data structures)')
@@ -463,22 +484,22 @@ if __name__ == '__main__':
         parser.error('The --pkltocsv argument requires --inj.')
     if (args.cluster and (not args.kicid or not args.nworkers)):
         parser.error('The --cluster argument requires --kicid.')
-    if (args.kicid and (not args.cluster or not args.nworkers)):
-        parser.error('The kicid arg currently should only be used on clusters')
     if isinstance(args.inj,int):
         if args.inj not in [0,1]:
             parser.error('--inj must be given as 0 or 1.')
     if (args.injrecovtest and args.injrecov):
         parser.error('can only do either injrecovtest XOR injrecov')
+    if (args.makeplots and not (args.injrecov or args.injrecovtest)):
+        parser.error('makeplots requires inj or injrecovtest')
 
     if args.quicklcd:
         lcd, allq = get_lcd(stage='realsearch')
 
     if args.injrecov or args.injrecovtest:
-        makeplots = True if args.injrecovtest else False
-        injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=makeplots,
-            whitened=makeplots, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
-            kicid=args.kicid, nworkers=args.nworkers, injrecovtest=False)
+        injrecov(inj=True, N=args.Nstars, stage='dipsearch', ds=args.makeplots,
+                whitened=args.makeplots, nwhiten_max=10, nwhiten_min=1,
+                rms_floor=5e-4, kicid=args.kicid, nworkers=args.nworkers,
+                injrecovtest=False)
 
     if args.findrealdips:
         recov(inj=False, stage='realsearch', ds=True, whitened=True,

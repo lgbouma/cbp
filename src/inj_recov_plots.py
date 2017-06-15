@@ -338,9 +338,9 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
     # row 5: redetrended & renormalized
     ax_redtr = f.add_subplot(gs[5,:], sharex=ax_raw)
 
-
     LOGINFO('Beginning whitened plot. KEPID %s (%s)' %
             (str(keplerid), ap))
+
     # ALL-TIME SERIES (rows 0,1,4)
     for ix, qnum in enumerate(lcd.keys()):
 
@@ -471,6 +471,7 @@ def whitenedplot_6row(lcd, ap='sap', stage='', inj=False):
                     set(np.unique(np.sort(np.insert(qnums, 0, newq))))&\
                     set(list(lcd.keys()))
                     )))
+    qnums = np.sort(qnums)
     if len(lcd) < 5:
         axs_pg = axs_pg[:len(lcd)]
         axs_pf = axs_pf[:len(lcd)]
@@ -824,10 +825,10 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
 
     best_t0 = min_time + bestφ_0*fbestperiod
     ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
-            linestyles='-', alpha=1, lw=1.5, zorder=-5)
+            linestyles='dotted', alpha=1, lw=2, zorder=-5)
     # Show 10 best coarse periods.
     ax_pg.vlines(pgdc['nbestperiods'][:10], min(pwr_ylim), max(pwr_ylim),
-            colors='gray', linestyles='--', lw=1, alpha=0.7, zorder=-10)
+            colors='gray', linestyles='dotted', lw=1, alpha=0.7, zorder=-10)
 
     p = allq['inj_model'] if inj else np.nan
     injperiod = p['params'].per if inj else np.nan
