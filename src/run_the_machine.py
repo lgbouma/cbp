@@ -317,11 +317,12 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
         # Write results and make plots.
         for δ in δarr:
             stage = origstage + '_' + str(δ)
-            if (injrecovtest or inj):
+            if (injrecovtest or inj) and nsavedpkls<maxnpkls:
                 lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
                 if loadfailed:
                     continue
-            if 'dipsearch' in stage and (injrecovtest or inj):
+            if 'dipsearch' in stage and (injrecovtest or inj) and \
+                    nsavedpkls<maxnpkls:
                 allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
                 if loadfailed:
                     continue
