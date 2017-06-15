@@ -854,4 +854,16 @@ X add cumulative whitening assessment plot script to /paper/figures
 
 X improve write_search_result to write the correct parameters
 
+for 'production level injrecov'
+X store whatever stellar parameters you will need (e.g. peerless eqs 4-6. Need
+stellar parameters, with better estimates than just asserting Rstar=1.5Rsun,
+duty cycle estimate from time groups, eccentricity of orbit, etc. )
+
+X to understand those parameters, consider the eventual inference you will be
+making. it will be an (upper bound on an) occurrence rate over a volume, Γ_V vs
+κ, a Fischer distribution parameter (since these two things are very
+degenerate). 
+
+X make sure exactly the same post-find_dips work is being on the injected LCs
+
 
