@@ -342,7 +342,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # not write diagnostic plots. Note that "stage" has δ in it, which
             # prevents name degeneracy.
             if nsavedpkls > maxnpkls:
-                savedir = DATADIR+'injrecov_summ/'
+                savedir = '../results/injrecov_summ/'
                 csvname = str(kicid)+'_'+stage+'.csv'
                 results.to_csv(savedir+csvname, index=False, header=False)
                 continue
