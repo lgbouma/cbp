@@ -327,7 +327,7 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             'depth_inj':np.nan,
             'SNR_inj_pf':np.nan,
             'depth_rec':np.nan,
-            'SNR_rec_pf':
+            'SNR_rec_pf':np.nan,
             'baseline':np.nan,
             'Ntra':np.nan,
             'ecc':np.nan,
