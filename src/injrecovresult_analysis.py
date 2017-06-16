@@ -354,10 +354,10 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             P_rec = ffoldperiod
 
             # If the recovered period is within +/- 0.1 days of the injected
-            # period, and (recovered epoch modulo injected period) is within 
-            # +/-5% of of (injected epoch modulo recovered period).
+            # period, and (recovered epoch modulo recovered period) is within 
+            # +/-5% of of (injected epoch modulo injected period).
             if inj:
-                atol = 0.1
+                atol = 0.1 # days
                 rtol = 0.05
                 reldiff = abs((t0_rec % P_rec) - (t0_inj % P_inj)) / (t0_inj % P_inj)
                 if (abs(P_inj - P_rec) < atol) and (reldiff < rtol):
