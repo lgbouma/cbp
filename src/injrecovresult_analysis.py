@@ -310,6 +310,31 @@ def write_search_result(lcd, allq, inj=None, stage=None):
 
     csvdir = '../results/injrecovresult/' if inj else '../results/real_search/'
 
+    # by default, write output as nans. Relevant in cases where there are no
+    # good periods found by BLS.
+    results = pd.DataFrame({
+            'kicid':np.nan,
+            'kebc_period':np.nan,
+            'morph':np.nan,
+            'ap':np.nan,
+            'P_inj':np.nan,
+            'P_rec':np.nan,
+            'coarseperiod':np.nan,
+            't0_inj':np.nan,
+            't0_rec':np.nan,
+            'foundinj':np.nan,
+            'rms_biased':np.nan,
+            'depth_inj':np.nan,
+            'SNR_inj_pf':np.nan,
+            'depth_rec':np.nan,
+            'SNR_rec_pf':
+            'baseline':np.nan,
+            'Ntra':np.nan,
+            'ecc':np.nan,
+            'a_by_Rstar':np.nan,
+            'cosi':np.nan
+            }, index=['0'])
+
     for ap in ['sap']:
         csv1name = 'irresult_'+ap+'_top1.csv'
         csv2name = 'irresult_'+ap+'_allN.csv'

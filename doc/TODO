@@ -7,15 +7,19 @@ METHOD TODO:
 
 injrecov run:
 
+* how many of single worker run actually _failed_ rather than completing?
+  given 3hr limit, seems like nontrivial amount
+> yes. 885 completed, out of what should have been ~1000. 
+  parsing logs, 110 cancelled.
+  there were two other errors: 
+
+* test 2 workers on each della job (time estimate -- how much does it improve?)
+
+* why does the overplotted BLS model in dipsearchplots often just not have any
+  ingress or egress?  what's going on?
+
+----------
 * big della job
-
-* time estimate of run: ~20 minutes for a 2 quarter lightcurve. (oof).  this
-  seems too slow. assuming multiplicative (not sure), a 16 quarter LC would be
-  160 minutes, or 2.5hrs
-
-  nominal run assessment: efficiency of pipeline w/ new additions not awesome
-  either. Not clear why.
-
 
 * rerun main search (e.g., on adroit, independent of injrecov work)
 

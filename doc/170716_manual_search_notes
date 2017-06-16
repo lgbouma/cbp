@@ -1,0 +1,6 @@
+Fri 16 Jun 2017 10:12:40 AM EDT
+
+NOTE: careful that sometimes in detrending legendre detrending can try to fit
+for transits, which can lead to a "brightening" on either edge of the transit.
+(making the shape look wonky, even though this is just a product of the
+detrending!)

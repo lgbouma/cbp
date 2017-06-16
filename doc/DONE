@@ -888,3 +888,76 @@ X on della
     X small della job
     X verify output works
 
+X do time estimate of run
+
+X "50 pkl max" is not working. debug it.
+  X fixed. 170605 night
+
+X your autofreq numbers are much too big with your changed parameters. make
+them more sensible (rather than running 16 million frequencies per "coarse"
+search)
+  * verify that 2 million points is not too many. (... to be seen)
+  -> ~1 minute per injrecov expt (true clock time, running across 150 cores
+  single worker jobs. Reality means ~150 minutes per expt, which is longish but
+  not awful).
+
+-> well, this is probs b/c astrobase has updated get_frequency_grid? so the
+autofrequency function is now some other thing.
+
+-> need to update to get manual frequencies??
+
+~ nope.
+
+X make sure t_0 MOD P is what's being selected for as "good enough" (because
+  injected epoch is based off minimum time, which changes depending on detrended
+  fluxes. e.g., 8912468_inj_0.0136422...
+
+X looks like injection on 4936680_sapdipsearch_inj_0.0343580515787 just
+  *failed* or something. what's going on?
+> this case drew a crazy short transit duration. a/Rstar of ~40, with period of
+  4.6 days. transit duration 0.8 hours. Means an exceptionally LOW stellar
+  density-- like a brown dwarf case. And we're not sensitive to them! (phi_min
+  too small, for instance)
+
+1) 
+Traceback (most recent call last):
+  File "run_the_machine.py", line 503, in <module>
+    injrecovtest=False)
+  File "run_the_machine.py", line 347, in injrecov
+    results.to_csv(savedir+csvname, index=False, header=False)
+AttributeError: 'float' object has no attribute 'to_csv'
+
+> fixed.
+
+2)
+  File "run_the_machine.py", line 503, in <module>
+    injrecovtest=False)
+  File "run_the_machine.py", line 308, in injrecov
+    rms_floor=rms_floor, nworkers=nworkers)
+  File "/home/lbouma/proj/cbp/src/inj_recov.py", line 1174, in iterative_whiten_allquarters
+    nworkers=nworkers)
+  File "/home/lbouma/proj/cbp/src/inj_recov.py", line 1289, in iterative_whiten_lightcurve
+    fine=True, nworkers=nworkers)
+  File "/home/lbouma/proj/cbp/src/inj_recov.py", line 1139, in _iter_run_periodogram
+    nworkers=nworkers)
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/site-packages/astrobase/periodbase/spdm.py", line 253, in stellingwerf_pdm
+    pool = Pool(nworkers)
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/context.py", line 118, in Pool
+    context=self.get_context())
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/pool.py", line 168, in __init__
+    self._repopulate_pool()
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/pool.py", line 233, in _repopulate_pool
+    w.start()
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/process.py", line 105, in start
+    self._popen = self._Popen(self)
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/context.py", line 267, in _Popen
+    return Popen(process_obj)
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/popen_fork.py", line 20, in __init__
+    self._launch(process_obj)
+  File "/home/lbouma/.conda/envs/cbp/lib/python3.5/multiprocessing/popen_fork.py", line 67, in _launch
+    self.pid = os.fork()
+OSError: [Errno 12] Cannot allocate memory
+
+> happened once in 1000. ignore.
+
+
