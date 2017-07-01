@@ -327,10 +327,10 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
                 if loadfailed:
                     continue
 
-            # Write results tables. (Control flow logic: this is automatically
-            # done for any run. So you'd need to delete the table before ANY
-            # run, and it'll reconstruct the table based on everything in the
-            # saved pickles.)
+            # Write to summary results csv. (Control flow logic: this is
+            # automatically done for any run. So you'd need to delete the table
+            # before ANY run, and it'll reconstruct the table based on
+            # everything in the saved pickles.)
             if 'dipsearch' in stage:
                 fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                         stage=stage)
@@ -340,11 +340,11 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
             # Save disk space by saving less junk data. In this case, only save
             # core results as a csv file, then remove the bulky pickle and do
             # not write diagnostic plots. Note that "stage" has δ in it, which
-            # prevents name degeneracy.
+            # prevents name degeneracy (n.b. top N BLS results are stored).
             if nsavedpkls > maxnpkls:
                 savedir = '../results/injrecov_summ/'
                 csvname = str(kicid)+'_'+stage+'.csv'
-                results.to_csv(savedir+csvname, index=False, header=False)
+                results.to_csv(savedir+csvname, index=False, header=True)
                 continue
 
             # Make plots.

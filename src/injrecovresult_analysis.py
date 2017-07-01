@@ -368,6 +368,7 @@ def write_search_result(lcd, allq, inj=None, stage=None):
         fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
         bestperiod = fbestperiod
 
+        results_list = []
         for ix, ffoldperiod in enumerate(fnbestperiods):
 
             cfoldperiod = cnbestperiods[ix]
@@ -441,11 +442,16 @@ def write_search_result(lcd, allq, inj=None, stage=None):
                         index=False,
                         mode='a')
 
+            results_list.append(results)
+
             LOGINFO('Wrote KIC-{:d} result to {:s} ({:s},{:.3g}day)'.format(
                 kicid,csvdir,ap,ffoldperiod))
 
+    # pd.concat(results_list) gets written to /results/injrecov_summ/, and it
+    # contains each BLS result.
+
     if not fblserr:
-        return fblserr, results
+        return fblserr, pd.concat(results_list)
     elif fblserr:
         return fblserr, np.nan
 
