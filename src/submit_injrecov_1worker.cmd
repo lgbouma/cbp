@@ -4,7 +4,7 @@
 #SBATCH --array=1-1000 # starting at 1, out to last index of /data/N_to_KICID.txt
 #SBATCH -N 1   # node count. OpenMP requires 1.
 #SBATCH --ntasks-per-node=1  # core count.
-#SBATCH -t 2:59:00 # 1hr min for fast queue. e.g., 3:00:00 for 3hr
+#SBATCH -t 15:59:00 # 1hr min for fast queue. e.g., 3:00:00 for 3hr
 # sends mail when process begins, and
 # when it ends. Make sure you define your email
 #SBATCH --mail-type=end
@@ -18,8 +18,11 @@ source activate cbp
 # $SLURM_ARRAY_TASK_ID is the "environmental" variable slurm uses to index
 # the job array. We'll use it to directly index our list of KIC IDs.
 
-linenumber=$SLURM_ARRAY_TASK_ID
-N=$(($SLURM_ARRAY_TASK_ID-1))
+# FIXME: linenumber should have better logic
+linenumber=$((0+$SLURM_ARRAY_TASK_ID))
+
+N=$(($linenumber-1))
+
 kicid="$(sed "${linenumber}q;d" /tigress/lbouma/data/N_to_KICID.txt | awk '{print $2}')"
 
 srun python run_the_machine.py --injrecov -c -kicid $kicid -nw 1 --Nstars $N -mp > LOGS/"$linenumber"_"$kicid".log
