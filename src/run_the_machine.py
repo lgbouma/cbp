@@ -258,7 +258,7 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
     # If injrecovtest, then N is both the RNG seed and the number of LCs. If
     # injrecov, it is just the RNG seed.
     np.random.seed(N)
-    seeds = np.random.randint(0, 99999999, size=N)
+    seeds = np.random.randint(0, 99999999, size=N+1)
 
     stage = stage+'_inj' if inj else stage+'_real'
     predir = 'inj/' if 'inj' in stage else 'real/'
