@@ -158,7 +158,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
                 print('error in finebls -> got 0 len pgdf. forced continue')
 
         # Make plots.
-        if ds and not fblserr and np.all(results['SNR_rec_pf']>min_pf_SNR):
+        if ds and not fblserr and np.any(results['SNR_rec_pf']>min_pf_SNR):
             doneplots = os.listdir('../results/dipsearchplot/'+predir)
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
@@ -174,7 +174,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
             with open(path, 'a'):
                 os.utime(path, None)
 
-        if whitened and np.all(results['SNR_rec_pf']>min_pf_SNR):
+        if whitened and np.any(results['SNR_rec_pf']>min_pf_SNR):
             doneplots = os.listdir('../results/whitened_diagnostic/'+predir)
             plotmatches = [f for f in doneplots if f.startswith(kicid) and
                     stage in f]
@@ -193,7 +193,7 @@ def recov(inj=False, stage=None, nwhiten_max=10, nwhiten_min=1, rms_floor=5e-4,
                     with open(path, 'a'):
                         os.utime(path, None)
 
-        if iwplot and np.all(results['SNR_rec_pf']>min_pf_SNR):
+        if iwplot and np.any(results['SNR_rec_pf']>min_pf_SNR):
             irp.plot_iterwhiten_3row(lcd, allq, stage=stage, inj=inj,
                         δ=δ)
 
