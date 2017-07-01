@@ -3,22 +3,16 @@ Be efficient with how you allocate your time.
 #TODO#
 ######
 
-METHOD TODO:
-
 injrecov run:
 
-* how many of single worker run actually _failed_ rather than completing?
-  given 3hr limit, seems like nontrivial amount
-> yes. 885 completed, out of what should have been ~1000. 
-  parsing logs, 110 cancelled.
-  there were two other errors: 
+* start injrecov from 0 again (with fixed injrecov_summ output). Do 0-2000,
+verify output in csvs looks good.
 
-* test 2 workers on each della job (time estimate -- how much does it improve?)
 
+----------
 * why does the overplotted BLS model in dipsearchplots often just not have any
   ingress or egress?  what's going on?
 
-----------
 * big della job
 
 * rerun main search (e.g., on adroit, independent of injrecov work)

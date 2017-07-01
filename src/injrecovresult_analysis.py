@@ -478,6 +478,7 @@ def completeness_top1_heatmap(realsearch=None):
     # SNR (per transit) vs P_CBP #
     ##############################
     # get ones and zeros for found/not found.
+    df['foundinj'][pd.isnull(df['foundinj'])] = False
     df['found'] = list(map(int, df['foundinj']))
     df['SNR'] = df['depth_inj']/df['rms_biased']
     # for half-log bins:
@@ -485,7 +486,7 @@ def completeness_top1_heatmap(realsearch=None):
     #SNRgrid = np.logspace(-1,2,7)
     # for third-log bins:
     Pgrid = np.logspace(-1,3,13)
-    SNRgrid = np.logspace(-1,2,10)
+    SNRgrid = np.logspace(-1,3,13)
     Pbins = [(float(Pgrid[i]), float(Pgrid[i+1])) \
                     for i in range(len(Pgrid)-1)]
     SNRbins = [(float(SNRgrid[i]), float(SNRgrid[i+1])) \
@@ -530,7 +531,7 @@ def completeness_top1_heatmap(realsearch=None):
     ax.set_ylabel('$\delta/\mathrm{RMS}\ (\mathrm{per\ transit})$')
     ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
     ax.set_xlim([1e-1, 1e3])
-    ax.set_ylim([1e-1, 1e2])
+    ax.set_ylim([1e-1, 1e3])
     cb = f.colorbar(im, orientation='vertical')
     cb.set_label('$\mathrm{percent\ recovered}$')
     if realsearch:
@@ -591,7 +592,7 @@ def completeness_top1_heatmap(realsearch=None):
     ax.set_ylabel(r'$\delta/\mathrm{RMS}\times\sqrt{N_\mathrm{tra}}$')
     ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
     ax.set_xlim([10**(-0.5), 1e3])
-    ax.set_ylim([1e0, 10**(2.5)])
+    ax.set_ylim([1e0, 10**(3)])
     cb = f.colorbar(im, orientation='vertical')
     cb.set_label('$\mathrm{percent\ of\ injections\ recovered}$')
     if realsearch:
@@ -604,9 +605,9 @@ def completeness_top1_heatmap(realsearch=None):
     plotname = 'completeness_heatmap_top1_pfSNR_vs_periodcbp.pdf'
     f.savefig(plotdir+plotname)
 
-    ##############
-    # δ vs P_CBP #
-    ##############
+    ###############
+    # Rp vs P_CBP #
+    ###############
     # for third-log bins:
     Pgrid = np.logspace(-1,3,13)
     Rgrid = np.logspace(0,2,15)
@@ -674,6 +675,74 @@ def completeness_top1_heatmap(realsearch=None):
               '../results/real_search/plots/'
     plotname = 'completeness_heatmap_top1_Rp_vs_periodcbp.pdf'
     f.savefig(plotdir+plotname)
+
+    ########################
+    # Rp by Rstar vs P_CBP #
+    ########################
+    # for third-log bins:
+    Pgrid = np.logspace(-1,3,13)
+    Rgrid = np.logspace(-3,0,13)
+    Pbins = [(float(Pgrid[i]), float(Pgrid[i+1])) \
+                    for i in range(len(Pgrid)-1)]
+    Rbins = [(float(Rgrid[i]), float(Rgrid[i+1])) \
+                    for i in range(len(Rgrid)-1)]
+
+    # get Rp by Rstar
+    P = np.array(df['P_inj'])
+    found = np.array(df['found'])
+    R = np.array(np.sqrt(df['depth_inj']))
+    results = []
+
+    for (Pmin, Pmax), (Rmin, Rmax) in product(Pbins, Rbins):
+            sel = (P > Pmin) & (P < Pmax)
+            sel &= (R > Rmin) & (R < Rmax)
+
+            thisP, thisR, thisFound = P[sel], R[sel], found[sel]
+            thisDenom = len(found[sel])
+            thisNum = len(thisFound[thisFound==1])
+
+            if thisDenom > 0:
+                thisFrac = thisNum/thisDenom
+            else:
+                thisFrac = 0.
+
+            results.append(thisFrac)
+
+    results = np.reshape(results, (len(Pbins),len(Rbins)))
+
+    plt.close('all')
+    f, ax = plt.subplots()
+    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='Blues')
+
+    if realsearch:
+        fpath = '../results/real_search/irresult_sap_top1.csv'
+        rs = pd.read_csv(fpath)
+        rs['R_rec'] = (np.array(np.sqrt(rs['depth_rec']))*1.5*u.Rsun\
+                  ).to(u.Rearth).value
+        ax.scatter(rs['P_rec'], rs['R_rec'], c='red', lw=0, marker='o',
+                label='$\mathrm{real\ search\ data}', s=5, alpha=0.6)
+
+    cb = f.colorbar(im, orientation='vertical')
+    cb.set_label('$\mathrm{percent\ of\ injections\ recovered}$')
+    if realsearch:
+        lg = ax.legend(loc='best', scatterpoints=1)
+        lg.get_frame().set_facecolor('none')
+        lg.get_frame().set_linewidth(0.)
+
+    ax.set_xlabel('$P_\mathrm{CBP}\ [\mathrm{days}]$')
+    ax.set_ylabel('$R_p / R_\star$')
+    ax.set_xscale('log')
+    ax.set_yscale('log')
+    ax.set_xlim([1e-1, 1e3])
+    ax.set_ylim([4e-3, 4e-1])
+
+    f.tight_layout()
+    plotdir = '../results/injrecovresult/plots/' if not realsearch else \
+              '../results/real_search/plots/'
+    plotname = 'completeness_heatmap_top1_RpbyRstar_vs_periodcbp.pdf'
+    f.savefig(plotdir+plotname)
+
+
 
 
 def completeness_top1_scatterplots():
@@ -813,7 +882,9 @@ def completeness_top1_scatterplots():
 if __name__ == '__main__':
     summarize_injrecov_result(substr='completeness_test')
     summarize_realsearch_result(substr='findrealdips_170327', N=20)
+
     completeness_top1_scatterplots()
     completeness_top1_heatmap(realsearch=False)
+
     completeness_top1_heatmap(realsearch=True)
 

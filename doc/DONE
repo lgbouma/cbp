@@ -927,7 +927,6 @@ Traceback (most recent call last):
     results.to_csv(savedir+csvname, index=False, header=False)
 AttributeError: 'float' object has no attribute 'to_csv'
 
-> fixed.
 
 2)
   File "run_the_machine.py", line 503, in <module>
@@ -958,6 +957,67 @@ AttributeError: 'float' object has no attribute 'to_csv'
     self.pid = os.fork()
 OSError: [Errno 12] Cannot allocate memory
 
-> happened once in 1000. ignore.
 
+Sat 17 Jun 2017 09:06:09 PM EDT
+
+
+* how many of single worker run actually _failed_ rather than completing?
+  given 3hr limit, seems like nontrivial amount
+> yes. 885 completed, out of what should have been ~1000. 
+  parsing logs, 110 cancelled.
+  there were two other errors: 
+
+X test 2 workers on each della job (time estimate -- how much does it improve?)
+
+2.5hrs, done 360 of em. This is 2.4 per minute, real clock time (much better
+than 1 per minute with single worker!)
+
+2000 injrecov expts, submitted as 2 worker, single node jobs.
+11410971_[415-1000       all injrecov   lbouma PD       0:00      1 (QOSMaxCpuPerUserLimit)
+ 11411732_[1-1000]       all injrecov   lbouma PD       0:00      1 (QOSMaxCpuPerUserLimit)
+
+
+> OK. 
+
+==============================
+==============================
+injrecov run:
+
+* Parsing /results/injrecovresult/irresult_sap_top1.csv, seems like I got
+reasonably good output. No crazy T/F degeneracy -- seems like it _worked_.
+
+* Plotting these, they look sensible (and nicer than previous runs!)
+
+* Look at the log files and the raw csv output (from which the summary csv
+tables should be reconstructable)
+
+> There are 2 log files: ???_slurmjobnumber_slurm.out, and ????_kicid.log These
+can be crossmatched (though it's tricky b/c the slurm job numbers correspond to
+how you submitted them -- i.e. in batches of 1000). 1337_9662581.log
+
+An easier strategy is to 
+
+tail -n1 *.log | grep 'Finished' | wc -l
+6842
+
+which is of 7000. So, most of the jobs are finishing. We can run more to see if
+they all finish or not. (After verifying the single-line csv output is being
+written correctly as well).  I think 12 hr, 2 cores per job is functional.
+
+X Is the single-line csv output being written correctly?
+
+I think no, b/c
+* there's no header info
+* grepping for "True" output from the 7769 files gives 54 results
+
+Is it one of the lower BLS results that's being written? (probably via overwriting)
+
+(N.b. I also just learned a very useful regex: .*
+. means any character
+* means "the last thing in the regex, any number, including 0, of times.
+
+you can use this to match long lists of strings bound by similar things.
+)
+
+> pretty sure I fixed it.
 
