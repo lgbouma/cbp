@@ -3,23 +3,10 @@ Be efficient with how you allocate your time.
 #TODO#
 ######
 
-injrecov run:
-
-* start injrecov from 0 again (with fixed injrecov_summ output). Do 0-2000,
-verify output in csvs looks good.
-
-
-----------
-* why does the overplotted BLS model in dipsearchplots often just not have any
-  ingress or egress?  what's going on?
-
-* big della job
-
-* rerun main search (e.g., on adroit, independent of injrecov work)
-
-* run thru whitening a few times w/ different parameters. this should be cheap
-  vs injrecov or even just recov, and will be useful to compare different
-  whitening choices.
+* run thru whitening a few times w/ different parameters, to generate the CDF
+  comparison plot. this should be cheap vs injrecov or even just recov, and will
+  be useful to compare different whitening choices (and to justify the
+  arbitrary search parameters ur currently using)
 
 * implement chopped up BLS (by quarter, and quarter pairs)
 

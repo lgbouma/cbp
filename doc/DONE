@@ -981,6 +981,8 @@ than 1 per minute with single worker!)
 
 ==============================
 ==============================
+Sat 01 Jul 2017 12:13:20 PM EDT
+
 injrecov run:
 
 * Parsing /results/injrecovresult/irresult_sap_top1.csv, seems like I got
@@ -1020,4 +1022,21 @@ you can use this to match long lists of strings bound by similar things.
 )
 
 > pretty sure I fixed it.
+
+~ why does the overplotted BLS model in dipsearchplots often just not have any
+  ingress or egress?  what's going on?
+
+X start injrecov from 0 again (with fixed injrecov_summ output). Do 0-2000,
+
+> started at 12:03 EST. They buffed maxCPUs per user to 350, which will improve
+my runtime by like ~50%.
+
+> JK. i/o for multithreading is wonky. Lower risk mean 2x as slow, at least.
+
+X verify output in all csvs (injrecov_summ, injrecovresult) looks good.
+> it does, but currently only for nworkers = 1. this is 2x as slow as we need
+  it to be (tho dont need to deal w/ this now).
+
+X update injrecov heatmaps; update paper figures
+
 

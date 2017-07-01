@@ -517,7 +517,7 @@ def completeness_top1_heatmap(realsearch=None):
 
     plt.close('all')
     f, ax = plt.subplots()
-    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='Blues')
+    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='binary')
 
     if realsearch:
         fpath = '../results/real_search/irresult_sap_top1.csv'
@@ -579,7 +579,7 @@ def completeness_top1_heatmap(realsearch=None):
 
     plt.close('all')
     f, ax = plt.subplots()
-    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='Blues')
+    im = ax.pcolor(Pgrid, SNRgrid, results.T, cmap='binary')
 
     if realsearch:
         fpath = '../results/real_search/irresult_sap_top1.csv'
@@ -645,7 +645,7 @@ def completeness_top1_heatmap(realsearch=None):
 
     plt.close('all')
     f, ax = plt.subplots()
-    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='Blues')
+    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='binary')
 
     if realsearch:
         fpath = '../results/real_search/irresult_sap_top1.csv'
@@ -712,7 +712,7 @@ def completeness_top1_heatmap(realsearch=None):
 
     plt.close('all')
     f, ax = plt.subplots()
-    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='Blues')
+    im = ax.pcolor(Pgrid, Rgrid, results.T, cmap='binary')
 
     if realsearch:
         fpath = '../results/real_search/irresult_sap_top1.csv'
