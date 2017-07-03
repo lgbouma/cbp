@@ -132,7 +132,10 @@ def dl_2(a_p, P_p, R_star1, δi, P_b, a_b1):
 
     # NOTE: not clear why this would have 2*Rstar_1, while dl_1 has no
     # prefactor of 2
-    _ = t_trans * abs(v_p*cos(δi) + 2*v_star1/π) + 2*R_star1
+    # NOTE: without, agreement is better. So yeah, I think that factor of 2 is
+    # an error.
+    #_ = t_trans * abs(v_p*cos(δi) + 2*v_star1/π) + 2*R_star1
+    _ = t_trans * abs(v_p*cos(δi) + 2*v_star1/π) + R_star1
 
     return _
 
