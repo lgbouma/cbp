@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
 '''
 using the formulae given by Li, Holman & Tao (2016), estimate the number of
-transits to expect for a CBP system given the orbital parameters (and
-observational baseline).
+transits to expect for a CBP system given the orbital parameters,
+observational baseline, and that it transits at least once.
 
 comment: Li+ (2016)'s formulae are in the small Δ_ib = 90 - i_b limit, an
 assumption justified in the text by arguing the stars are eclipsing.
 OFC this breaks for contact binaries, but we will ignore this, temporarily.
-
-another comment:
-f_1: true anomaly of star 1? No. I think it's a true anomaly of the
-planet at a particular configuration where it's transiting star 1.
-But this is confusing b/c then R_star2 should be substituted in Eq (12).
-Probably worth emailing Gongjie about this. I will assume that the
-appropriate f_2 (Eq 12) has R_star2 in place of R_star1.
-Eq (11)
-
 '''
+
 from __future__ import division, print_function
 import matplotlib as mpl
 mpl.use('pgf')
@@ -242,8 +234,93 @@ def δΩ_1(ΔΩ_1, δΩ_prec, f_2, a_b1, a_p):
     return _
 
 
+def P_transit(P_cr2, P_star2, n_2, P_cr1, P_star1, n_1):
+    # Eq 20
+
+    return P_cr2 * ( 1 - (1-P_star2)**n_2  * \
+                      ( P_cr1/P_cr2 * (1 - P_star1)**n_1 \
+                        + (P_cr2 - P_cr1)/P_cr2   )  )
+
+def get_P_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x, Δ_ib, δi, m_b, a_b,
+        a_b1, a_b2, a_p, P_p):
+    # Probability of transiting both stars at least once
+    # Eq 20
+    Ωdot = get_Ωdot(P_p, δi, a_p, a_b, m_1, m_2)
+
+    δΩ_prec = get_δΩ_prec(T_obs, Ωdot)
+
+    P_tra = P_transit(
+            P_cr2(
+                δΩ_1(
+                    ΔΩ_1(f_1(R_star2, a_p, Δ_ib, δi), # really calling ΔΩ_2
+                         f_2(R_star2, a_p, Δ_ib, δi), # but got lazy & didn't
+                         a_b2,                        # implement it
+                         a_p),
+                    δΩ_prec,
+                    f_2(R_star2, a_p, Δ_ib, δi),
+                    a_b2,
+                    a_p
+                    )
+               ),
+            P_star2(
+                a_b2,
+                dl_1(a_p, P_p, R_star2, δi, P_b, a_b2),
+                dl_2(a_p, P_p, R_star2, δi, P_b, a_b2)
+               ),
+            n_2(
+                T_obs,
+                P_p,
+                ΔΩ_1(f_1(R_star2, a_p, Δ_ib, δi), # really calling ΔΩ_2
+                     f_2(R_star2, a_p, Δ_ib, δi), # but got lazy & didn't
+                     a_b2,                        # implement it
+                     a_p),
+                δΩ_prec,
+                Ωdot,
+                a_b2,
+                a_p,
+                f_2(R_star2, a_p, Δ_ib, δi)
+               ),
+            P_cr1(
+                δΩ_1(
+                    ΔΩ_1(
+                        f_1(R_star1, a_p, Δ_ib, δi),
+                        f_2(R_star1, a_p, Δ_ib, δi),
+                        a_b2,
+                        a_p),
+                    δΩ_prec,
+                    f_2(R_star1, a_p, Δ_ib, δi),
+                    a_b1,
+                    a_p)
+               ),
+            P_star1(
+                a_b1,
+                dl_1(a_p, P_p, R_star1, δi, P_b, a_b1),
+                dl_2(a_p, P_p, R_star1, δi, P_b, a_b1)
+               ),
+            n_1(
+                T_obs,
+                P_p,
+                ΔΩ_1(
+                    f_1(R_star1, a_p, Δ_ib, δi),
+                    f_2(R_star1, a_p, Δ_ib, δi),
+                    a_b2,
+                    a_p),
+                δΩ_prec,
+                Ωdot,
+                a_b1,
+                a_p,
+                f_2(R_star1, a_p, Δ_ib, δi)
+               )
+            )
+
+    return P_tra
+
+
+
 def get_N_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x, Δ_ib, δi, m_b, a_b,
         a_b1, a_b2, a_p, P_p):
+    # Given that a system transits both stars, get average number of transits.
+    # Eq 21
 
     Ωdot = get_Ωdot(P_p, δi, a_p, a_b, m_1, m_2)
 
@@ -350,7 +427,7 @@ if __name__ == '__main__':
     P_b = 2*u.day        # figure 4
 
     Δ_ib = 0*u.degree
-    δi_array = np.arange(2,90,2)*u.degree
+    δi_array = np.arange(1,90,1)*u.degree
     # singularities do not play nice, and approximations break.
     δi_array = np.delete(δi_array, np.argwhere(δi_array == 90*u.degree))
 
@@ -360,47 +437,74 @@ if __name__ == '__main__':
     #########################################################
     # read answers from the figure
     import pandas as pd
-    colnames=['δi','N_tra']
-    ans_x5 = pd.read_csv(
-            '../data/Li_Holman_Tao_2016_top_panel_purple_line.csv',
-            names=colnames)
-    ans_x2pt4 = pd.read_csv(
-            '../data/Li_Holman_Tao_2016_top_panel_blue_line.csv',
-            names=colnames)
+    fig3_x5 = pd.read_csv(
+            '../data/Li_Holman_Tao_2016_fig3_top_purple.csv',
+            names=['δi','P_tra'])
+    fig3_x2pt4 = pd.read_csv(
+            '../data/Li_Holman_Tao_2016_fig3_top_blue.csv',
+            names=['δi','P_tra'])
+    fig4_x5 = pd.read_csv(
+            '../data/Li_Holman_Tao_2016_fig4_top_purple_line.csv',
+            names=['δi','N_tra'])
+    fig4_x2pt4 = pd.read_csv(
+            '../data/Li_Holman_Tao_2016_fig4_top_blue_line.csv',
+            names=['δi','N_tra'])
 
     import matplotlib.pyplot as plt
 
-    f,ax = plt.subplots(figsize=(4,4))
+    f,axs = plt.subplots(nrows=2, ncols=1, figsize=(4,8))
 
-    ax.plot(ans_x5['δi'], ans_x5['N_tra'], c='k', lw=1, ls='--',
+    axs[0].plot(fig4_x5['δi'], fig4_x5['N_tra'], c='k', lw=1, ls='--',
             label='Li+ (2016) $a_p/a_b=5$')
 
-    ax.plot(ans_x2pt4['δi'], ans_x2pt4['N_tra'], c='darkgray', lw=1, ls='--',
-            label='Li+ (2016) $a_p/a_b=2.4$')
+    axs[0].plot(fig4_x2pt4['δi'], fig4_x2pt4['N_tra'], c='darkgray', lw=1,
+            ls='--', label='Li+ (2016) $a_p/a_b=2.4$')
+
+    axs[1].plot(fig3_x5['δi'], fig3_x5['P_tra'], c='k', lw=1, ls='--')
+
+    axs[1].plot(fig3_x2pt4['δi'], fig3_x2pt4['P_tra'], c='darkgray', lw=1,
+            ls='--')
 
     for x, col_str, leg_str in zip([5, 2.4], ['k','darkgray'],
             ['my code $a_p/a_b=5$','my code $a_p/a_b=2.4$']):
 
         N_tra_list = []
+        P_tra_list = []
         for index, δi in enumerate(δi_array):
             print(index)
             m_b, a_b, a_b1, a_b2, a_p, P_p = get_preliminaries(m_1, m_2, P_b, x)
+            P_tra = get_P_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x, Δ_ib, δi,
+                    m_b, a_b, a_b1, a_b2, a_p, P_p)
+
+            m_b, a_b, a_b1, a_b2, a_p, P_p = get_preliminaries(m_1, m_2, P_b, x)
             N_tra = get_N_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x, Δ_ib, δi,
                     m_b, a_b, a_b1, a_b2, a_p, P_p)
+
             N_tra_list.append(N_tra.cgs)
+            P_tra_list.append(P_tra.cgs)
+
         N_tra_array = np.array(N_tra_list)
+        P_tra_array = np.array(P_tra_list)
 
-        ax.plot(δi_array, N_tra_array, c=col_str, lw=2, label=leg_str)
+        axs[0].plot(δi_array, N_tra_array, c=col_str, lw=1, label=leg_str)
 
-    ax.legend(loc='best', fontsize='xx-small')
+        axs[1].plot(δi_array, P_tra_array, c=col_str, lw=1)
 
-    ax.set(xlim=[0,180],
-           xlabel=r'$\delta i\ (\mathrm{degree})$',
-           ylabel=r'$\mathrm{average\ number\ of\ transits}$',
+    axs[0].legend(loc='best', fontsize='xx-small')
+
+    axs[0].set(xlim=[0,91],
+           xticklabels=[],
+           ylabel=r'average $N_\mathrm{tra}$, given transits at least once',
            )
-    ax.set_title(
-           'fig 4 Li+ 2016. $P_b=2\,\mathrm{days},\ T_\mathrm{obs}=1\,\mathrm{yr}$, solar parameters.'+\
-           '\nmy implementation is slightly off (but not enough to matter)',
+    axs[1].set(xlim=[0,91],
+           ylim=[0,1.05],
+           xlabel=r'$\delta i\ (\mathrm{degree})$',
+           ylabel='prob transits at least once',
+           )
+
+    axs[0].set_title(
+           'figs 3\& 4 Li+ 2016. $P_b=2\,\mathrm{days},\ T_\mathrm{obs}=1\,\mathrm{yr}$, solar parameters.'+\
+           '\nmy implementation seems close enough at $\delta i<90^\circ$',
            fontsize='xx-small'
            )
 
