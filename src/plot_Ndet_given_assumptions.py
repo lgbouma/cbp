@@ -52,4 +52,28 @@ f.tight_layout()
 f.savefig('../results/N_transits_Li_2016/N_tra_vs_Tobsperiodratio.pdf',
         dpi=300, bbox_inches='tight')
 
+###############################################
+# SANITY CHECK #2: N_tra/(T_obs/P_p) vs T_obs #
+###############################################
+plt.close('all')
+
+f, ax = plt.subplots(figsize=(4,4))
+
+ax.scatter(df['T_obs'], df['N_tra']/(df['T_obs']/df['P_p']), c='black', lw=0,
+        marker='o', s=4, alpha=0.1, label='calcuated from Li+ (2016)')
+
+ax.set(ylabel=r'$\frac{N_\mathrm{tra,predicted}}{(T_\mathrm{obs}/P_\mathrm{CBP})}$',
+       xlabel='$T_\mathrm{obs}\,[\mathrm{days}]$',
+       ylim=[min(df['N_tra']/(df['T_obs']/df['P_p'])) - 0.1*min(df['N_tra']/(df['T_obs']/df['P_p'])),
+             max(df['N_tra']/(df['T_obs']/df['P_p'])) + 0.1*max(df['N_tra']/(df['T_obs']/df['P_p']))],
+       xlim=[10, 2e3],
+       yscale='linear',
+       xscale='log')
+ax.legend(loc='lower left', fontsize='xx-small', scatterpoints=1)
+
+f.tight_layout()
+
+f.savefig('../results/N_transits_Li_2016/N_tra_ratio_vs_T_obs.pdf',
+        dpi=300, bbox_inches='tight')
+
 
