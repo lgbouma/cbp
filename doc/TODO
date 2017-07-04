@@ -3,77 +3,51 @@ Be efficient with how you allocate your time.
 #TODO#
 ######
 
-* run thru whitening a few times w/ different parameters, to generate the CDF
-  comparison plot. this should be cheap vs injrecov or even just recov, and will
-  be useful to compare different whitening choices (and to justify the
-  arbitrary search parameters ur currently using)
+PRODUCTION-LEVEL RECOV:
 
-* implement chopped up BLS (by quarter, and quarter pairs)
+* make sure prob(det) > 0 cut makes it in. (or whatever analog based on injrecov
+parameter space that works). (do it just as a hard cut in SNR, to keep it simple)
 
-* be sure the two duplicates, 3832716 and 8167938, have both their periods
-  treated (... or at least, be able to justify why they shouldnt)
-
-* do the exercise of: "Can we rule out obvious astrophysical cases?"
-  * assign each contact binary an orientation. (from isotropic cosi!)
-  * assign a coplanar planet, exactly at the stability limit (or exactly at the
-    median a_cbp/a_crit from Kepler CBPs, to make it slightly more realistic). 
-  * for planet sizes to inject, estimate stellar size from period-color relations
-    (very coarse)
-  * get third light estimate from european groups' results
-  * use the "vanilla" inj-recover rate to immediately get the probability of
-    detecting these allowed hypotheses.
-
-  If you can say "this case is definitely ruled out -- we know that these types
-  of planets are not in the Kepler data", that is new knowledge.
+* dipsearchplots:
+    * add Tdur estimate in text
+    * fix BLS line to be rectangular, not triangular
 
 * should be able to identify KIC 2856960 events (Armstrong 2012's disc). (or at
   least know why they're not showing up)
-
-
-
-PRODUCTION-LEVEL INJ/RECOV:
-
-* make sure SNR>3 cut makes it in. (or whatever analog based on injrecov
-parameter space that works)
-
-CANDIDATE SEARCH: 
-* review "maybes" too
-
-* Make sure injrecov works with the recov-only update (i.e. test it & break it)
-
-* make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
-evaluating completenss.  It shouldn't change things.
 
 * which stars have known planet candidates already in our catalog (e.g., KIC
 11013201 has real dips, and is also KOI 972. Possible delta Scuti 
 oscillations, with the transiting planet. ?!?!. What does that mean about
 evolutionary state?)
 
+* rerun production-level recov
+
+* relook at all SNR>3 
+
+CANDIDATE SEARCH: 
+* review "maybes" too
+
+* make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
+evaluating completenss.  It shouldn't change things.
+
 *Period finder:
-    Assess for what fraction we need to revert to KEBC period.
-
-* The argument against the statistical power of Armstrong's thesis work on
-the shortest period binaries based on mutual inclination grounds was surprinsg
-to Kratter (she expected that Welsh et al would have checked more closely).
-
-Moreover, it can (& SHOULD) be investigated on simple grounds before diving
-into the complicated work of developing a pipeline & computing its sensitivity.
-
-These simple grounds are like: take two G stars. Put them on a 1 day orbit. You
-get some range of inclinations on which they will be observed to eclipse.
-Assume that the Kepler EBs are randomly drawn from this range of inclinations
-(similar to Armstrong's work). 
-
-Then assume coplanarity of the two orbital planes (for now). Put the planet at
-the stability limit of the system (or near it). You can ignore precession (b/c
-coplanar). Compute the fraction of such systems that then transit.
-
-In particular, look at the sini's of things in KEBC v2 that were labelled
-overcontact by human labellers (~427 objects). Maybe ~20-30% of them have
-sini>0.8. So, 100 objects would be capable of transiting(? Maybe 50?).
-Obviously far fewer if you throw out all morph>0.7 objects from your sample.
-At 10% occ rate, you might have 10 transiting objects (order 1-10).
+  Assess for what fraction we need to revert to KEBC period. Include in
+  description.
 
 * 12055014 -- plausible candidate (missed so far). There's obvious by-eye
 periodic dips
+
+
+###############
+#OPTIONAL TODO#
+###############
+(aka: it would be surprising if this stuff happened)
+
+* run thru whitening a few times w/ different parameters, to generate the CDF
+  comparison plot. this should be cheap vs injrecov or even just recov, and will
+  be useful to compare different whitening choices (and to justify the
+  arbitrary search parameters ur currently using)
+
+* be sure the two duplicates, 3832716 and 8167938, have both their periods
+  treated (... or at least, be able to justify why they shouldnt)
 

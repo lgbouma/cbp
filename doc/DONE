@@ -1039,4 +1039,58 @@ X verify output in all csvs (injrecov_summ, injrecovresult) looks good.
 
 X update injrecov heatmaps; update paper figures
 
+X do the exercise of: "Can we rule out obvious astrophysical cases?"
+  * assign each contact binary an orientation. (from isotropic cosi!)
+  * assign a coplanar planet, exactly at the stability limit (or exactly at the
+    median a_cbp/a_crit from Kepler CBPs, to make it slightly more realistic). 
+  * for planet sizes to inject, estimate stellar size from period-color relations
+    (very coarse)
+  * get third light estimate from european groups' results
+  * use the "vanilla" inj-recover rate to immediately get the probability of
+    detecting these allowed hypotheses.
+  If you can say "this case is definitely ruled out -- we know that these types
+  of planets are not in the Kepler data", that is new knowledge.
+
+> basically done. Except for A) the binary orientation (factor of 2-5x), and 
+  B) the consecutive transits throughout T_obs assumption (which means a factor
+  of 2 loss for Δ_ib=0 case).
+  And ya- it's not bad.
+
+X check A):
+> ya, it's OK b/c Eq >=10 do not assume small angles. They go to full analytic
+  order in Δ_ib and δi.
+> implement this.
+
+X check B)
+> the N_tra_ratio_vs_T_obs plot means it's at most a factor of 2 off. Can
+  regenerate w/ more monte carlo observations, but should hold.
+
+X Then write up subsection.
+  --> probably don't need chopped up BLS
+
+~ implement chopped up BLS (by quarter, and quarter pairs)
+
+X Make sure injrecov works with the recov-only update (i.e. test it & break it)
+
+~ The argument against the statistical power of Armstrong's thesis work on
+the shortest period binaries based on mutual inclination grounds was surprinsg
+to Kratter (she expected that Welsh et al would have checked more closely).
+
+Moreover, it can (& SHOULD) be investigated on simple grounds before diving
+into the complicated work of developing a pipeline & computing its sensitivity.
+
+These simple grounds are like: take two G stars. Put them on a 1 day orbit. You
+get some range of inclinations on which they will be observed to eclipse.
+Assume that the Kepler EBs are randomly drawn from this range of inclinations
+(similar to Armstrong's work). 
+
+Then assume coplanarity of the two orbital planes (for now). Put the planet at
+the stability limit of the system (or near it). You can ignore precession (b/c
+coplanar). Compute the fraction of such systems that then transit.
+
+In particular, look at the sini's of things in KEBC v2 that were labelled
+overcontact by human labellers (~427 objects). Maybe ~20-30% of them have
+sini>0.8. So, 100 objects would be capable of transiting(? Maybe 50?).
+Obviously far fewer if you throw out all morph>0.7 objects from your sample.
+At 10% occ rate, you might have 10 transiting objects (order 1-10).
 

@@ -3,10 +3,6 @@
 using the formulae given by Li, Holman & Tao (2016), estimate the number of
 transits to expect for a CBP system given the orbital parameters,
 observational baseline, and that it transits at least once.
-
-comment: Li+ (2016)'s formulae are in the small Δ_ib = 90 - i_b limit, an
-assumption justified in the text by arguing the stars are eclipsing.
-OFC this breaks for contact binaries, but we will ignore this, temporarily.
 '''
 
 from __future__ import division, print_function

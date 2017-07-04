@@ -16,7 +16,6 @@ This calculation assumes:
 * Dilution factor of 50% (1.5x smaller signal b/c of third light)
 * The Li, Holman, and Tao formulae hold to predict the number of CBPs that
     transit at least once. This means:
-* The binary is face on (realistically true for at most ~500/1000)
 * The "independent transits" assumption for Li+ 2016's N_tra equation 21 is
     "good enough" for an estimate to a factor of ~2.
 * "Transits" are singular events (each transit happens across both the
@@ -77,65 +76,87 @@ R_star2 = 0.5*u.Rsun
 # Assume D = (total flux in aperture)/(flux in aperture from target star)
 #          = 1.5
 D = 1.5
-# Assume the contact binary is observed edge on. (FIXME: this isn't exactly BS,
-# but it's not great. KEBCv2 reported sini vs P_EB has ~half,ish of P<3day
-# binaries for which this holds. For this other, it breaks.)
-Δ_ib = 0*u.degree
 
+##############################
+##############################
+
+np.random.seed(42)
+N_montecarlo_trials = 20
 
 workdir = '../results/N_transits_Li_2016/'
 
-if os.path.exists(workdir+'Ndet_estimate_df.csv'):
+if os.path.exists(workdir+'Ndet_estimate_MonteCarlo.csv'):
 
-    outdf = pd.read_csv(workdir+'Ndet_estimate_df.csv')
+    mc_df = pd.read_csv(workdir+'Ndet_estimate_MonteCarlo.csv')
 
 else:
 
-    N_tra_list, P_tra_list, P_p_list = [], [], []
+    for ix in range(N_montecarlo_trials):
+        print('\n')
+        print('\n')
+        print(ix)
+        print('\n')
+        print('\n')
 
-    for index, (noise_pw, P_b, T_obs) in enumerate(zip(noise_pws, P_bs, T_obss)):
+        # Draw the host binary inclinations from uniform in cos(i_b), because
+        # we don't know them very well (although they should have more
+        # preference towards being aligned).
+        cos_ibs = np.random.uniform(low=0, high=1,size=len(df))
+        Δ_ibs = (90*u.degree - np.rad2deg(np.arccos(cos_ibs))*u.degree)
 
-        print('{:d}/{:d}'.format(index, len(P_bs)))
+        N_tra_list, P_tra_list, P_p_list = [], [], []
 
-        m_b, a_b, a_b1, a_b2, a_p, P_p = \
-                estimate_Ntra.get_preliminaries(m_1, m_2, P_b, x)
+        for index, (noise_pw, P_b, T_obs, Δ_ib) in enumerate(
+                zip(noise_pws,P_bs, T_obss, Δ_ibs)):
 
-        P_tra = estimate_Ntra.get_P_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b,
-                x, Δ_ib, δi, m_b, a_b, a_b1, a_b2, a_p, P_p)
+            print('{:d}/{:d}'.format(index, len(P_bs)))
 
-        m_b, a_b, a_b1, a_b2, a_p, P_p = \
-                estimate_Ntra.get_preliminaries(m_1, m_2, P_b, x)
+            m_b, a_b, a_b1, a_b2, a_p, P_p = \
+                    estimate_Ntra.get_preliminaries(m_1, m_2, P_b, x)
 
-        N_tra = estimate_Ntra.get_N_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x,
-                Δ_ib, δi, m_b, a_b, a_b1, a_b2, a_p, P_p)
+            P_tra = estimate_Ntra.get_P_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b,
+                    x, Δ_ib, δi, m_b, a_b, a_b1, a_b2, a_p, P_p)
 
-        P_tra_list.append(P_tra.value)
-        N_tra_list.append(N_tra.value)
-        P_p_list.append(P_p.value)
+            m_b, a_b, a_b1, a_b2, a_p, P_p = \
+                    estimate_Ntra.get_preliminaries(m_1, m_2, P_b, x)
 
-    P_tra_array = np.array(P_tra_list)
-    N_tra_array = np.array(N_tra_list)
-    P_p_array = np.array(P_p_list)*u.day
+            N_tra = estimate_Ntra.get_N_tra(T_obs, m_1, m_2, R_star1, R_star2, P_b, x,
+                    Δ_ib, δi, m_b, a_b, a_b1, a_b2, a_p, P_p)
 
-    # The number of transits we've computed is over either star. We're treating
-    # the host binary as a single object (kind of). So divide it by two (we're not
-    # being any more precise than that anyway -- and Li 2016 mentions that the
-    # independent transits approximation is crappy in this regime anyway).
-    # FIXME: do this better.
-    N_tra_array /= 2
+            P_tra_list.append(P_tra.value)
+            N_tra_list.append(N_tra.value)
+            P_p_list.append(P_p.value)
 
-    SNR_pfs = calc_SNR_pf(N_tra_array, R_p, R_star_eff, D, noise_pws)
+        P_tra_array = np.array(P_tra_list)
+        N_tra_array = np.array(N_tra_list)
+        P_p_array = np.array(P_p_list)*u.day
 
-    outdf = pd.DataFrame({'SNR_pf':SNR_pfs, 'P_p':P_p_array, 'N_tra':N_tra_array,
-                          'T_obs':T_obss, 'P_tra':P_tra_array})
+        # The number of transits we've computed is over either star. We're treating
+        # the host binary as a single object (kind of). So divide it by two (we're not
+        # being any more precise than that anyway -- and Li 2016 mentions that the
+        # independent transits approximation is crappy in this regime anyway).
+        # FIXME: do this better.
+        N_tra_array /= 2
 
-    # B/c of these numerical issues, some of these have BS results.
-    clearly_wonky = outdf[ outdf['N_tra'] > 2*outdf['T_obs']/outdf['P_p'] ]
-    print('dropping {:d} clearly wonky cases:'.format(len(clearly_wonky)))
-    print(clearly_wonky)
-    outdf = outdf.drop(clearly_wonky.index)
+        SNR_pfs = calc_SNR_pf(N_tra_array, R_p, R_star_eff, D, noise_pws)
 
-    outdf.to_csv(workdir+'Ndet_estimate_df.csv', index=False)
+        outdf = pd.DataFrame({'SNR_pf':SNR_pfs, 'P_p':P_p_array,
+            'N_tra':N_tra_array, 'T_obs':T_obss, 'P_tra':P_tra_array,
+            'trial':np.ones_like(N_tra_array)*ix})
+
+        # B/c of these numerical issues, some of these have BS results.
+        clearly_wonky = outdf[ outdf['N_tra'] > 2*outdf['T_obs']/outdf['P_p'] ]
+        print('dropping {:d} clearly wonky cases:'.format(len(clearly_wonky)))
+        print(clearly_wonky)
+        outdf = outdf.drop(clearly_wonky.index)
+
+        if ix == 0:
+            mc_df = outdf
+        else:
+            mc_df = pd.concat([mc_df, outdf])
+
+
+    mc_df.to_csv(workdir+'Ndet_estimate_MonteCarlo.csv', index=False)
 
 ##########################################
 # Now estimate the number of detections. #
@@ -149,26 +170,37 @@ results = compd['results']
 from scipy.interpolate import interp2d
 
 np.all(np.testing.assert_array_equal(Pgrid, np.logspace(-1,3,13)))
-np.all(np.testing.assert_array_equal(SNRgrid, np.logspace(0,3,19)))
+np.all(np.testing.assert_array_equal(SNRgrid, np.logspace(0,4,13)))
 
 Pgrid_mids = np.logspace(-1+1/(3*2), 3+1/(3*2), 13)[:-1]
-SNRgrid_mids = np.logspace(0+1/(6*2), 3+1/(6*2), 19)[:-1]
+#SNRgrid_mids = np.logspace(0+1/(6*2), 3+1/(6*2), 19)[:-1]
+SNRgrid_mids = np.logspace(0+1/(3*2), 4+1/(3*2), 13)[:-1]
 
 f = interp2d(np.log10(Pgrid_mids), np.log10(SNRgrid_mids), results.T, fill_value=0)
 
 prob_det = []
 
-for P_p, SNR_pf, prob_tra in zip(outdf['P_p'],outdf['SNR_pf'],outdf['P_tra']):
+for P_p, SNR_pf, prob_tra in zip(mc_df['P_p'],mc_df['SNR_pf'],mc_df['P_tra']):
 
     prob_given_SNR_and_period_and_tra = f(np.log10(P_p), np.log10(SNR_pf))
 
     prob_det.append(prob_given_SNR_and_period_and_tra * prob_tra)
 
 prob_det = np.ravel(prob_det)
+mc_df['P_det'] = prob_det
 
-N_det = np.sum(prob_det)
+N_montecarlo_trials = int(len(np.unique(mc_df['trial'])))
 
-outdf['P_det'] = prob_det
-outdf.to_csv(workdir+'Ndet_estimate_df.csv', index=False)
+N_det_list = []
 
-print("you'd have detected {:d} of these CBPs".format(int(N_det)))
+for ix in range(N_montecarlo_trials):
+
+    N_det_list.append(np.sum(mc_df[mc_df['trial'] == ix]['P_det']))
+
+N_det = np.average(N_det_list)
+N_det_err = np.std(N_det_list)
+
+mc_df.to_csv(workdir+'Ndet_estimate_df.csv', index=False)
+
+print("you'd have detected {:.1f} +/- {:.1f} of these CBPs (Nstars: {:d})".
+    format(N_det, N_det_err, int(len(mc_df)/N_montecarlo_trials) ) )
