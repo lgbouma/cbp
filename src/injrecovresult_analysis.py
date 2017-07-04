@@ -329,7 +329,8 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             'depth_rec':np.nan,
             'SNR_rec_pf':np.nan,
             'baseline':np.nan,
-            'Ntra':np.nan,
+            'Ntra_inj':np.nan,
+            'Ntra_rec':np.nan,
             'ecc':np.nan,
             'a_by_Rstar':np.nan,
             'cosi':np.nan
@@ -393,8 +394,12 @@ def write_search_result(lcd, allq, inj=None, stage=None):
             else:
                 foundinj = np.nan
 
-            # Estimate number of transits for pf-SNR estimate.
-            Ntra = baseline/P_rec
+            # Estimate number of transits for pf-SNR estimate based on
+            # recovered period.
+            Ntra_rec = baseline/P_rec
+            # Estimate number of transits for pf-SNR estimate based on
+            # injected period.
+            Ntra_inj = baseline/P_inj
 
             results = pd.DataFrame({
                     'kicid':kicid,
@@ -409,11 +414,12 @@ def write_search_result(lcd, allq, inj=None, stage=None):
                     'foundinj':foundinj,
                     'rms_biased':rms_biased,
                     'depth_inj':δ,
-                    'SNR_inj_pf':δ/rms_biased*np.sqrt(Ntra),
+                    'SNR_inj_pf':δ/rms_biased*np.sqrt(Ntra_inj),
                     'depth_rec':fdepth,
-                    'SNR_rec_pf':fdepth/rms_biased*np.sqrt(Ntra),
+                    'SNR_rec_pf':fdepth/rms_biased*np.sqrt(Ntra_rec),
                     'baseline':baseline,
-                    'Ntra':Ntra,
+                    'Ntra_inj':Ntra_inj,
+                    'Ntra_rec':Ntra_rec,
                     'ecc':ecc,
                     'a_by_Rstar':a,
                     'cosi':cosi
