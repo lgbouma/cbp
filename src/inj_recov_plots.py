@@ -648,7 +648,9 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     qnums = np.unique(allq['dipfind']['tfe'][ap]['qnums'])
     lc = allq['dipfind']['tfe'][ap]
     quarters = lc['qnums']
-    ylim_raw = [-0.015,0.015]
+    MAD = npmedian( npabs ( lc['fluxs'] - npmedian(lc['fluxs']) ) )
+    ylim_raw = [np.median(lc['fluxs']) - 4*(1.48*MAD),
+                np.median(lc['fluxs']) + 2*(1.48*MAD)]
 
     for ix, qnum in enumerate(qnums):
 
@@ -689,7 +691,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
     ax_raw.get_xaxis().set_ticks([])
     xmin, xmax = min_time-timelen*0.03, max_time+timelen*0.03
-    ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux (redtr)',
+    ax_raw.set(xlabel='', ylabel=ap.upper()+' relative flux',
         xlim=[xmin,xmax],
         ylim = ylim_raw)
     ax_raw.set_title(
@@ -748,7 +750,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
         if phasebin:
             ax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10,color='blue')
 
-        # Compute and overlay the BLS model
+        # Compute the BLS model
         φ_ing, φ_egr = fbls['φ_ing'], fbls['φ_egr']
         δ = fbls['serialdict']['blsresult']['transdepth']
 
@@ -761,9 +763,11 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
                     flux[ix] = median_flux - δ
             return flux
 
+        # Overplot the BLS model
         bls_flux = _get_bls_model_flux(np.arange(-2,2,0.005), φ_0, φ_ing,
                 φ_egr, δ, np.median(plotfluxs))
-        ax.plot(np.arange(-2,2,0.005)-φ_0, bls_flux, 'r-')
+        ax.step(np.arange(-2,2,0.005)-φ_0, bls_flux, where='mid',
+                c='red', ls='-')
 
         # Overlay the inset plot
         if inset:
@@ -774,6 +778,9 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
             if phasebin:
                 iax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=10*0.2,
                         color='blue', zorder=20)
+            iymin = np.mean(plotfluxs) - 3.5*np.std(plotfluxs)
+            iymax = np.mean(plotfluxs) + 2*np.std(plotfluxs)
+            iax.set_ylim([iymin, iymax])
             iaxylim = iax.get_ylim()
 
             iax.set(ylabel='', xlim=[-0.7,0.7])
@@ -781,25 +788,30 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
             iax.get_yaxis().set_visible(False)
 
         t0 = min_time + φ_0*foldperiod
-        txt = 'P_fold: {:.5f} d\nt_0: {:.5f} \n$\phi_0$= {:.5f}'.format(
-            foldperiod, t0, φ_0)
+        φ_dur = φ_egr - φ_ing if φ_egr > φ_ing else (1+φ_egr) - φ_ing
+        T_dur = foldperiod * φ_dur
+
+        txt = 'P_fold: {:.2f} d\n T_dur: {:.1f} hr\n t_0: {:.1f},$\phi_0$= {:.2f}'.format(
+                foldperiod, T_dur*24., t0, φ_0)
         ax.text(0.98, 0.02, txt, horizontalalignment='right',
                 verticalalignment='bottom',
-                transform=ax.transAxes, fontsize='x-small')
+                transform=ax.transAxes, fontsize='xx-small')
 
         ax.set(ylabel='', xlim=[-0.1,0.1])
         ymin = np.mean(plotfluxs) - 3*np.std(plotfluxs)
         ymax = np.mean(plotfluxs) + 1.5*np.std(plotfluxs)
         ax.set_ylim([ymin, ymax])
         axylim = ax.get_ylim()
-        ax.vlines([0.], min(axylim), max(axylim), colors='red',
-                linestyles='-', alpha=0.9, zorder=-1)
+        ax.vlines([0.],min(axylim),min(axylim)+0.05*(max(axylim)-min(axylim)),
+                colors='red', linestyles='-', alpha=0.9, zorder=-1)
         ax.set_ylim([ymin, ymax])
         if inset:
             iax.vlines([-0.5,0.5], min(iaxylim), max(iaxylim), colors='black',
                     linestyles='-', alpha=0.7, zorder=30)
-            iax.vlines([0.], min(iaxylim), max(iaxylim), colors='red',
-                    linestyles='-', alpha=0.9, zorder=-1)
+            iax.vlines([0.], min(iaxylim),
+                    min(iaxylim)+0.05*(max(iaxylim)-min(iaxylim)),
+                    colors='red', linestyles='-', alpha=0.9, zorder=-1)
+            iax.set_ylim([iymin, iymax])
 
 
     ################
@@ -824,10 +836,11 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     fbestperiod = pgdf[cbestperiod]['serialdict']['bestperiod']
 
     best_t0 = min_time + bestφ_0*fbestperiod
+    # Show 5 _selected_ periods in red.
     ax_pg.vlines(nbestperiods, min(pwr_ylim), max(pwr_ylim), colors='r',
-            linestyles='dotted', alpha=1, lw=2, zorder=-5)
-    # Show 10 best coarse periods.
-    ax_pg.vlines(pgdc['nbestperiods'][:10], min(pwr_ylim), max(pwr_ylim),
+            linestyles='solid', alpha=1, lw=1, zorder=-5)
+    # Underplot 5 best coarse periods. (Shows negative cases).
+    ax_pg.vlines(pgdc['nbestperiods'][:6], min(pwr_ylim), max(pwr_ylim),
             colors='gray', linestyles='dotted', lw=1, alpha=0.7, zorder=-10)
 
     p = allq['inj_model'] if inj else np.nan
@@ -852,7 +865,7 @@ def dipsearchplot(lcd, allq, ap=None, stage='', inj=False, varepoch='bls',
     ax_pg.get_yaxis().set_ticks([])
     ax_pg.set(ylabel='BLS power')
     ax_pg.set(ylim=[min(pwr_ylim),max(pwr_ylim)])
-
+    ax_pg.set(xlim=[min(pgdc['periods']),max(pgdc['periods'])])
 
     # Figure out names and write.
     savedir = '../results/dipsearchplot/'
