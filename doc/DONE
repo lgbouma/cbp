@@ -1094,3 +1094,42 @@ sini>0.8. So, 100 objects would be capable of transiting(? Maybe 50?).
 Obviously far fewer if you throw out all morph>0.7 objects from your sample.
 At 10% occ rate, you might have 10 transiting objects (order 1-10).
 
+Wed 05 Jul 2017 10:28:04 AM EDT
+
+
+X dipsearchplots:
+    X add Tdur estimate in text
+    X fix BLS line to be rectangular, not triangular
+
+~ make sure prob(det) > 0 cut makes it in. (or whatever analog based on injrecov
+parameter space that works). (do it just as a hard cut in SNR, to keep it simple)
+
+
+RERUN PRODUCTION-LEVEL RECOV:
+
+X begin adroit debug
+X have adroit submit script functional & working for whole run (easy b/c
+  there's no max job queueing limit >_>)
+X what speed does it have on adroit? (i.e. expected end time?)
+  > of order 1 realsearch completed per minute-> <24hr to completion.
+
+X have ur paper figure scripts make both SNR_rec_pf and SNR_inj_pf completeness
+heatmaps. Nb. they are different quantities (so shouldn't overplot scatter pts,
+maybe). Also include scatter plots as sanity check (these already exist in
+inj_recov_plots, where they can stay b/c they won't be in the paper).
+
+~ "completeness" definition _could_ account for allN BLS peaks, not just top1.
+  we ARE looking at allN. 
+
+X make to account for SNR_rec_pf > 3 and multiple of P_rec_by_P_EB cuts in
+evaluating completenss (or least discussing it in paper).
+
+~Period finder:
+  Assess for what fraction we need to revert to KEBC period. Include in
+  description.
+
+X ADD EXTRA DILUTION TERM -> signal is diluted by factor of 0.6 all around.
+X fix period at closest possible period (or this Kepler median CBP a_p/a_b)
+~ make dilution factor plot into a histogram
+
+
