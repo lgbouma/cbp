@@ -44,9 +44,11 @@ import estimate_Ntra_Li_2016 as estimate_Ntra
 def calc_SNR_pf(N_tra, R_p, R_star_eff, D, noise_postwhitening):
     '''
     Phase folded signal to noise ratio assuming the noise scales following
-    Poisson statistics.
+    Poisson statistics (kind of).
+
+    Assume D = D_thirdlight * D_phasefolderror.
     '''
-    return (N_tra**(1/2) * (R_p/R_star_eff)**2 / D / noise_postwhitening).cgs
+    return (N_tra**(1/2) * (R_p/R_star_eff)**2 * D / noise_postwhitening).cgs
 
 # FIXME NOTE
 # These are the results from the "realsearch" (with included whitening
@@ -73,15 +75,15 @@ m_2 = np.nanmedian(list(map(float,np.array(cbps['M_2']))))*u.Msun
 R_star_eff = 1.5*u.Rsun
 R_star1 = 1*u.Rsun
 R_star2 = 0.5*u.Rsun
-# Assume D = (total flux in aperture)/(flux in aperture from target star)
-#          = 1.5
-D = 1.5
+# Assume D_thirdlight = (flux in aperture from target star)/(total flux in aperture)
+#          = 1/1.5
+D_thirdlight = 1/1.5
 
 ##############################
 ##############################
 
 np.random.seed(42)
-N_montecarlo_trials = 20
+N_montecarlo_trials = 6
 
 workdir = '../results/N_transits_Li_2016/'
 
@@ -134,15 +136,21 @@ else:
         # The number of transits we've computed is over either star. We're treating
         # the host binary as a single object (kind of). So divide it by two (we're not
         # being any more precise than that anyway -- and Li 2016 mentions that the
-        # independent transits approximation is crappy in this regime anyway).
+        # independent transits approximation does break down in this regime).
         # FIXME: do this better.
         N_tra_array /= 2
+
+        # Compute dilution accounting for both third light and non-Poisson
+        # error.
+        D_phasefolderror = N_tra_array / (T_obss / P_p_array)
+        D = D_thirdlight * D_phasefolderror
 
         SNR_pfs = calc_SNR_pf(N_tra_array, R_p, R_star_eff, D, noise_pws)
 
         outdf = pd.DataFrame({'SNR_pf':SNR_pfs, 'P_p':P_p_array,
             'N_tra':N_tra_array, 'T_obs':T_obss, 'P_tra':P_tra_array,
-            'trial':np.ones_like(N_tra_array)*ix})
+            'trial':np.ones_like(N_tra_array)*ix,
+            'D_phasefolderror':D_phasefolderror})
 
         # B/c of these numerical issues, some of these have BS results.
         clearly_wonky = outdf[ outdf['N_tra'] > 2*outdf['T_obs']/outdf['P_p'] ]
