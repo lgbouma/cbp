@@ -44,6 +44,9 @@ To do injection recovery (convenient kicid with 2 quarters of data):
 To search for transiting planets ("recovery"):
 (bash)
 >>> python run_the_machine.py --findrealdips -kicid 12553806 -nw 1
+
+To process the search for transiting planets to useful csvs:
+>>> python run_the_machine.py --pkltocsv --inj 0
 '''
 
 import numpy as np, os
@@ -385,17 +388,16 @@ def injrecov(inj=True, N=None, stage=None, nwhiten_max=10, nwhiten_min=1,
 
 
 
-def pkls_to_results_csvs(inj=None):
+def pkls_to_results_csvs(inj=None, pkldir=None):
     '''
-    Process all the pickles in ../data/injrecov_pkl/inj/* csv result files.
+    Process all the pickles in pkl to csv result files.
     (This is necessary because some of the injections had different RNG seeds).
     (It's also much cleaner than mixing it with any other routines).
     '''
-    subdir = 'inj' if inj else 'real'
     # I maybe messed up the names somewhere.
     stage = 'dipsearch' if inj else 'realsearch_real'
 
-    pklnames = os.listdir(DATADIR+'injrecov_pkl/'+subdir)
+    pklnames = os.listdir(pkldir)
     lcdnames = [pn for pn in pklnames if 'allq' not in pn]
     allqnames = [pn for pn in pklnames if 'allq' in pn]
 
@@ -423,12 +425,16 @@ def pkls_to_results_csvs(inj=None):
         if inj:
             δ = lcdname.split('_')[-1].split('.p')[0]
             stage = origstage + '_' + str(δ)
-        lcd, loadfailed = ir.load_lightcurve_data(kicid, stage=stage)
+
+        lcd, loadfailed = ir.load_lightcurve_data( kicid, stage=stage,
+                pkldir=pkldir)
         if loadfailed:
             continue
-        allq, loadfailed = ir.load_allq_data(kicid, stage=stage)
+
+        allq, loadfailed = ir.load_allq_data(kicid, stage=stage, pkldir=pkldir)
         if loadfailed:
             continue
+
         fblserr, results = irra.write_search_result(lcd, allq, inj=inj,
                 stage=stage)
 
@@ -508,4 +514,8 @@ if __name__ == '__main__':
             kicid=args.kicid, nworkers=args.nworkers)
 
     if args.pkltocsv:
-        pkls_to_results_csvs(inj=args.inj)
+        # I should really rename my external harddrive.
+        pkls_to_results_csvs(
+                inj=args.inj,
+                pkldir='/media/luke/LGB_tess_data/170705_realsearch/'
+                )

@@ -1714,7 +1714,7 @@ def save_lightcurve_data(lcd, allq=None, stage=False, tossiterintermed=True):
     return kicid
 
 
-def load_lightcurve_data(kicid, stage=None, δ=None, datapath=None):
+def load_lightcurve_data(kicid, stage=None, δ=None, pkldir=None):
     '''
     Args:
         kicid (int): Kepler Input Catalog ID number
@@ -1725,28 +1725,17 @@ def load_lightcurve_data(kicid, stage=None, δ=None, datapath=None):
         the LC data, and a boolean flag for whether the load failed/succeeded.
     '''
 
-    # `stage` includes the transit depth string
-    poststr = '_real' if datapath else ''
-    pklname = str(kicid)+'_'+stage+poststr+'.p'
-    if δ == 'whatever':
-        pklname = str(kicid)+'_'+stage+'_0.00125.p'
+    pklname = str(kicid)+'_'+stage+'.p'
 
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    else:
-        predir += 'real/'
+    if not pkldir:
+        predir = ''
+        if 'inj' in stage:
+            predir += 'inj/'
+        else:
+            predir += 'real/'
+        pkldir = DATADIR+'injrecov_pkl/'+predir
 
-    if not datapath:
-        prepath = DATADIR+'injrecov_pkl/'+predir
-    else:
-        prepath = datapath
-
-    lpath = prepath+pklname
-
-    if 'eb_sbtr' in stage:
-        #saved pickles somewhere else for EB subtraction tests.
-        lpath = DATADIR+'eb_subtr_pkl/'+pklname
+    lpath = pkldir+pklname
 
     try:
         dat = pickle.load(open(lpath, 'rb'))
@@ -1757,28 +1746,19 @@ def load_lightcurve_data(kicid, stage=None, δ=None, datapath=None):
         return np.nan, True
 
 
-def load_allq_data(kicid, stage=None, δ=None, datapath=None):
+def load_allq_data(kicid, stage=None, δ=None, pkldir=None):
 
-    poststr = '_real' if datapath else ''
-    pklname = str(kicid)+'_allq_'+stage+poststr+'.p'
-    if δ == 'whatever':
-        pklname = str(kicid)+'_'+stage+'_0.00125.p'
+    pklname = str(kicid)+'_allq_'+stage+'.p'
 
-    predir = ''
-    if 'inj' in stage:
-        predir += 'inj/'
-    else:
-        predir += 'real/'
+    if not pkldir:
+        predir = ''
+        if 'inj' in stage:
+            predir += 'inj/'
+        else:
+            predir += 'real/'
+        pkldir = DATADIR+'injrecov_pkl/'+predir
 
-    if not datapath:
-        prepath = DATADIR+'injrecov_pkl/'+predir
-    else:
-        prepath = datapath
-    lpath = prepath+pklname
-
-    if 'eb_sbtr' in stage:
-        #saved pickles somewhere else for EB subtraction tests.
-        lpath = DATADIR+'eb_subtr_pkl/'+pklname
+    lpath = pkldir+pklname
 
     try:
         allq = pickle.load(open(lpath, 'rb'))
