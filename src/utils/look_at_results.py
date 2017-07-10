@@ -18,7 +18,7 @@ import os
 import subprocess
 import time
 
-candlist = '../../results/real_search/candidates_sort.csv'
+candlist = '../../results/real_search/candidates_sort_allN.csv'
 df = pd.read_csv(candlist)
 
 ids_labels = []

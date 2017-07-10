@@ -216,10 +216,13 @@ def summarize_realsearch_result(substr=None, N=None):
     f = open(errpath, 'w')
     outstrs = []
 
-    # Sort candidate list by phase-folded SNR. 
+    ####################################
+    # CANDIDATE LIST BY TOP BLS RESULT #
+    ####################################
     top1_path = '../results/real_search/irresult_sap_top1.csv'
     df = pd.read_csv(top1_path)
 
+    # Sort candidate list by phase-folded SNR.
     out = df.sort_values('SNR_rec_pf', ascending=False)
     out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
 
@@ -233,9 +236,30 @@ def summarize_realsearch_result(substr=None, N=None):
 
     wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
     writedir = '../results/real_search/'
-    wo.to_csv(writedir+'candidates_sort.csv', index=False)
+    wo.to_csv(writedir+'candidates_sort_top1.csv', index=False)
 
-    # Make symlinks to the best N dipsearch plots.
+    #############################################
+    # CANDIDATE LIST BY ALL (TOP 5) BLS RESULTS #
+    #############################################
+    allN_path = '../results/real_search/irresult_sap_allN.csv'
+    df = pd.read_csv(allN_path)
+    out = df.sort_values('SNR_rec_pf', ascending=False)
+    out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
+    outind = out['SNR_rec_pf']>3
+    outind &= ~(((out['P_rec_by_P_EB']%1) < 1e-3) | \
+            ((1-(out['P_rec_by_P_EB']%1)) < 1e-3))
+
+    # Only keep the highest SNR reported for any KICID.
+    _ = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
+    dupind = _.duplicated(subset='kicid', keep='first')
+    wo = _[~dupind]
+
+    writedir = '../results/real_search/'
+    wo.to_csv(writedir+'candidates_sort_allN.csv', index=False)
+
+    ################################################
+    # Make symlinks to the best N dipsearch plots. #
+    ################################################
     if isinstance(N, int):
         kicids = np.array(wo.head(n=N)['kicid'])
         for kicid in kicids:
@@ -246,7 +270,9 @@ def summarize_realsearch_result(substr=None, N=None):
             os.symlink(srcpath, dstpath)
         print('\nSymlinked top {:d} dipsearchplots!'.format(N))
 
-    # Get warnings.
+    #################
+    # Get warnings. #
+    #################
     wrnerrexc = []
     if isinstance(substr,str):
         wrnout, wrnerr = run_script('cat LOGS/*'+substr+'* | grep WRN')
@@ -266,7 +292,9 @@ def summarize_realsearch_result(substr=None, N=None):
     for outstr in outstrs:
         writestr=writestr+outstr+'\n'
 
-    # Write warnings.
+    ###################
+    # Write warnings. #
+    ###################
     if isinstance(substr,str):
         writestr = writestr + '\n{:d} warnings, {:d} errs, {:d} exceptn:\n'.\
                 format(
