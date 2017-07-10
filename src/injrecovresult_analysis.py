@@ -227,12 +227,16 @@ def summarize_realsearch_result(substr=None, N=None):
     out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
 
     # Look through things w/ phase-folded SNR of at least 3, and with recovered
-    # periods not within 0.001 of a multiple of the EB period.
+    # periods not within 0.001*P_EB, and recovered
+    # periods not within 0.001*(5/2*P_EB)
     outind = out['SNR_rec_pf']>3
-    # First term: P_rec was slightly above a multiple of P_EB. Second term:
-    # P_rec was slightly below a multiple of P_EB.
+    # First term: P_rec is slightly above a multiple of P_EB. Second term:
+    # P_rec is slightly below a multiple of P_EB.
     outind &= ~(((out['P_rec_by_P_EB']%1) < 1e-3) | \
                 ((1-(out['P_rec_by_P_EB']%1)) < 1e-3))
+    # P_rec is slightly above 2.5*P_EB, and slightly below.
+    outind &= ~(((out['P_rec_by_P_EB']%2.5) < 1e-3) | \
+                ((2.5-(out['P_rec_by_P_EB']%2.5)) < 1e-3))
 
     wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
     writedir = '../results/real_search/'
@@ -248,6 +252,8 @@ def summarize_realsearch_result(substr=None, N=None):
     outind = out['SNR_rec_pf']>3
     outind &= ~(((out['P_rec_by_P_EB']%1) < 1e-3) | \
             ((1-(out['P_rec_by_P_EB']%1)) < 1e-3))
+    outind &= ~(((out['P_rec_by_P_EB']%2.5) < 1e-3) | \
+                ((2.5-(out['P_rec_by_P_EB']%2.5)) < 1e-3))
 
     # Only keep the highest SNR reported for any KICID.
     _ = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
