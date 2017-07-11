@@ -238,7 +238,7 @@ def summarize_realsearch_result(substr=None, N=None):
     outind &= ~(((out['P_rec_by_P_EB']%0.5) < 1e-3) | \
                 ((0.5-(out['P_rec_by_P_EB']%0.5)) < 1e-3))
 
-    wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
+    wo = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec','P_rec']]
     writedir = '../results/real_search/'
     wo.to_csv(writedir+'candidates_sort_top1.csv', index=False)
 
@@ -256,7 +256,7 @@ def summarize_realsearch_result(substr=None, N=None):
                 ((0.5-(out['P_rec_by_P_EB']%0.5)) < 1e-3))
 
     # Only keep the highest SNR reported for any KICID.
-    _ = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec']]
+    _ = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec','P_rec']]
     dupind = _.duplicated(subset='kicid', keep='first')
     wo = _[~dupind]
 

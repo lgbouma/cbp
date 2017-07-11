@@ -34,7 +34,8 @@ if os.path.exists(writepath):
 writefile = open(writepath, 'w+')
 writefile.close()
 
-for kicid in np.array(df['kicid']):
+for P_rec_by_P_EB, P_rec, kicid in zip(
+        np.array(df['P_rec_by_P_EB']),df['P_rec'],np.array(df['kicid'])):
 
     pathdir = '../../results/dipsearchplot/real/'
     fname = str(kicid)+'_saprealsearch_real.png'
@@ -48,7 +49,9 @@ for kicid in np.array(df['kicid']):
     time.sleep(2)
     subprocess.Popen('wmctrl -a utils'.split(), stdout=subprocess.PIPE)
 
-    human_label = input('dip [j+CR], maybe dip [k+CR], noise [CR], wtf [w+CR] ')
+    print ('\n P_rec {:.3f}\t P_rec_by_P_EB: {:.3f}'.
+        format(P_rec, P_rec_by_P_EB))
+    human_label = input('\ndip [j+CR], maybe dip [k+CR], noise [CR], wtf [w+CR] ')
 
     p.terminate()
 
