@@ -45,6 +45,10 @@ To search for transiting planets ("recovery"):
 (bash)
 >>> python run_the_machine.py --findrealdips -kicid 12553806 -nw 1
 
+(bash, on a cluster, under slurm, defining appropriate variables)
+>>> srun python run_the_machine.py -frd -c -kicid $kicid \
+>>>                        -nw 1 > LOGS/"$linenumber"_"$kicid".log
+
 To process the search for transiting planets to useful csvs:
 >>> python run_the_machine.py --pkltocsv --inj 0
 '''
@@ -517,5 +521,5 @@ if __name__ == '__main__':
         # I should really rename my external harddrive.
         pkls_to_results_csvs(
                 inj=args.inj,
-                pkldir='/media/luke/LGB_tess_data/170705_realsearch/'
+                pkldir='/media/luke/LGB_tess_data/cbp_data_170705_realsearch/'
                 )
