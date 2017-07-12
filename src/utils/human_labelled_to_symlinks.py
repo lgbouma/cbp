@@ -18,19 +18,17 @@ def make_labelled_symlinks():
     df = pd.read_csv(cand_path, names=['kicid','human_label'], delimiter=', ',
             engine='python')
 
-    assert set(np.unique(df['human_label'])) == {'noise','dip','maybe_dip'}, \
-            'human_label should only be noise, dip, or maybe_dip'
+    assert set(np.unique(df['human_label']))=={'noise','dip','maybe_dip','wtf'}
 
-    # Make symlinks for "dips", then for 'maybes"
-    for id_type in ['dip', 'maybe_dip']:
+    # Make symlinks for 'dips', then for 'maybes' and 'wtfs'
+    for id_type in ['dip', 'maybe_dip', 'wtf']:
         dipids = np.array(df[df['human_label']==id_type]['kicid'])
 
         for dipid in dipids:
             srcpath = '/home/luke/Dropbox/proj/cbp/results/dipsearchplot/real/'+\
                     str(dipid)+'_saprealsearch_real.png'
-            substr = 'dip' if id_type=='dip' else 'maybe'
             dstpath = '/home/luke/Dropbox/proj/cbp/results/real_search/'+\
-                    'labelled_{:s}_symlinks/'.format(substr)+str(dipid)+'.png'
+                    'labelled_{:s}_symlinks/'.format(id_type)+str(dipid)+'.png'
             if not os.path.exists(dstpath):
                 try:
                     os.symlink(srcpath, dstpath)
