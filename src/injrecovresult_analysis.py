@@ -253,10 +253,12 @@ def summarize_realsearch_result(substr=None, N=None):
     out = df.sort_values('SNR_rec_pf', ascending=False)
     out['P_rec_by_P_EB'] = out['P_rec']/out['kebc_period']
     outind = out['SNR_rec_pf']>3
-    outind &= ~(((out['P_rec_by_P_EB']%1) < 1e-3) | \
-            ((1-(out['P_rec_by_P_EB']%1)) < 1e-3))
-    outind &= ~(((out['P_rec_by_P_EB']%0.5) < 1e-3) | \
-                ((0.5-(out['P_rec_by_P_EB']%0.5)) < 1e-3))
+    outind &= ~(((out['P_rec_by_P_EB']%1) < 5e-3) | \
+                ((1-(out['P_rec_by_P_EB']%1)) < 5e-3))
+    outind &= ~(((out['P_rec_by_P_EB']%0.5) < 5e-3) | \
+                ((0.5-(out['P_rec_by_P_EB']%0.5)) < 5e-3))
+    outind &= ~(((out['P_rec_by_P_EB']%(1/3)) < 5e-3) | \
+                (((1/3)-(out['P_rec_by_P_EB']%(1/3))) < 5e-3))
 
     # Only keep the highest SNR reported for any KICID.
     _ = out[outind][['P_rec_by_P_EB','kicid','SNR_rec_pf','depth_rec','P_rec']]

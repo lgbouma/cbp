@@ -10,9 +10,6 @@ from datetime import datetime
 from numpy import nan as npnan, median as npmedian, \
     isfinite as npisfinite, min as npmin, max as npmax, abs as npabs, \
     sum as npsum, array as nparr, std as npstd
-from astrobase.varbase import lcfit as lcf
-from astrobase.varbase.lcfit import spline_fit_magseries
-from astrobase import lcmath
 
 #############
 ## LOGGING ##
