@@ -10,10 +10,10 @@ import numpy as np
 import os
 
 dones = [int(f.split('_')[0]) for f in
-        os.listdir('/media/luke/LGB_tess_data/170705_realsearch/') if
+        os.listdir('/media/luke/LGB_tess_data/cbp_data_170705_realsearch/') if
         f.endswith('allq_realsearch_real.p') ]
 
-want = np.genfromtxt('../data/morph_gt_0.6_OR_per_lt_3_ids.txt', dtype=int)
+want = np.genfromtxt('../../data/morph_gt_0.6_OR_per_lt_3_ids.txt', dtype=int)
 
 mask = np.in1d(want, dones)
 
@@ -23,4 +23,4 @@ print('len done: {:d}'.format(len(done)))
 todo = want[~mask]
 print('len todo: {:d}'.format(len(todo)))
 
-np.savetxt('../data/170710_11am_notdone.txt', todo, fmt='%d')
+np.savetxt('../../data/170710_11am_notdone.txt', todo, fmt='%d')
