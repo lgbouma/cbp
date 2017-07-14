@@ -437,9 +437,12 @@ if __name__ == '__main__':
     ok_ids = np.array(df['kicid'])
 
     # Now get pickles
-    pkldir = '/media/luke/LGB_tess_data/cbp_data_170705_realsearch/'
+    #pkldir = '/media/luke/LGB_tess_data/cbp_data_170705_realsearch/'
+    pkldir = '../results/real_search/merged_cand_lists/missed_pkls/'
     stage = 'realsearch_real'
     pklnames = os.listdir(pkldir)
+    #lcdnames = [pn for pn in pklnames if 'allq' not in pn]
+    #allqnames = [pn for pn in pklnames if 'allq' in pn]
     lcdnames = [pn for pn in pklnames if 'allq' not in pn and
             int(pn.split('_')[0]) in ok_ids]
     allqnames = [pn for pn in pklnames if 'allq' in pn and
