@@ -2,19 +2,135 @@ Be efficient with how you allocate your time.
 ######
 #TODO#
 ######
+parse JNW discn from 170712.
+parse Fei Dai conversation: phase-folding means only really are sensitive to
+  contact binaries (b/c any further separation means too big TTVs for <~1hr
+  duration transits which is what you get for P<20days)
+  --> NEED TO ANSWER THIS EARLY OBVIOUS OBJECTION. EVEN IF IT SETS YOU BACK A
+  MONTH.
+  > means: look at maximal transit timing variation vs Rstar/a_bin
+
+
+RERUN PRODUCTION-LEVEL RECOV:
+X regenerate all dipsearchplots given fei's suggested improvements
+
+X reinspect them all (~2hr tops)
+
+X look more closely at the "failing" systems (b/c 1 of 10 is interesting,
+  coincidence i think not)
+  > 5/12 are "LC gave too many or not enough entries" -> something wrong with
+  llc files
+  > 2/12 are TypeError: 'float' object is not subscriptable
+  > 1/12 ValueError: cannot convert float NaN to integer
+  > 1/12 got fblserrr, touch'd a dipsearchplot placeholder (completed tho)
+  > 3/12 finished, given more runtime
+
+  none of the 4 that completed were interesting. leaves 8.
+  > 5 are "LC gave too many or not enough entries" -> something wrong with
+  llc files
+
+  1_2856960.log, 2_3832716.log, 4_4150611.log, 5_7622486.log, 8_8167938.log
+
+  AH. These are all KEBC entries with >=2 periods already in the catalog. Um we
+  could still see how our iterative whitening does on these. Problem is that some
+  have one detached entry, and one closer-binary entry. So reduction wouldn't
+  work as well. Similar the period selection for whitening assumes a single
+  binary period. Can go ahead and omit these (interesting!) objects
+
+  > 2 are TypeError: 'float' object is not subscriptable
+  > 1 ValueError: cannot convert float NaN to integer
+
+  3 of 1515 failing is an acceptable error rate (though no fatal errors would
+  be better).
+
+X make sure they have realsearch working
+
+X parse their pickles
+
+----------
+X crossmatch all ur lists (original realsearch dipsearcplot, Fei's parsing, my
+  reparsing of the vet pickles plots)
+
+X make final list of interesting objects
+  -> it's 96 objects long.
+
+BATCH VETTING
+automate:
+* identification of transit times, and timing variations
+
+
+
+* exoplanet archive parsing
+* imaging where available (CFOP)
+* odd/even
+* centroid shifts
+
+Batch query ADS (by KIC number!), then:
+* crosscheck candidate kicids with:
+  * matson thesis
+  * KOIs
+  * pulsators
+  * LAMOST catalog.
+  
+Ignore Tim Morton's FP probability cases.
+
+Goal for candidate table:
+* definitively rule out whatever you can. (and mark them as ruled out)
+* keep the others as "plausible candidates"
+
+* complete latter ~12 that take longer, on della since apparently adroit has
+  like 20 functioning cores >_<
+
+* every "maybe" or "dip" gets putative transits plotted individually
+
+* which stars have known planet candidates already in our catalog (e.g., KIC
+11013201 has real dips, and is also KOI 972. Possible delta Scuti 
+oscillations, with the transiting planet. ?!?!. What does that mean about
+evolutionary state?)
+
+* review "maybes" too (from ur injections, these could be real)
+
+* 12055014 -- plausible candidate (missed so far). There's obvious by-eye
+periodic dips in 170510 flux vs time reduction
+
+* should be able to identify KIC 2856960 events (Armstrong 2012's disc). (or at
+  least know why they're not showing up)
+  > first of all, they're one of the 12 that failed to run.
+  > this probably means the other 12 are worth looking at somewhat more closely
+  too... (after they run)
+
+
+
 
 Monte Carlo experiments:
+* note klagyvik's actual upper limit calculation (Poisson stats). might as well
+  phrase yurs the same way (though it's... kind of BS)
+
+* wrk out how ur gna sample stellar properties to be believable. might involve
+  some library/ADS parsing.
+
+  > e.g., q distribution from (Tokovinin 2000; Raghavan et al. 2010)
+
+  SANITY CHECK: Matson 2016's true values.
 
 * compute, and then plot upper limit on Γ vs R_p
 
-* write up a bit less flippantly
-
 * figure out how much stellar properties matter. Your conclusions should be
-robust against quite large shifts in the population.
+  robust against quite large shifts in the population.
+
+* sample over some reasonable stellar mass distribution
+  > e.g., draw primary mass from Chabrier (2003) IMF.
+  > draw companion mass from Fig 30 of Moe & DiStefano 2017 -- accounts for the
+  observational fact that wide solar-type MS binaries have mass ratios that are
+  inconsistent with random pairings from a Chabrier IMF.
 
 * sample over some reasonable stellar radius distribution
+  > e.g., given a mass, and
+
 * sample Rp radii from family of Kepler planets. (like, 12 delta functions)
+
 * sample mutual inclinations δi from a Rayleigh distribution. (e.g., the posteriors of Li+ 2016)
+
 for dilution D, also sample it. from:
 * RoboAO papers: Nick Law.
 * contact binary literature papers. (e.g., starting at Tokovinin's mass
@@ -26,24 +142,12 @@ for dilution D, also sample it. from:
   -> use NASA exoplanet archive to cross-correlate those masses and radii with
     colors. Usual colors you care about: B-V, g-i
 
-
-RERUN PRODUCTION-LEVEL RECOV:
-* verify output looks OK
-
-* should be able to identify KIC 2856960 events (Armstrong 2012's disc). (or at
-  least know why they're not showing up)
-
-* which stars have known planet candidates already in our catalog (e.g., KIC
-11013201 has real dips, and is also KOI 972. Possible delta Scuti 
-oscillations, with the transiting planet. ?!?!. What does that mean about
-evolutionary state?)
-
-* manually parse all SNR>3 candidates. get someone else (Fei? JNW?) to weigh
-in.
-
-* review "maybes" too (from ur injections, these could be real)
-
 PAPER
+* make a candidate table
+
+* write up a bit less flippantly
+
+* remove phase-fold snr vs period_cbp completenss map (it's messy)
 
 * for the one candidate you'll show the in-transit displacement for, turn
 row/col into RA/dec so that your plot can have RA/dec, and so that you can put
@@ -52,11 +156,6 @@ the star position down
 * in injrecovresult_analysis, summarize_realsearch_result you want to be
 including the top 5 BLS peaks for your cuts. matters for completeness!
 (~40% vs ~50%)
-
-CANDIDATE SEARCH: 
-
-* 12055014 -- plausible candidate (missed so far). There's obvious by-eye
-periodic dips
 
 
 ###############

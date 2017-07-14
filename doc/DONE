@@ -1107,6 +1107,8 @@ parameter space that works). (do it just as a hard cut in SNR, to keep it simple
 
 RERUN PRODUCTION-LEVEL RECOV:
 
+Tue 11 Jul 2017 04:14:07 PM EDT
+
 X begin adroit debug
 X have adroit submit script functional & working for whole run (easy b/c
   there's no max job queueing limit >_>)
@@ -1131,5 +1133,26 @@ evaluating completenss (or least discussing it in paper).
 X ADD EXTRA DILUTION TERM -> signal is diluted by factor of 0.6 all around.
 X fix period at closest possible period (or this Kepler median CBP a_p/a_b)
 ~ make dilution factor plot into a histogram
+
+X plot RMS vs kepler mag after processing (e.g. fig 2 of Klayivik et al)
+
+X compile paper w/ new changes
+
+X download Klagyvik table 1, compare the period distribution w/ ur sample
+
+RERUN PRODUCTION-LEVEL RECOV
+X verify output looks OK
+
+X manually parse all SNR>3 candidates. 
+
+X make symlinks for easy viewing
+X compare lists of maybes and dips from 170705 run to 170510 run
+
+COMPLETE INJ-RECOV
+~ ensure 20 csvs per kicid
+X parse output csvs into irresult csv file
+X make "finished" completeness maps
+
+X get someone else (Fei? JNW?) to weigh in on dipsearchplots.
 
 
