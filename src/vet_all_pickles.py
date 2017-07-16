@@ -407,9 +407,228 @@ def vet_bls(lcd, allq, ap='sap', inj=False, varepoch='bls',
     LOGINFO('Made & saved vet bls plot to {:s}'.format(savedir+plotname))
 
 
+def vet_single_event(lcd, allq):
+
+    ap = 'sap'
+
+    kicid = lcd[list(lcd.keys())[0]]['objectinfo']['keplerid']
+    LOGINFO('beginning vet single event, KIC {:s}'.format(str(kicid)))
+
+    # Get all transit ephemerides
+    pgdf = allq['dipfind']['bls'][ap]['finebls']
+    periods_powers = [(k, np.nanmax(pgdf[k]['serialdict']['lspvals'])) \
+            for k in list(pgdf.keys())]
+
+    # Only show periods > 20 days, because otherwise the individual dip signals
+    # are low SNR, and the ephemeris arrows aren't helpful.
+    foldperiods = [per for (per,power) in sorted(periods_powers,
+                        key=lambda pair:pair[1], reverse=True) if per > 20]
+
+    outdir = '../results/vet_single_event/'
+    if not foldperiods:
+        with open(outdir+str(kicid)+'_no_good_foldperiods.txt', 'a') as f:
+            f.writelines('')
+        return 0
+
+    times = allq['dipfind']['tfe'][ap]['times']
+    baseline = np.nanmax(times) - np.nanmin(times)
+
+    # Loop over BLS periods > 20 days, make a diagnostic for each of them.
+    for fpind, foldperiod in enumerate(foldperiods):
+
+        # How many transits will be plotted in single transit plot?
+        N_tra = int(np.ceil(baseline/foldperiod))
+
+        # Set up matplotlib figure and axes. Say maximum number of subplots is
+        # 100 (~10 day period, over 1000 day baseline). A 7 column plot is
+        # sensible in that context (13 rows).
+        # +1 on rows for the timeseries.
+        nrows, ncols = min(int(np.ceil(N_tra/7))+1, 21), 7
+
+        rowheight, colwidth = 16/7, 16/7
+
+        plt.close('all')
+        f = plt.figure(figsize=(ncols*colwidth, nrows*rowheight))
+        gs = GridSpec(nrows, ncols)
+
+        # row 0: SAP/PDC timeseries
+        ax_raw = f.add_subplot(gs[0,:])
+        # rest of rows & cols: single transit events.
+        axs = []
+        for i in range(1,nrows):
+            for j in range(0,ncols):
+                    axs.append(f.add_subplot(gs[i,j]))
+
+        f.tight_layout(h_pad=-0.7)
+
+        ###############
+        # TIME SERIES #
+        ###############
+        qnums = np.unique(allq['dipfind']['tfe'][ap]['qnums'])
+        lc = allq['dipfind']['tfe'][ap]
+        quarters = lc['qnums']
+        MAD = np.median( np.abs( lc['fluxs'] - np.median(lc['fluxs']) ) )
+        ylim_raw = [np.median(lc['fluxs']) - 6*(1.48*MAD),
+                    np.median(lc['fluxs']) + 2.5*(1.48*MAD)]
+
+        for ix, qnum in enumerate(qnums):
+
+            times = lc['times'][quarters==qnum]
+            fluxs = lc['fluxs'][quarters==qnum]
+            errs = lc['errs'][quarters==qnum]
+
+            ax_raw.plot(times, fluxs, c='k', linestyle='-',
+                    marker='o', markerfacecolor='k',
+                    markeredgecolor='k', ms=3, lw=0., zorder=1,
+                    rasterized=True)
+            ax_raw.plot(times, fluxs, c='orange', linestyle='-',
+                    marker='o', markerfacecolor='orange',
+                    markeredgecolor='orange', ms=1.5, lw=0., zorder=2,
+                    rasterized=True)
+
+            txt = '%d' % (int(qnum))
+            txt_x = np.nanmin(times) + (np.nanmax(times)-np.nanmin(times))/2
+            txt_y = np.median(fluxs) + np.nanstd(fluxs)
+            if txt_y < ylim_raw[0]:
+                txt_y = np.nanmin(ylim_raw) + 0.001
+            txt_y = min(txt_y, max(ylim_raw))
+
+            t = ax_raw.text(txt_x, txt_y, txt, horizontalalignment='center',
+                    verticalalignment='center', fontsize=6, zorder=3)
+            t.set_bbox(dict(facecolor='white', alpha=0.6, edgecolor='black'))
+
+            # keep track of min/max times for setting xlims
+            if ix == 0:
+                min_time = np.nanmin(times)
+                max_time = np.nanmax(times)
+            elif ix > 0:
+                if np.nanmin(times) < min_time:
+                    min_time = np.nanmin(times)
+                if np.nanmax(times) > max_time:
+                    max_time = np.nanmax(times)
+
+        fbls = allq['dipfind']['bls'][ap]['finebls'][foldperiod]
+        φ_0 = fbls['φ_0']
+        t_0 = min_time + φ_0*foldperiod
+        ephem_times = t_0 + foldperiod * np.arange(0, (max_time-t_0)/foldperiod, 1)
+
+        # plot ephemeris
+        ax_raw.plot(ephem_times,0.02*(max(ylim_raw)-min(ylim_raw)) + \
+                min(ylim_raw)*np.ones_like(ephem_times), c='red', linestyle='-',
+                marker='^', markerfacecolor='red', markeredgecolor='black', ms=3,
+                lw=0, zorder=3, rasterized=True)
+
+        # label axes, set xlimits for entire time series.
+        timelen = max_time - min_time
+        inj = False
+        p = allq['inj_model'] if inj else np.nan
+        injdepth = (p['params'].rp)**2 if inj else np.nan
+
+        kebc_period = float(lcd[list(lcd.keys())[0]]['kebwg_info']['period'])
+        #ax_raw.get_xaxis().set_ticks([])
+        xmin, xmax = min_time-timelen*0.01, max_time+timelen*0.01
+        ax_raw.set(xlabel='', ylabel='',
+            xlim=[xmin,xmax],
+            ylim = ylim_raw)
+        ax_raw.set_title(
+            'KIC:{:s}, {:s}, q_flag>0, KEBC_P: {:.4f} '.format(
+            str(kicid), ap.upper(), kebc_period)+\
+            'd, bls {:d} period: {:.2f} d'.format(fpind, foldperiod),
+            fontsize='x-small')
+        ax_raw.hlines([0.005,-0.005], xmin, xmax,
+                colors='k',
+                linestyles='--',
+                zorder=-20)
+
+        #######################
+        # INDIVIDUAL TRANSITS #
+        #######################
+        φ_ing, φ_egr = fbls['φ_ing'], fbls['φ_egr']
+        δ = fbls['serialdict']['blsresult']['transdepth']
+        φ_dur = φ_egr - φ_ing if φ_egr > φ_ing else (1+φ_egr) - φ_ing
+        T_dur = foldperiod * φ_dur
+
+        φ_0 = fbls['φ_0']
+        t_0 = min_time + φ_0*foldperiod
+        ephem_times = t_0 + foldperiod * np.arange(0, (max_time-t_0)/foldperiod, 1)
+
+        times = allq['dipfind']['tfe'][ap]['times']
+        fluxs = allq['dipfind']['tfe'][ap]['fluxs']
+        rms = np.nanstd(fluxs)
+
+        if nrows == 21:
+            # if you have many many transits, truncate ephem_times.
+            ephem_times = ephem_times[:20*7]
+
+        for tra_ind, ax in enumerate(axs):
+            try:
+                this_t0 = ephem_times[tra_ind]
+            except:
+                ax.get_xaxis().set_ticks([])
+                ax.get_xaxis().set_ticklabels([])
+                ax.get_xaxis().set_visible(False)
+                ax.get_yaxis().set_visible(False)
+                continue
+
+            ltime = this_t0 - 3*T_dur
+            rtime = this_t0 + 3*T_dur
+
+            ptimes = times[(times > ltime) & (times < rtime)]
+            pfluxs = fluxs[(times > ltime) & (times < rtime)]
+            if len(ptimes) == 0 or len(pfluxs) == 0:
+                continue
+
+            ax.plot(ptimes, pfluxs, c='k', linestyle='-',
+                    marker='o', markerfacecolor='k',
+                    markeredgecolor='k', ms=3, lw=1, zorder=1,
+                    rasterized=True)
+
+            ax.set_xlim([ltime, rtime])
+
+            ax.vlines(this_t0, min(ax.get_ylim()), min(ax.get_ylim()) + \
+                    0.05*(max(ax.get_ylim())-min(ax.get_ylim())),
+                    colors='k', linestyles='-', alpha=0.8, zorder=-3)
+
+            # alternative ephemeris from actual minimum in this window
+            alt_t0 = ptimes[np.argmin(pfluxs)]
+            ax.vlines(alt_t0,
+                min(ax.get_ylim()) + 0.03*(max(ax.get_ylim())-min(ax.get_ylim())),
+                min(ax.get_ylim()) + 0.08*(max(ax.get_ylim())-min(ax.get_ylim())),
+                colors='darkblue', linestyles='-', alpha=0.8, zorder=-3)
+            # and show transit duration for scale
+            ax.hlines(
+                min(ax.get_ylim()) + 0.055*(max(ax.get_ylim())-min(ax.get_ylim())),
+                alt_t0 - 0.5*T_dur,
+                alt_t0 + 0.5*T_dur,
+                colors='darkblue', linestyles='-', alpha=0.8, zorder=-3)
+
+            ax.vlines(
+                min(ax.get_xlim()) + 0.05*(max(ax.get_xlim())-min(ax.get_xlim())),
+                np.median(pfluxs) - rms,
+                np.median(pfluxs) + rms,
+                colors='orange', linestyles='-', lw=2, alpha=0.8, zorder=-3)
+
+
+            txt = 't_0 bls: {:.1f}\nT_dur: {:.1f} hr'.format(
+                   this_t0, T_dur*24)
+            t = ax.text(0.02, 0.98, txt, horizontalalignment='left',
+                    verticalalignment='top', fontsize=5, zorder=3,
+                    transform=ax.transAxes)
+            t.set_bbox(dict(facecolor='white', alpha=0.9, edgecolor='black'))
+
+            ax.get_xaxis().set_ticks([])
+            ax.get_xaxis().set_ticklabels([])
+
+        f.savefig(outdir+str(kicid)+'_'+str(fpind)+'.png', dpi=300)
+
+
+
+
+
+
 if __name__ == '__main__':
 
-    # First, be sure to run:
+    # Immediately after real search, run:
     # >>> python run_the_machine.py --pkltocsv --inj 0
 
     # Then from ipython:
@@ -417,14 +636,20 @@ if __name__ == '__main__':
     # >>> irra.summarize_realsearch_result()
     # then you'll have candidates_sort_allN.csv
 
-    # This throws out obvious harmonics, and keeps only SNR_pf > 3 candidates.
-    # (No real BLS detection threshold, which is probably bad)
-    df = pd.read_csv('../results/real_search/candidates_sort_allN.csv')
+    # List of kicids to use immediately after real search: this throws out
+    # obvious harmonics, and keeps only SNR_pf > 3 candidates.  (No real BLS
+    # detection threshold, which might be bad)
+
+    #df = pd.read_csv('../results/real_search/candidates_sort_allN.csv')
+
+    # List of kicids to use after initial BLS vetting:
+    df = pd.read_csv('../results/real_search/170714_all_flagged_culled.csv')
+
     ok_ids = np.array(df['kicid'])
 
     # Now get pickles
-    #pkldir = '/media/luke/LGB_tess_data/cbp_data_170705_realsearch/'
-    pkldir = '../results/real_search/merged_cand_lists/missed_pkls/'
+    pkldir = '/media/luke/LGB_tess_data/cbp_data_170705_realsearch/'
+    #pkldir = '../results/real_search/merged_cand_lists/missed_pkls/'
     stage = 'realsearch_real'
     pklnames = os.listdir(pkldir)
     #lcdnames = [pn for pn in pklnames if 'allq' not in pn]
@@ -434,7 +659,7 @@ if __name__ == '__main__':
     allqnames = [pn for pn in pklnames if 'allq' in pn and
             int(pn.split('_')[0]) in ok_ids]
 
-    for lcdname in np.sort(lcdnames)[4::5]:
+    for lcdname in np.sort(lcdnames)[5::6]:
         kicid = lcdname.split('_')[0]
 
         lcd, loadfailed = ir.load_lightcurve_data( kicid, stage=stage,
@@ -446,6 +671,8 @@ if __name__ == '__main__':
         if loadfailed:
             continue
 
-        # Finally, vet the BLS results w/ improved dipsearchplot
-        vet_bls(lcd, allq, ap='sap', inj=False, varepoch='bls',
-                phasebin=0.002, inset=True)
+        ## Vet the BLS results w/ improved dipsearchplot
+        #vet_bls(lcd, allq, ap='sap', inj=False, varepoch='bls',
+        #        phasebin=0.002, inset=True)
+
+        vet_single_event(lcd, allq)
