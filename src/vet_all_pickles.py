@@ -61,8 +61,23 @@ def LOGEXCEPTION(message):
                 )
             )
 
+####################
+# Helper functions #
+####################
+
+def _get_bls_model_flux(φ, φ_0, φ_ing, φ_egr, δ, median_flux):
+    flux = np.zeros_like(φ)
+    for ix, phase in enumerate(φ-φ_0):
+        if phase < φ_ing - φ_0 or phase > φ_egr - φ_0:
+            flux[ix] = median_flux
+        else:
+            flux[ix] = median_flux - δ
+    return flux
+
+
 ###############################################################################
 ###############################################################################
+
 
 def vet_bls(lcd, allq, ap='sap', inj=False, varepoch='bls',
         phasebin=0.002, inset=True):
@@ -237,43 +252,14 @@ def vet_bls(lcd, allq, ap='sap', inj=False, varepoch='bls',
         binplotφ = fbls['binned_φ']
         binplotfluxs = fbls['binned_flux_φ']
         φ_0 = fbls['φ_0']
-        if ix == 0:
-            bestφ_0 = φ_0
-        # Want to wrap over φ=[-2,2]
-        plotφ = np.concatenate(
-                (plotφ-2.,plotφ-1.,plotφ,plotφ+1.,plotφ+2.)
-                )
-        plotfluxs = np.concatenate(
-                (plotfluxs,plotfluxs,plotfluxs,plotfluxs,plotfluxs)
-                )
-        binplotφ = np.concatenate(
-                (binplotφ-2.,binplotφ-1.,binplotφ,binplotφ+1.,binplotφ+2.)
-                )
-        binplotfluxs = np.concatenate(
-                (binplotfluxs,binplotfluxs,binplotfluxs,binplotfluxs,binplotfluxs)
-                )
 
         # Make the phased LC plot
         ax.scatter(plotφ-φ_0,plotfluxs,marker='o',s=3,alpha=1,color='gray',
                 rasterized=True)
 
-        # Overlay the binned phased LC plot
-        if phasebin:
-            ax.scatter(binplotφ-φ_0,binplotfluxs,marker='o',s=15,color='blue',
-                    rasterized=True)
-
         # Compute the BLS model
         φ_ing, φ_egr = fbls['φ_ing'], fbls['φ_egr']
         δ = fbls['serialdict']['blsresult']['transdepth']
-
-        def _get_bls_model_flux(φ, φ_0, φ_ing, φ_egr, δ, median_flux):
-            flux = np.zeros_like(φ)
-            for ix, phase in enumerate(φ-φ_0):
-                if phase < φ_ing - φ_0 or phase > φ_egr - φ_0:
-                    flux[ix] = median_flux
-                else:
-                    flux[ix] = median_flux - δ
-            return flux
 
         # Overplot the BLS model
         bls_flux = _get_bls_model_flux(np.arange(-2,2,0.005), φ_0, φ_ing,
