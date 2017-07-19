@@ -18,8 +18,6 @@ pgf_with_custom_preamble = {
     }
 mpl.rcParams.update(pgf_with_custom_preamble)
 
-import sys
-sys.path.insert(1, '../../../qatspy/') # forgive me
 import qatspy
 import numpy as np, matplotlib.pyplot as plt
 

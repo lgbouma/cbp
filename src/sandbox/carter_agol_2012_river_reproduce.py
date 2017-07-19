@@ -20,8 +20,6 @@ pgf_with_custom_preamble = {
     }
 mpl.rcParams.update(pgf_with_custom_preamble)
 
-import sys
-sys.path.insert(1, '../../../qatspy/') # forgive me
 import qatspy
 import numpy as np, matplotlib.pyplot as plt
 
@@ -99,15 +97,12 @@ for diff in [2]:
                    cmap='Blues_r')
                    #cmap='Greys_r') #looks alright too
 
-
     ax.plot(ind_fold[:M_best-1], np.array(range(M_best-1))+0.5, ls='-',
             c='red', lw=0, marker='o', markerfacecolor='red',
             markeredgecolor='red', ms=2)
 
-
 ax.set_title('$\Delta_\mathrm{max} - \Delta_\mathrm{min} = $'+\
         '{:d}'.format(diff), fontsize='small')
-
 ax.set_ylabel('transit number')
 ax.set_xlabel('(cadence number mod 794.36) - 120',
         fontsize='small')
