@@ -82,4 +82,3 @@ axs[1].set_xlim([780, 830])
 
 f.tight_layout()
 f.savefig('carter_agol_2012_fig7_reproduce.pdf', bbox_inches='tight')
-
